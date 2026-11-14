@@ -10,9 +10,9 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.6.0, milestone 6.** Connecting, the conversations, the chat, the mail cards, the
-> draft editor and the notes and CRM cards work, side by side on the iPad. Task cards still show as
-> text; they're next. See [docs/PLAN.md](docs/PLAN.md).
+> **Status: 0.7.0, milestone 7: everything the Android app 0.6.0 does.** Connecting, the
+> conversations, the chat, every card with its buttons (mail, drafts, events, notes, CRM, tasks) and
+> the draft editor, side by side on the iPad. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Setting up the Mac (once)
 
@@ -90,7 +90,8 @@ you're away from home.
   - **Lists:** tap a row to open it. An archive list (`/archive`) has **Show more (N left)**.
   - **Threads:** newest first, folded by the Mac's rule (your own replies fold too): tap a folded
     message to open it, ⌃ to fold it again. Original | Summary (with Rewrite), Expand all / Fold
-    older, Show full text, Reply, Reply all (only when it reaches someone more) and Open in browser.
+    older, Show full text, Reply, Reply all (only when it reaches someone more), Add to note, Add
+    task (with Google Tasks) and Open in browser.
     A thread from the archive is read-only: no Reply or Reply all.
   - **Drafts:** tap a row to open it; Edit on a draft.
   - **Events:** by day, with Join for video calls.
@@ -103,6 +104,14 @@ you're away from home.
   - **Send to CRM:** Write… / Edit… with Rewrite professionally, None of these…, Change note, Post /
     Post anyway, and the sync status. It's visible to your team.
   - **Suggested notes:** Edit…, Add to my memory.md, Dismiss.
+  - **Tasks** (`/tasks [list]`, only when the Mac has Google Tasks set up): grouped by when they're
+    due against today on this device (Overdue in red, Today, Upcoming, No date). Each task has Done
+    (or Undo once done, struck through), **Reschedule** (Today, Tomorrow, Next Monday, In a week,
+    Pick a date…, No date), Edit (title, due date, details) and Open in Google Tasks; ↻ reads them
+    again.
+  - **New task** (`/task <text>`, Add task on an email, or by asking): Create, Edit… (title, list,
+    due date, details, sent once on Done) or Cancel. Create waits while a title is being suggested.
+  - **Task changes asked for in chat** ("move the dentist to Monday") wait for **Confirm**.
   - What's typed in a card's sheet stays on this device until Done.
   - **Open in Obsidian** opens the note in Obsidian here, if the vault is synced to this device under
     the same name.
@@ -119,6 +128,8 @@ you're away from home.
   Mac). Tap one for the details.
 - **iPad:** the conversations and the chat side by side. ⌘N starts a new one, ⌘Return sends.
 - **Settings → Text size:** a step smaller or larger than iOS's own text size.
+
+Not in this version: push notifications, offline mail, attachments.
 
 ## Where things are
 

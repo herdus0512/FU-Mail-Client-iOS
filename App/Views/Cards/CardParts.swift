@@ -171,24 +171,6 @@ extension Array where Element == EmailAddress {
     }
 }
 
-/// A card as text, for the kinds that don't have their own view yet (milestones 6–7).
-struct CardTextView: View {
-    var card: Card
-    var busy: Bool
-
-    var body: some View {
-        CardBox {
-            VStack(alignment: .leading, spacing: 6) {
-                if busy { ProgressView().controlSize(.small) }
-                Text(CardText.describe(card))
-                    .font(.footnote)
-                    .textSelection(.enabled)
-            }
-            .padding(12)
-        }
-    }
-}
-
 /// The view for a message's card.
 struct CardView: View {
     var card: Card
@@ -205,6 +187,9 @@ struct CardView: View {
         case .notes(let notes): NotesCardView(card: notes, scope: scope)
         case .crm(let crm): CRMCardView(card: crm, scope: scope)
         case .noteView(let view): NoteViewCardView(card: view, scope: scope)
+        case .tasks(let tasks): TaskListCardView(card: tasks, scope: scope)
+        case .taskDraft(let draft): TaskDraftCardView(card: draft, scope: scope)
+        case .taskChange(let change): TaskChangeCardView(card: change, scope: scope)
         case .unsupported(let name):
             CardBox {
                 Text("A “\(name)” card this version of the app can't show. It's on the Mac.")
@@ -212,7 +197,6 @@ struct CardView: View {
                     .foregroundStyle(.secondary)
                     .padding(12)
             }
-        default: CardTextView(card: card, busy: scope.busy)
         }
     }
 }

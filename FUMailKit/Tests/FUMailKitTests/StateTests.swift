@@ -216,6 +216,22 @@ struct StateTests {
         #expect(thread.offersReplyAll)
     }
 
+    @Test func openTasksAndWhenCreateIsOffered() throws {
+        let cards = try decode([Card].self, try fixture("tasks.json"))
+        guard case .tasks(let list) = cards[0], case .taskDraft(var draft) = cards[1] else { return }
+        #expect(list.openCount == 2)  // t2 is done
+        #expect(draft.canCreate(busy: false))
+        #expect(!draft.canCreate(busy: true))
+        draft.suggestingTitle = true
+        #expect(!draft.canCreate(busy: false))
+        draft.suggestingTitle = false
+        draft.title = ""
+        #expect(!draft.canCreate(busy: false))
+        draft.title = "Call Bob"
+        draft.stage = .created
+        #expect(!draft.canCreate(busy: false))
+    }
+
     @Test func taskGroupsAgainstToday() throws {
         guard case .tasks(let list) = try decode([Card].self, try fixture("tasks.json"))[0] else { return }
         let groups = TaskDates.grouped(list.tasks, today: "2026-11-14")

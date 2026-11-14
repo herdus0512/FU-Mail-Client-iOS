@@ -27,6 +27,18 @@ extension ThreadCard {
     }
 }
 
+extension TaskListCard {
+    /// The tasks not done yet (done ones stay on the card, struck through, until it's read again).
+    public var openCount: Int { tasks.filter { !$0.completed }.count }
+}
+
+extension TaskDraftCard {
+    /// Create: only while editing, with a title, and not while one's being suggested (or the card is busy).
+    public func canCreate(busy: Bool) -> Bool {
+        stage == .editing && !busy && !suggestingTitle && !title.isEmpty
+    }
+}
+
 extension NoteViewCard {
     /// The entries to show for a section: all when expanded, else the newest few.
     public func shown(_ section: NoteSection, _ entries: [NoteEntry]) -> [NoteEntry] {

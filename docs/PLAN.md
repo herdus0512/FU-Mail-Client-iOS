@@ -40,4 +40,5 @@ FU Mail for iPhone and iPad: a thin client of the Mac's FU Mail API, at parity w
    text, Cancel (asking first if anything was typed).
 6. **Notes and CRM** (0.6.0) ✓: Add to note, note cards (Catch me up, Post CRM update), Send to
    CRM, suggested notes, Open in Obsidian.
-7. **Tasks:** the tasks card, new task, Confirm for changes asked in chat, Add task on emails.
+7. **Tasks** (0.7.0) ✓: the tasks card, new task, Confirm for changes asked in chat, Add task on
+   emails. With this, the app does everything the Android app 0.6.0 does.
