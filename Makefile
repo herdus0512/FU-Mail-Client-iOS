@@ -14,7 +14,7 @@ SIM ?= iPhone 17
 # Each upload needs a higher build number: minutes since 1970, so it always goes up.
 BUILD_NUMBER := $(or $(BUILD_NUMBER),$(shell echo $$(( $$(date +%s) / 60 ))))
 
-.PHONY: all test build run sim-ipad archive testflight check-ids clean
+.PHONY: all test build run sim-ipad fake-mac run-fake archive testflight check-ids clean
 
 all: test build
 
@@ -29,7 +29,7 @@ build:
 
 # Builds, then opens the app in the simulator (make run SIM="iPad Air 11-inch (M4)" for an iPad).
 run: build
-	open -a Simulator
+	open "$(DEVELOPER_DIR)/Applications/Simulator.app" || true
 	xcrun simctl boot "$(SIM)" 2>/dev/null || true
 	xcrun simctl bootstatus "$(SIM)" -b >/dev/null
 	xcrun simctl install "$(SIM)" $(DERIVED)/Build/Products/Debug-iphonesimulator/FUMail.app
@@ -37,6 +37,19 @@ run: build
 
 sim-ipad:
 	$(MAKE) run SIM="iPad Air 11-inch (M4)"
+
+# A pretend Mac with sample cards (leave it running in another terminal), and the simulator using it.
+fake-mac:
+	python3 tools/fake_mac.py
+
+run-fake: build
+	open "$(DEVELOPER_DIR)/Applications/Simulator.app" || true
+	xcrun simctl boot "$(SIM)" 2>/dev/null || true
+	xcrun simctl bootstatus "$(SIM)" -b >/dev/null
+	xcrun simctl install "$(SIM)" $(DERIVED)/Build/Products/Debug-iphonesimulator/FUMail.app
+	xcrun simctl terminate "$(SIM)" $(BUNDLE_ID) 2>/dev/null || true
+	SIMCTL_CHILD_FUMAIL_URL=http://127.0.0.1:8799 SIMCTL_CHILD_FUMAIL_TOKEN=fum_smoke \
+		xcrun simctl launch "$(SIM)" $(BUNDLE_ID)
 
 check-ids:
 	@test -n "$(TEAM_ID)" || { echo "Fill in TEAM_ID in local.mk first (cp local.mk.example local.mk)."; exit 1; }

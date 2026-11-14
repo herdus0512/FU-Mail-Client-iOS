@@ -27,8 +27,9 @@ FU Mail for iPhone and iPad: a thin client of the Mac's FU Mail API, at parity w
 
 1. **Groundwork** (0.1.0) ✓: FUMailKit (models, rules, state, client) with the Android core's tests
    ported, the Xcode project, the app icon, signing, and `make testflight`.
-2. **Connect:** Settings (Test, Save and connect, Save anyway, the plain HTTP warning), the token in
-   the Keychain, the indicator, problem banners, reconnecting when the app comes back on screen.
+2. **Connect** (0.2.0) ✓: Settings (Save and connect, Save anyway, the plain HTTP warning,
+   Appearance, Forget token), the token in the Keychain, the indicator, problem banners,
+   reconnecting when the app comes back on screen; the conversations listed read-only.
 3. **Chat:** the conversation list (new, rename, delete), sending, `/` command suggestions, Stop, the
    provider line, history search. iPad: list and chat side by side.
 4. **Mail cards:** lists (with archive Show more), threads (folding, Original | Summary, Show full

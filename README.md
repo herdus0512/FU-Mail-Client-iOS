@@ -10,9 +10,9 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.1.0, milestone 1.** The core (models, rules, state, client) and its tests, and the
-> app shell, signed and uploaded to TestFlight. Settings and connecting are next. See
-> [docs/PLAN.md](docs/PLAN.md).
+> **Status: 0.2.0, milestone 2.** Settings, the token in the Keychain, the connection indicator,
+> problem banners and reconnecting work, and the Mac's conversations are listed (read-only).
+> Opening and starting conversations is next. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Setting up the Mac (once)
 
@@ -33,6 +33,8 @@ make test         # the core's tests, against a pretend Mac (no simulator)
 make build        # the app for the simulator
 make run          # build and open it in the iPhone simulator
 make sim-ipad     # the same on an iPad
+make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (leave it running)
+make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
 make testflight   # test, archive, sign and upload to TestFlight
 ```
 
@@ -47,9 +49,12 @@ replaces the old one and keeps its settings.
 
 ## Connecting to the Mac
 
-*(From milestone 2.)* As for the Android app: the Mac's `api` must be on with `allow_from` covering
-the home network and/or Tailscale (`100.64.0.0/10`), and each device gets its own token
-(**API → New Device Token…**).
+As for the Android app: the Mac's `api` must be on with `allow_from` covering the home network
+and/or Tailscale (`100.64.0.0/10`), and each device gets its own token (**API → New Device
+Token…**). In the app, **Settings** (the gear; it opens by itself the first time) takes the address
+and the token. **Save and connect** checks the address (`/health`) and the token (`/v1/info`) first
+and says which one is wrong; **Save anyway** keeps settings it can't check right now, e.g. while
+you're away from home.
 
 | Where | Address |
 | ----- | ------- |
@@ -64,6 +69,12 @@ the home network and/or Tailscale (`100.64.0.0/10`), and each device gets its ow
   declined: **Settings → Privacy & Security → Local Network → FU Mail**. Tailscale addresses don't
   need it.
 - **The token** is kept in the Keychain on this device only: not synced to iCloud and not backed up.
+  **Forget token** in Settings removes it.
+- **The indicator** at the top right is green when connected, orange while connecting, and red
+  when it can't connect. Tap it for the address, this device's name, the Mac's version and what's
+  wrong. Problems also show in a banner across the top.
+- **The connection** is open only while the app is on screen. When it comes back, or the
+  connection drops, it reconnects (1 s, doubling up to 30 s) and fetches everything again.
 
 ## Where things are
 
