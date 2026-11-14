@@ -87,7 +87,10 @@ private struct MessageList: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
+                // Not lazy: a lazy stack estimates the height of messages off screen, and with long
+                // emails a jump to the bottom (a new message, a card growing) could land past the real
+                // end and show nothing until the chat was opened again.
+                VStack(alignment: .leading, spacing: 12) {
                     ForEach(shown) { message in
                         MessageRow(message: message,
                                    scope: CardScope(client: client, conversationID: conversationID, messageID: message.id,

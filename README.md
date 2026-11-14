@@ -10,7 +10,7 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.7.0, milestone 7: everything the Android app 0.6.0 does.** Connecting, the
+> **Status: 0.7.1, milestone 7: everything the Android app 0.6.0 does.** Connecting, the
 > conversations, the chat, every card with its buttons (mail, drafts, events, notes, CRM, tasks) and
 > the draft editor, side by side on the iPad. See [docs/PLAN.md](docs/PLAN.md).
 
@@ -34,7 +34,8 @@ make build        # the app for the simulator
 make run          # build and open it in the iPhone simulator
 make sim-ipad     # the same on an iPad
 make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (leave it running;
-                  #   python3 tools/fake_mac.py --editor starts with a draft editor open)
+                  #   python3 tools/fake_mac.py --editor starts with a draft editor open, --long makes
+                  #   the chat long; Summary and Add to note on a thread answer as the Mac does)
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
                   #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages
 make testflight   # test, archive, sign and upload to TestFlight

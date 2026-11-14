@@ -6,7 +6,7 @@ and a CRM card that starts at its preview; and a third with the task cards (task
 the address is http://10.0.2.2:8799 and the token is fum_smoke. Buttons answer 202 and change
 nothing; events are only pings. Python 3, standard library only.
 """
-import datetime, json, os, sys, time
+import datetime, json, os, sys, threading, time, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # --editor: start with a reply's draft editor open for the device (closed again by Cancel or Save).
@@ -53,6 +53,19 @@ messages = [
     msg(11, "assistant", "", archive_list),
     msg(12, "assistant", "", archived_thread),
 ]
+# --long: the conversation five times over, with long email bodies, as a real chat gets.
+if "--long" in sys.argv:
+    long_body = "\n\n".join(f"Paragraph {n}: " + "We went through the Q4 numbers line by line and agreed the forecast. " * 6 for n in range(1, 13))
+    longer = []
+    for round in range(5):
+        for m in messages:
+            copy = json.loads(json.dumps(m))
+            copy["id"] = f"5A277C52-0000-4000-{8001 + round:04X}-{int(m['id'][-12:]):012d}"
+            card = copy.get("card", {})
+            for message in card.get("thread", {}).get("_0", {}).get("messages", []):
+                message["body"] = long_body
+            longer.append(copy)
+    messages = longer
 NOTES = [
     msg(1, "user", "/obsidian ntt"),
     msg(2, "assistant", "", note_choices),
@@ -100,6 +113,40 @@ COMMANDS = [{"name": n, "args": a, "summary": s} for n, a, s in [
     ("/rename", "<title>", "rename this chat"), ("/mcp", "[status|start|stop|restart] [server]", "the mail servers"),
     ("/help", "", "lists the commands")]]
 
+# Events for the open streams: Add to note on the thread answers as the Mac does, with a placeholder
+# ("Preparing an entry for your notes…") and then the notes card in its place.
+EVENTS = []
+EVENTS_LOCK = threading.Lock()
+
+def push(event):
+    with EVENTS_LOCK: EVENTS.append(json.dumps(event))
+
+def add_to_notes(conversation):
+    placeholder = {"id": str(uuid.uuid4()).upper(), "role": "assistant", "text": "Preparing an entry for your notes…",
+                   "createdAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    push({"type": "message_appended", "conversationID": conversation, "message": placeholder})
+    def later():
+        time.sleep(2)
+        push({"type": "message_updated", "conversationID": conversation, "message": dict(placeholder, text="", card=others[4])})
+    threading.Thread(target=later, daemon=True).start()
+
+def summarize(conversation, message_id):
+    """Summary on a thread: the card turns to its Summary side, which streams in, as the Mac's does."""
+    original = next((m for m in messages if m["id"] == message_id and "thread" in m.get("card", {})), None)
+    if original is None: return
+    def stream():
+        words = ("Bob wants the Q4 numbers approved by Friday. He has gone through them line by line "
+                 "with the team and agreed the forecast; Carol is copied in. Nothing else is needed.").split()
+        for n in range(1, len(words) + 1, 3):
+            message = json.loads(json.dumps(original))
+            card = message["card"]["thread"]["_0"]
+            card["side"] = "summary"
+            done = n + 3 > len(words)
+            card["summary"] = {"text": " ".join(words[:n + 2]), "state": {"done": {}} if done else {"writing": {}}, "by": "summary · gemini"}
+            push({"type": "message_updated", "conversationID": conversation, "message": message})
+            time.sleep(0.15)
+    threading.Thread(target=stream, daemon=True).start()
+
 class H(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     def log_message(self, *a): pass
@@ -137,10 +184,19 @@ class H(BaseHTTPRequestHandler):
             return self.send_json(200, [{"conversationID": C1, "title": "Unread this morning", "updatedAt": "2026-11-13T08:05:00Z", "snippet": "Bob wants approval of Q4", "byMeaning": True}])
         if method == "GET" and path == "/v1/events":
             self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.send_header("Connection", "close"); self.end_headers()
+            with EVENTS_LOCK: sent = len(EVENTS)
+            last_ping = 0
             try:
                 while True:
-                    self.wfile.write(b": ping\n\n"); self.wfile.flush(); time.sleep(5)
+                    with EVENTS_LOCK: fresh = EVENTS[sent:]; sent = len(EVENTS)
+                    for event in fresh: self.wfile.write(f"data: {event}\n\n".encode())
+                    if time.time() - last_ping > 5: self.wfile.write(b": ping\n\n"); last_ping = time.time()
+                    self.wfile.flush(); time.sleep(0.2)
             except Exception: return
+        if method == "POST" and path.endswith("/action") and '"set_side"' in body and '"summary"' in body:
+            summarize(path.split("/")[3], path.split("/")[5])
+        if method == "POST" and path.endswith("/action") and '"add_to_notes"' in body:
+            add_to_notes(path.split("/")[3])
         return self.send_json(202, {"ok": True})
     def do_GET(self): self.handle_any("GET")
     def do_POST(self): self.handle_any("POST")
