@@ -10,10 +10,9 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.4.0, milestone 4.** Connecting, the conversations and the chat work, side by side on
-> the iPad, and the mail cards have their views and buttons (lists, threads, drafts, events). Notes,
-> CRM and task cards still show as text, and Reply and Edit don't open the editor yet: the draft
-> editor is next. See [docs/PLAN.md](docs/PLAN.md).
+> **Status: 0.5.0, milestone 5.** Connecting, the conversations, the chat, the mail cards (lists,
+> threads, drafts, events) and the draft editor work, side by side on the iPad. Notes, CRM and task
+> cards still show as text; their views are next. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Setting up the Mac (once)
 
@@ -34,7 +33,8 @@ make test         # the core's tests, against a pretend Mac (no simulator)
 make build        # the app for the simulator
 make run          # build and open it in the iPhone simulator
 make sim-ipad     # the same on an iPad
-make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (leave it running)
+make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (leave it running;
+                  #   python3 tools/fake_mac.py --editor starts with a draft editor open)
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
                   #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages
 make testflight   # test, archive, sign and upload to TestFlight
@@ -94,6 +94,15 @@ you're away from home.
     A thread from the archive is read-only: no Reply or Reply all.
   - **Drafts:** tap a row to open it; Edit on a draft.
   - **Events:** by day, with Join for video calls.
+- **The draft editor** opens when the Mac opens one for this device (Reply, Reply all, Edit, or
+  `/draft`), also if that happened while the app was in the background.
+  - To, Cc, Bcc, Subject, the body and the instructions are edited here, and stay here until you
+    press something: nothing is sent per keystroke.
+  - **Write / Rewrite** has the Mac's `draft` model write the body (it streams in). The **Reply
+    all** switch has the Mac fill in Cc.
+  - **Save to Drafts** (or **Update draft**) puts it in the account's Drafts. **Copy text** copies
+    the body. **Cancel** closes it without saving (asking first if you typed anything).
+  - Nothing is ever sent as email.
 - **The provider line** at the top shows which model each role uses on the Mac (a globe: off the
   Mac). Tap one for the details.
 - **iPad:** the conversations and the chat side by side. ⌘N starts a new one, ⌘Return sends.

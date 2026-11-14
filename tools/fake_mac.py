@@ -9,7 +9,10 @@ nothing; events are only pings. Python 3, standard library only.
 import datetime, json, os, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-FIX = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "..", "FUMailKit", "Tests", "FUMailKitTests", "Fixtures")
+# --editor: start with a reply's draft editor open for the device (closed again by Cancel or Save).
+EDITOR = "--editor" in sys.argv
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+FIX = ARGS[0] if ARGS else os.path.join(os.path.dirname(__file__), "..", "FUMailKit", "Tests", "FUMailKitTests", "Fixtures")
 TOKEN = "fum_smoke"
 C1 = "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A00"
 def fx(name): return open(f"{FIX}/{name}").read()
@@ -119,7 +122,16 @@ class H(BaseHTTPRequestHandler):
         if method == "GET" and path == f"/v1/conversations/{C2}":
             return self.send_json(200, dict(CONV, conversation=dict(CONV["conversation"], id=C2, title="Notes: UOB and NTT", messages=NOTES), chatStatus=None, answering=False))
         if method == "GET" and path.startswith("/v1/conversations/"): return self.send_json(200, CONV)
-        if method == "GET" and path == "/v1/editors": return self.send_json(200, [])
+        global EDITOR
+        if method == "GET" and path == "/v1/editors":
+            if not EDITOR: return self.send_json(200, [])
+            editor = json.loads(fx("editor-reply.json"))
+            editor["status"] = {"idle": {}}
+            editor["form"]["body"] = "Hi Bob,\n\nThanks for sending the Q4 numbers. I'll have a look today and get back to you by Friday.\n"
+            return self.send_json(200, [editor])
+        if path.startswith("/v1/editors/") and (method == "DELETE" or path.endswith("/save")):
+            EDITOR = False
+            return self.send_json(202, {"ok": True})
         if method == "GET" and path == "/v1/commands": return self.send_json(200, COMMANDS)
         if method == "GET" and path == "/v1/history/search":
             return self.send_json(200, [{"conversationID": C1, "title": "Unread this morning", "updatedAt": "2026-11-13T08:05:00Z", "snippet": "Bob wants approval of Q4", "byMeaning": True}])

@@ -35,7 +35,7 @@ struct HomeView: View {
         // A draft editor the Mac opened for this device opens over whatever is showing, and closes
         // on editor_closed (saved, closed here, or closed on the Mac).
         .sheet(item: Binding(get: { app.client?.state.editors.values.first }, set: { _ in })) { editor in
-            if let client = app.client { EditorPlaceholder(editor: editor, client: client) }
+            if let client = app.client { DraftEditorView(editor: editor, client: client) }
         }
         .onAppear {
             // First run: nothing to connect to yet, so start in Settings.
