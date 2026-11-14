@@ -7,6 +7,7 @@ struct ConnectionIndicator: View {
     var client: RemoteClient?
     var onSettings: () -> Void
     @State private var open = false
+    @State private var settingsAfterClose = false
 
     private var connection: Connection { client?.state.connection ?? Connection() }
 
@@ -39,6 +40,16 @@ struct ConnectionIndicator: View {
             details
                 .presentationCompactAdaptation(.popover)
         }
+        // Settings opens once the popover has gone: iOS won't show a sheet while it's still closing,
+        // and the app would be left thinking Settings was open (so the gear did nothing either).
+        .onChange(of: open) { _, isOpen in
+            guard !isOpen, settingsAfterClose else { return }
+            settingsAfterClose = false
+            Task {
+                try? await Task.sleep(for: .milliseconds(450))
+                onSettings()
+            }
+        }
     }
 
     private var details: some View {
@@ -62,8 +73,8 @@ struct ConnectionIndicator: View {
             }
             Detail(label: "This app", value: AppVersion.text)
             Button("Settings…") {
+                settingsAfterClose = true
                 open = false
-                onSettings()
             }
             .padding(.top, 4)
         }

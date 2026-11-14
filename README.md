@@ -10,7 +10,7 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.7.1, milestone 7: everything the Android app 0.6.0 does.** Connecting, the
+> **Status: 0.7.2, milestone 7: everything the Android app 0.6.0 does.** Connecting, the
 > conversations, the chat, every card with its buttons (mail, drafts, events, notes, CRM, tasks) and
 > the draft editor, side by side on the iPad. See [docs/PLAN.md](docs/PLAN.md).
 
@@ -87,6 +87,10 @@ you're away from home.
 - **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the
   Mac. **Type `/` and the commands appear** above the box, narrowing as you type; tap one to put it in
   the box. While the chat model works, its status shows above the box, with **Stop**.
+- **The chat** follows new messages while you're at the bottom; scrolled up, it stays put and
+  **Latest** jumps down. What you asked for yourself (an email opened from a list, a command, Add to
+  note, Add task) is always shown when it arrives, a card from its start. Tap or scroll the messages,
+  or tap **Done** above the keyboard, to put the keyboard away.
 - **Cards** have the Mac's buttons:
   - **Lists:** tap a row to open it. An archive list (`/archive`) has **Show more (N left)**.
   - **Threads:** newest first, folded by the Mac's rule (your own replies fold too): tap a folded

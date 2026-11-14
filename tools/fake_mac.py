@@ -193,6 +193,11 @@ class H(BaseHTTPRequestHandler):
                     if time.time() - last_ping > 5: self.wfile.write(b": ping\n\n"); last_ping = time.time()
                     self.wfile.flush(); time.sleep(0.2)
             except Exception: return
+        if method == "POST" and path.endswith("/open"):
+            # Opening a list row: the thread arrives as a new card, as on the Mac.
+            opened = json.loads(json.dumps(next(m for m in messages if "thread" in m.get("card", {}))))
+            opened["id"] = str(uuid.uuid4()).upper()
+            push({"type": "message_appended", "conversationID": path.split("/")[3], "message": opened})
         if method == "POST" and path.endswith("/action") and '"set_side"' in body and '"summary"' in body:
             summarize(path.split("/")[3], path.split("/")[5])
         if method == "POST" and path.endswith("/action") and '"add_to_notes"' in body:

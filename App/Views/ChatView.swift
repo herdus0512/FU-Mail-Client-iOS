@@ -92,9 +92,12 @@ private struct MessageList: View {
                 // end and show nothing until the chat was opened again.
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(shown) { message in
+                        // Equatable: a message that didn't change isn't rebuilt when another one does
+                        // (a summary streaming in, a status line), which keeps scrolling smooth.
                         MessageRow(message: message,
                                    scope: CardScope(client: client, conversationID: conversationID, messageID: message.id,
                                                     busy: busy.contains(message.id)))
+                            .equatable()
                             .id(message.id)
                     }
                     Color.clear.frame(height: 1).id(bottom)
@@ -103,7 +106,9 @@ private struct MessageList: View {
                 .padding(.vertical, 10)
             }
             .defaultScrollAnchor(.bottom)
-            .scrollDismissesKeyboard(.interactively)
+            // The keyboard goes away when the messages are scrolled or tapped.
+            .scrollDismissesKeyboard(.immediately)
+            .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
             } action: { _, isAtBottom in
@@ -112,13 +117,7 @@ private struct MessageList: View {
             .onScrollPhaseChange { _, phase in
                 if phase == .idle { following = atBottom }
             }
-            // Something new: while following, or when it's what you just sent, go to it.
-            .onChange(of: messages.last?.id) {
-                if following || messages.last?.role == .user {
-                    following = true
-                    proxy.scrollTo(bottom, anchor: .bottom)
-                }
-            }
+            .onChange(of: messages.last?.id) { reveal(proxy) }
             // A card growing (a summary streaming in) while following: stay at the bottom.
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, _ in
                 if following { proxy.scrollTo(bottom, anchor: .bottom) }
@@ -141,9 +140,48 @@ private struct MessageList: View {
     }
 }
 
-private struct MessageRow: View {
+extension MessageList {
+    /// Something new at the bottom. What you just sent goes into view. A card that answers something
+    /// asked for here (an email opened, a command, Add to note) is shown from its start, even when the
+    /// chat was scrolled up, so an opened email is read from the top. Anything else is shown only while
+    /// following the chat.
+    fileprivate func reveal(_ proxy: ScrollViewProxy) {
+        guard let last = messages.last else { return }
+        if last.role == .user {
+            following = true
+            proxy.scrollTo(bottom, anchor: .bottom)
+            return
+        }
+        let asked = client.takeExpectedReply(in: conversationID)
+        guard following || asked else { return }
+        guard last.card != nil else {
+            following = true
+            proxy.scrollTo(bottom, anchor: .bottom)
+            return
+        }
+        // From its top. A long card (an email) then isn't pulled down to its end as the chat would be
+        // while following; a short one ends at the bottom anyway, and the chat follows again.
+        following = false
+        proxy.scrollTo(last.id, anchor: .top)
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            following = atBottom
+        }
+    }
+}
+
+@MainActor
+func hideKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+
+private struct MessageRow: View, Equatable {
     var message: ChatMessage
     var scope: CardScope
+
+    nonisolated static func == (a: MessageRow, b: MessageRow) -> Bool {
+        MainActor.assumeIsolated { a.message == b.message && a.scope.busy == b.scope.busy && a.scope.messageID == b.scope.messageID }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -248,6 +286,12 @@ private struct Composer: View {
                 .disabled(trimmed.isEmpty)
                 .keyboardShortcut(.return, modifiers: .command)
                 .accessibilityLabel("Send")
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focused = false }
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)

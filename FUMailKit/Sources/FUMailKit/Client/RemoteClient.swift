@@ -236,7 +236,23 @@ public final class RemoteClient {
 
     /// What was typed in the composer: a slash command or a question.
     public func send(_ text: String, in id: Conversation.ID) {
+        expectReply(in: id)
         run { _ = try await self.post("POST", "/v1/conversations/\(id.uuidString)/send", ["text": .string(text)]) }
+    }
+
+    /// Conversations where something was just asked for here (an email opened, a command sent, Add to
+    /// note…), and when: the chat shows what arrives next even if it was scrolled up.
+    @ObservationIgnored private var expecting: [Conversation.ID: Date] = [:]
+
+    private func expectReply(in id: Conversation.ID) {
+        expecting[id] = now()
+    }
+
+    /// Whether a new message in `id` answers something asked for here in the last 30 seconds. Answers
+    /// once: the next message after it is shown only if the chat is following.
+    public func takeExpectedReply(in id: Conversation.ID) -> Bool {
+        guard let asked = expecting.removeValue(forKey: id) else { return false }
+        return now().timeIntervalSince(asked) < 30
     }
 
     public func stopAnswering(in id: Conversation.ID) {
@@ -245,20 +261,27 @@ public final class RemoteClient {
 
     /// A list row: opens the email in the chat.
     public func openEmail(_ ref: EmailRef, in id: Conversation.ID) {
+        expectReply(in: id)
         run { _ = try await self.post("POST", "/v1/conversations/\(id.uuidString)/open", ["ref": try APICoding.body(ref)]) }
     }
 
     /// A drafts-list row: opens the draft in the chat.
     public func openDraft(_ draft: DraftSummary, in id: Conversation.ID) {
+        expectReply(in: id)
         run { _ = try await self.post("POST", "/v1/conversations/\(id.uuidString)/open", ["draft": try APICoding.body(draft)]) }
     }
 
     // MARK: Cards
 
     public func cardAction(_ action: CardAction, on messageID: ChatMessage.ID, in id: Conversation.ID) {
-        if case .crmRewrite = action {
+        switch action {
+        case .crmRewrite:
             // The rewrite streams into the card's text: what was typed before mustn't cover it.
             update { $0.typed[messageID]?.crmText = nil }
+        case .addToNotes, .addTask, .noteViewPostCRM:
+            expectReply(in: id)  // each adds a new card below
+        default:
+            break
         }
         enqueue { try await self.postAction(action, on: messageID, in: id) }
     }

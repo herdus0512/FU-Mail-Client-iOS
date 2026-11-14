@@ -267,6 +267,30 @@ struct ClientTests {
         client.close()
     }
 
+    @Test func whatWasAskedForHereIsShownWhenItArrives() {
+        let client = RemoteClient(transport: desktop, now: { t0 })
+        #expect(!client.takeExpectedReply(in: id("C1")))
+        client.openEmail(EmailRef(server: "gmail-mcp", account: nil, id: "18c2a", threadID: nil), in: id("C1"))
+        #expect(client.takeExpectedReply(in: id("C1")))
+        #expect(!client.takeExpectedReply(in: id("C1")))  // once
+        client.cardAction(.setSide(.summary), on: id("M1"), in: id("C1"))
+        #expect(!client.takeExpectedReply(in: id("C1")))  // changes the card in place: nothing new to show
+        client.cardAction(.addToNotes, on: id("M1"), in: id("C1"))
+        #expect(client.takeExpectedReply(in: id("C1")))
+        client.send("/unread", in: id("C1"))
+        #expect(client.takeExpectedReply(in: id("C1")))
+        client.close()
+    }
+
+    @Test func anOldRequestDoesntMoveTheChat() {
+        let box = Mutex(t0)
+        let client = RemoteClient(transport: desktop, now: { box.withLock { $0 } })
+        client.send("/unread", in: id("C1"))
+        box.withLock { $0 = t0 + 31 }  // the answer came much later (or never)
+        #expect(!client.takeExpectedReply(in: id("C1")))
+        client.close()
+    }
+
     @Test func renameAndDeleteShowAtOnce() async {
         let client = client()
         client.start()
