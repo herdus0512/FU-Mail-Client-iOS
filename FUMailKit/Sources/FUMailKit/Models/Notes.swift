@@ -44,6 +44,8 @@ public struct NoteEntry: Sendable, Equatable, Hashable, Codable {
 
     public var block: [String] { [heading] + lines }
     public var text: String { block.joined(separator: "\n") }
+    /// The lines under the heading as one text, for editing.
+    public var body: String { lines.joined(separator: "\n") }
 }
 
 /// A note suggested for an entry, and why.

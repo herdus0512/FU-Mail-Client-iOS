@@ -201,6 +201,10 @@ struct CardView: View {
         case .draftList(let drafts): DraftListCardView(card: drafts, scope: scope)
         case .draft(let draft): DraftCardView(card: draft, scope: scope)
         case .events(let events): EventListCardView(card: events)
+        case .suggestedNote(let suggestion): SuggestedNoteCardView(card: suggestion, scope: scope)
+        case .notes(let notes): NotesCardView(card: notes, scope: scope)
+        case .crm(let crm): CRMCardView(card: crm, scope: scope)
+        case .noteView(let view): NoteViewCardView(card: view, scope: scope)
         case .unsupported(let name):
             CardBox {
                 Text("A “\(name)” card this version of the app can't show. It's on the Mac.")

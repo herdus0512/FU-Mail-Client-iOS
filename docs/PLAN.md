@@ -38,6 +38,6 @@ FU Mail for iPhone and iPad: a thin client of the Mac's FU Mail API, at parity w
    until the editor.
 5. **Draft editor** (0.5.0) ✓: over the chat, Write / Rewrite streaming in, Reply all, Save, Copy
    text, Cancel (asking first if anything was typed).
-6. **Notes and CRM:** Add to note, note cards (Catch me up, Post CRM update), Send to CRM, suggested
-   notes, Open in Obsidian.
+6. **Notes and CRM** (0.6.0) ✓: Add to note, note cards (Catch me up, Post CRM update), Send to
+   CRM, suggested notes, Open in Obsidian.
 7. **Tasks:** the tasks card, new task, Confirm for changes asked in chat, Add task on emails.

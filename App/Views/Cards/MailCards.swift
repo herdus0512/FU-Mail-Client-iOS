@@ -137,6 +137,9 @@ struct ThreadCardView: View {
                 if card.offersReplyAll {
                     Button("Reply all") { scope.act(.reply(instructions: "", blank: false, replyAll: true)) }
                 }
+                if scope.info?.notesConfigured == true {
+                    Button("Add to note") { scope.act(.addToNotes) }
+                }
                 switch card.foldAllButton {
                 case .expandAll: Button("Expand all") { scope.act(.setAllUnfolded(true)) }
                 case .foldOlder: Button("Fold older") { scope.act(.setAllUnfolded(false)) }

@@ -10,9 +10,9 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.5.0, milestone 5.** Connecting, the conversations, the chat, the mail cards (lists,
-> threads, drafts, events) and the draft editor work, side by side on the iPad. Notes, CRM and task
-> cards still show as text; their views are next. See [docs/PLAN.md](docs/PLAN.md).
+> **Status: 0.6.0, milestone 6.** Connecting, the conversations, the chat, the mail cards, the
+> draft editor and the notes and CRM cards work, side by side on the iPad. Task cards still show as
+> text; they're next. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Setting up the Mac (once)
 
@@ -94,6 +94,18 @@ you're away from home.
     A thread from the archive is read-only: no Reply or Reply all.
   - **Drafts:** tap a row to open it; Edit on a draft.
   - **Events:** by day, with Join for video calls.
+  - **Add to note** (`/note [n]`, or the thread's button): the note (None of these… lists every note,
+    filtered as you type), Edit…, Insert / Insert anyway / Replace, Change note, Skip, then Undo and
+    Open in Obsidian.
+  - **Note cards** (`/obsidian [name] [summary|crm|correspondence]`): pick the note, then its
+    Summary, CRM and Correspondence, read-only (the newest 5 entries, with Show all). **Catch me
+    up**, **Post CRM update**, **Refresh** and Open in Obsidian.
+  - **Send to CRM:** Write… / Edit… with Rewrite professionally, None of these…, Change note, Post /
+    Post anyway, and the sync status. It's visible to your team.
+  - **Suggested notes:** Edit…, Add to my memory.md, Dismiss.
+  - What's typed in a card's sheet stays on this device until Done.
+  - **Open in Obsidian** opens the note in Obsidian here, if the vault is synced to this device under
+    the same name.
 - **The draft editor** opens when the Mac opens one for this device (Reply, Reply all, Edit, or
   `/draft`), also if that happened while the app was in the background.
   - To, Cc, Bcc, Subject, the body and the instructions are edited here, and stay here until you
