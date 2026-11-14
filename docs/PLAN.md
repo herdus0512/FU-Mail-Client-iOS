@@ -30,8 +30,9 @@ FU Mail for iPhone and iPad: a thin client of the Mac's FU Mail API, at parity w
 2. **Connect** (0.2.0) ✓: Settings (Save and connect, Save anyway, the plain HTTP warning,
    Appearance, Forget token), the token in the Keychain, the indicator, problem banners,
    reconnecting when the app comes back on screen; the conversations listed read-only.
-3. **Chat:** the conversation list (new, rename, delete), sending, `/` command suggestions, Stop, the
-   provider line, history search. iPad: list and chat side by side.
+3. **Chat** (0.3.0) ✓: the conversation list (new, rename, delete), sending, `/` command
+   suggestions, Stop, the provider line, history search, cards as text, Text size. iPad: list and
+   chat side by side.
 4. **Mail cards:** lists (with archive Show more), threads (folding, Original | Summary, Show full
    text, Reply, Reply all, Open in browser), drafts, events.
 5. **Draft editor:** full screen, Write / Rewrite streaming in, Reply all, Save, Copy text.

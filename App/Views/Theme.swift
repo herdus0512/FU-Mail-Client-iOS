@@ -17,6 +17,44 @@ enum Appearance: String, CaseIterable, Identifiable {
     }
 }
 
+/// The text a step smaller or larger than iOS's own size (Settings → Text size; kept on this device).
+/// SF Mono is wider than the system font, so Smaller often reads best.
+enum TextSize: String, CaseIterable, Identifiable {
+    case smaller, standard, larger
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .smaller: "Smaller"
+        case .standard: "Default"
+        case .larger: "Larger"
+        }
+    }
+
+    /// iOS's size moved by this one step, within the sizes there are.
+    func applied(to size: DynamicTypeSize) -> DynamicTypeSize {
+        let all = DynamicTypeSize.allCases
+        guard let index = all.firstIndex(of: size) else { return size }
+        let step = switch self {
+        case .smaller: -1
+        case .standard: 0
+        case .larger: 1
+        }
+        return all[min(max(index + step, 0), all.count - 1)]
+    }
+}
+
+/// Applies the Text size setting to everything under it.
+struct TextSizing: ViewModifier {
+    @AppStorage("textSize") private var textSize: TextSize = .standard
+    @Environment(\.dynamicTypeSize) private var systemSize
+
+    func body(content: Content) -> some View {
+        content.dynamicTypeSize(textSize.applied(to: systemSize))
+    }
+}
+
 /// The connection indicator's and warnings' colours: macOS's green, orange and red, light or dark
 /// (the same as the Mac app and the Android app).
 enum StatusColors {

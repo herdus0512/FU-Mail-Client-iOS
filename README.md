@@ -10,9 +10,10 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.2.0, milestone 2.** Settings, the token in the Keychain, the connection indicator,
-> problem banners and reconnecting work, and the Mac's conversations are listed (read-only).
-> Opening and starting conversations is next. See [docs/PLAN.md](docs/PLAN.md).
+> **Status: 0.3.0, milestone 3.** Connecting, the conversations (new, rename, delete, history
+> search) and the chat (commands and questions, `/` suggestions, Stop, the provider line) work, side
+> by side on the iPad. **Cards show as text for now**; their buttons are next. See
+> [docs/PLAN.md](docs/PLAN.md).
 
 ## Setting up the Mac (once)
 
@@ -75,6 +76,19 @@ you're away from home.
   wrong. Problems also show in a banner across the top.
 - **The connection** is open only while the app is on screen. When it comes back, or the
   connection drops, it reconnects (1 s, doubling up to 30 s) and fetches everything again.
+
+## Using it
+
+- **Conversations:** newest first. The pencil starts a new one. Swipe left to delete; touch and hold
+  to rename. **Search history** searches the Mac's history, by
+  words and meaning.
+- **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the
+  Mac. **Type `/` and the commands appear** above the box, narrowing as you type; tap one to put it in
+  the box. While the chat model works, its status shows above the box, with **Stop**.
+- **The provider line** at the top shows which model each role uses on the Mac (a globe: off the
+  Mac). Tap one for the details.
+- **iPad:** the conversations and the chat side by side. ⌘N starts a new one, ⌘Return sends.
+- **Settings → Text size:** a step smaller or larger than iOS's own text size.
 
 ## Where things are
 

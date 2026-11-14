@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @AppStorage("appearance") private var appearance: Appearance = .system
+    @AppStorage("textSize") private var textSize: TextSize = .standard
 
     @State private var url = ""
     @State private var token = ""
@@ -95,12 +96,26 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Appearance") {
+                Section {
                     Picker("Appearance", selection: $appearance) {
                         ForEach(Appearance.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                } header: {
+                    Text("Appearance")
+                }
+
+                Section {
+                    Picker("Text size", selection: $textSize) {
+                        ForEach(TextSize.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                } header: {
+                    Text("Text size")
+                } footer: {
+                    Text("A step either side of the size set for iOS (Settings → Display & Brightness → Text Size).")
                 }
 
                 if app.hasToken {

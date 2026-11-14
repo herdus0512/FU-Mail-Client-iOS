@@ -49,7 +49,7 @@ run-fake: build
 	xcrun simctl install "$(SIM)" $(DERIVED)/Build/Products/Debug-iphonesimulator/FUMail.app
 	xcrun simctl terminate "$(SIM)" $(BUNDLE_ID) 2>/dev/null || true
 	SIMCTL_CHILD_FUMAIL_URL=http://127.0.0.1:8799 SIMCTL_CHILD_FUMAIL_TOKEN=fum_smoke \
-		xcrun simctl launch "$(SIM)" $(BUNDLE_ID)
+		$(if $(OPEN),SIMCTL_CHILD_FUMAIL_OPEN=1) xcrun simctl launch "$(SIM)" $(BUNDLE_ID)
 
 check-ids:
 	@test -n "$(TEAM_ID)" || { echo "Fill in TEAM_ID in local.mk first (cp local.mk.example local.mk)."; exit 1; }

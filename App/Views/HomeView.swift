@@ -1,31 +1,33 @@
 import FUMailKit
 import SwiftUI
 
-/// The first screen: the connection, problems, and (read-only for now) the Mac's conversations.
+/// The conversations and the open chat: side by side on the iPad (and a wide iPhone), one at a time
+/// on the iPhone.
 struct HomeView: View {
     @Environment(AppModel.self) private var app
+    /// The window's width class (inside the split view, each column reports compact).
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var selection: Conversation.ID?
     @State private var showSettings = false
     @State private var askedOnce = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Banners(client: app.client)
-                if let client = app.client {
-                    ConversationTitles(client: client)
-                } else {
-                    NotSetUp { showSettings = true }
+        NavigationSplitView {
+            ConversationListView(selection: $selection, sideBySide: sizeClass == .regular) { showSettings = true }
+        } detail: {
+            if let id = selection, let client = app.client {
+                ChatView(id: id, client: client, sideBySide: sizeClass == .regular) { showSettings = true }
+                    .id(id)
+            } else {
+                ContentUnavailableView {
+                    Label("No conversation open", systemImage: "bubble.left.and.bubble.right")
+                } description: {
+                    Text(app.client == nil ? "Connect to your Mac in Settings first." : "Pick one, or start a new one with the pencil.")
                 }
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("FU Mail")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    ConnectionIndicator(client: app.client) { showSettings = true }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
-                        .accessibilityLabel("Settings")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ConnectionIndicator(client: app.client) { showSettings = true }
+                    }
                 }
             }
         }
@@ -37,57 +39,12 @@ struct HomeView: View {
                 showSettings = true
             }
         }
-    }
-}
-
-private struct NotSetUp: View {
-    var onSettings: () -> Void
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Not set up", systemImage: "desktopcomputer")
-        } description: {
-            Text("FU Mail shows the conversations of FU Mail on your Mac. Add the Mac's address and a device token to connect.")
-        } actions: {
-            Button("Settings", action: onSettings).buttonStyle(.borderedProminent)
+        .onChange(of: app.client == nil) { selection = nil }
+        #if DEBUG
+        // `make run-fake OPEN=1`: opens the first conversation, for screenshots. Debug builds only.
+        .onChange(of: app.client?.state.conversations.first?.id) { _, first in
+            if selection == nil, ProcessInfo.processInfo.environment["FUMAIL_OPEN"] != nil { selection = first }
         }
+        #endif
     }
-}
-
-/// The Mac's conversations, newest first. Opening them comes in the next build.
-private struct ConversationTitles: View {
-    var client: RemoteClient
-
-    var body: some View {
-        let conversations = client.state.conversations
-        if conversations.isEmpty {
-            ContentUnavailableView {
-                Label(client.state.connection.connected ? "No conversations" : "Connecting…",
-                      systemImage: "bubble.left.and.bubble.right")
-            } description: {
-                Text(client.state.connection.connected ? "Conversations on the Mac show here." : client.display)
-            }
-        } else {
-            List {
-                Section {
-                    ForEach(conversations) { conversation in
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(conversation.title).lineLimit(1)
-                            Text(conversation.updatedAt, format: .relative(presentation: .named))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } footer: {
-                    Text("Opening and starting conversations comes in the next build.")
-                }
-            }
-        }
-    }
-}
-
-#Preview {
-    HomeView()
-        .environment(AppModel())
-        .fontDesign(.monospaced)
 }
