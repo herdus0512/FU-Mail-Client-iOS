@@ -32,6 +32,19 @@ public struct Conversation: Identifiable, Sendable, Equatable, Codable {
         }
     }
 
+    private enum CodingKeys: String, CodingKey { case id, title, createdAt, updatedAt, messages }
+
+    /// As the Mac's, except that a message this version can't read is left out instead of failing
+    /// the whole conversation.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        messages = try container.decode([Lossy<ChatMessage>].self, forKey: .messages).compactMap(\.value)
+    }
+
     /// Changes a message in place.
     public mutating func update(_ messageID: ChatMessage.ID, _ change: (inout ChatMessage) -> Void) {
         guard let index = messages.firstIndex(where: { $0.id == messageID }) else { return }

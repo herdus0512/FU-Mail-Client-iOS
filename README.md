@@ -10,10 +10,10 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.3.0, milestone 3.** Connecting, the conversations (new, rename, delete, history
-> search) and the chat (commands and questions, `/` suggestions, Stop, the provider line) work, side
-> by side on the iPad. **Cards show as text for now**; their buttons are next. See
-> [docs/PLAN.md](docs/PLAN.md).
+> **Status: 0.4.0, milestone 4.** Connecting, the conversations and the chat work, side by side on
+> the iPad, and the mail cards have their views and buttons (lists, threads, drafts, events). Notes,
+> CRM and task cards still show as text, and Reply and Edit don't open the editor yet: the draft
+> editor is next. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Setting up the Mac (once)
 
@@ -36,6 +36,7 @@ make run          # build and open it in the iPhone simulator
 make sim-ipad     # the same on an iPad
 make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (leave it running)
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
+                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages
 make testflight   # test, archive, sign and upload to TestFlight
 ```
 
@@ -85,6 +86,14 @@ you're away from home.
 - **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the
   Mac. **Type `/` and the commands appear** above the box, narrowing as you type; tap one to put it in
   the box. While the chat model works, its status shows above the box, with **Stop**.
+- **Cards** have the Mac's buttons:
+  - **Lists:** tap a row to open it. An archive list (`/archive`) has **Show more (N left)**.
+  - **Threads:** newest first, folded by the Mac's rule (your own replies fold too): tap a folded
+    message to open it, ⌃ to fold it again. Original | Summary (with Rewrite), Expand all / Fold
+    older, Show full text, Reply, Reply all (only when it reaches someone more) and Open in browser.
+    A thread from the archive is read-only: no Reply or Reply all.
+  - **Drafts:** tap a row to open it; Edit on a draft.
+  - **Events:** by day, with Join for video calls.
 - **The provider line** at the top shows which model each role uses on the Mac (a globe: off the
   Mac). Tap one for the details.
 - **iPad:** the conversations and the chat side by side. ⌘N starts a new one, ⌘Return sends.

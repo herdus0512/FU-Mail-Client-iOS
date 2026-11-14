@@ -15,7 +15,7 @@ C1 = "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A00"
 def fx(name): return open(f"{FIX}/{name}").read()
 
 def msg(i, role, text="", card=None, at="2026-11-13T08:00:00Z"):
-    m = {"id": f"5A277C52-0000-4000-8000-00000000000{i}", "role": role, "text": text, "createdAt": at}
+    m = {"id": f"5A277C52-0000-4000-8000-{i:012d}", "role": role, "text": text, "createdAt": at}
     if card is not None: m["card"] = card
     return m
 

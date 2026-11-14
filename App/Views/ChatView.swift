@@ -50,7 +50,7 @@ struct ChatView: View {
                     .padding(24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             } else {
-                MessageList(messages: conversation.messages, busy: client.state.busyMessages)
+                MessageList(messages: conversation.messages, busy: client.state.busyMessages, client: client, conversationID: id)
             }
         } else {
             ContentUnavailableView("Not on the Mac any more", systemImage: "bubble.left.and.exclamationmark.bubble.right",
@@ -64,6 +64,8 @@ struct ChatView: View {
 private struct MessageList: View {
     var messages: [ChatMessage]
     var busy: Set<ChatMessage.ID>
+    var client: RemoteClient
+    var conversationID: Conversation.ID
 
     @State private var atBottom = true
     /// Following the chat: true unless you scrolled up yourself. Decided when a scroll comes to rest,
@@ -71,12 +73,25 @@ private struct MessageList: View {
     @State private var following = true
     private let bottom = "bottom"
 
+    /// `make run-fake UPTO=6`: only the first messages, so the ones wanted for a screenshot end up at
+    /// the bottom. Debug builds only.
+    private var shown: [ChatMessage] {
+        #if DEBUG
+        if let upTo = ProcessInfo.processInfo.environment["FUMAIL_UPTO"].flatMap(Int.init) {
+            return Array(messages.prefix(upTo))
+        }
+        #endif
+        return messages
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(messages) { message in
-                        MessageRow(message: message, busy: busy.contains(message.id))
+                    ForEach(shown) { message in
+                        MessageRow(message: message,
+                                   scope: CardScope(client: client, conversationID: conversationID, messageID: message.id,
+                                                    busy: busy.contains(message.id)))
                             .id(message.id)
                     }
                     Color.clear.frame(height: 1).id(bottom)
@@ -125,7 +140,7 @@ private struct MessageList: View {
 
 private struct MessageRow: View {
     var message: ChatMessage
-    var busy: Bool
+    var scope: CardScope
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -152,30 +167,9 @@ private struct MessageRow: View {
                 }
             }
             if let card = message.card {
-                CardTextView(card: card, busy: busy)
+                CardView(card: card, scope: scope)
             }
         }
-    }
-}
-
-/// A card as text, until each card gets its own view with buttons (milestones 4–7).
-private struct CardTextView: View {
-    var card: Card
-    var busy: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if busy {
-                ProgressView().controlSize(.small)
-            }
-            Text(CardText.describe(card))
-                .font(.footnote)
-                .textSelection(.enabled)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(.separator).opacity(0.5)))
     }
 }
 

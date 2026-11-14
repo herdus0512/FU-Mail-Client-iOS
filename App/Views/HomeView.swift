@@ -32,6 +32,11 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
+        // A draft editor the Mac opened for this device opens over whatever is showing, and closes
+        // on editor_closed (saved, closed here, or closed on the Mac).
+        .sheet(item: Binding(get: { app.client?.state.editors.values.first }, set: { _ in })) { editor in
+            if let client = app.client { EditorPlaceholder(editor: editor, client: client) }
+        }
         .onAppear {
             // First run: nothing to connect to yet, so start in Settings.
             if app.client == nil, !askedOnce {
@@ -41,9 +46,11 @@ struct HomeView: View {
         }
         .onChange(of: app.client == nil) { selection = nil }
         #if DEBUG
-        // `make run-fake OPEN=1`: opens the first conversation, for screenshots. Debug builds only.
-        .onChange(of: app.client?.state.conversations.first?.id) { _, first in
-            if selection == nil, ProcessInfo.processInfo.environment["FUMAIL_OPEN"] != nil { selection = first }
+        // `make run-fake OPEN=2`: opens the second conversation, for screenshots. Debug builds only.
+        .onChange(of: app.client?.state.conversations.map(\.id)) { _, ids in
+            guard selection == nil, let ids, let open = ProcessInfo.processInfo.environment["FUMAIL_OPEN"] else { return }
+            let index = (Int(open) ?? 1) - 1
+            if ids.indices.contains(index) { selection = ids[index] }
         }
         #endif
     }

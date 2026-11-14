@@ -164,6 +164,15 @@ struct JSONTests {
         #expect(message.card == .unsupported("thread"))
     }
 
+    @Test func aMessageThatCantBeReadDoesntLoseTheConversation() throws {
+        let good = try fixture("thread-message.json")
+        let bad = #"{"id":"not-a-uuid","role":"user","text":"x","createdAt":"2026-11-13T08:11:55Z"}"#
+        let conversation = try decode(Conversation.self, #"""
+            {"id":"\#(id("C1"))","title":"Unread","createdAt":"2026-11-13T08:00:00Z","updatedAt":"2026-11-13T08:00:00Z","messages":[\#(bad),\#(good)]}
+            """#)
+        #expect(conversation.messages.map(\.id) == [id("M1")])
+    }
+
     @Test func unknownFieldsAndRolesDontFail() throws {
         let message = try decode(ChatMessage.self, #"""
             {"id":"\#(id("M1"))","role":"narrator","text":"x","createdAt":"2026-11-13T08:11:55Z","somethingNew":true}

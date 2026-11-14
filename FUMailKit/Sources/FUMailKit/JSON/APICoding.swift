@@ -21,6 +21,15 @@ public enum APICoding {
     }
 }
 
+/// One element of a list that's left out (nil) when it can't be read, so the rest still load.
+struct Lossy<T: Decodable>: Decodable {
+    var value: T?
+
+    init(from decoder: Decoder) throws {
+        value = try? T(from: decoder)
+    }
+}
+
 extension String {
     var nilIfEmpty: String? { isEmpty ? nil : self }
 }

@@ -33,8 +33,9 @@ FU Mail for iPhone and iPad: a thin client of the Mac's FU Mail API, at parity w
 3. **Chat** (0.3.0) ✓: the conversation list (new, rename, delete), sending, `/` command
    suggestions, Stop, the provider line, history search, cards as text, Text size. iPad: list and
    chat side by side.
-4. **Mail cards:** lists (with archive Show more), threads (folding, Original | Summary, Show full
-   text, Reply, Reply all, Open in browser), drafts, events.
+4. **Mail cards** (0.4.0) ✓: lists (with archive Show more), threads (folding, Original | Summary,
+   Show full text, Reply, Reply all, Open in browser), drafts, events. Reply and Edit show a stand-in
+   until the editor.
 5. **Draft editor:** full screen, Write / Rewrite streaming in, Reply all, Save, Copy text.
 6. **Notes and CRM:** Add to note, note cards (Catch me up, Post CRM update), Send to CRM, suggested
    notes, Open in Obsidian.
