@@ -1,0 +1,2 @@
+{"emailList":{"_0":{"kind":{"unread":{}},"items":[{"ref":{"server":"gmail-mcp","account":"fanda","id":"18c2a"},"received":"2026-11-06T21:20:00Z","from":{"name":"Bob","email":"bob@example.com"},
+"subject":"Q4","snippet":"Hi","unread":true},{"ref":{"server":"macia","id":40213},"received":"2026-11-05T09:00:00Z","from":{"email":"carol@example.com"},"subject":"Lunch","unread":false}],"problems":[],"exclusions":{}}}}

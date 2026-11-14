@@ -1,0 +1,321 @@
+import Foundation
+
+// Copied from the Mac app (Sources/FUMailCore/Mail/MailModels.swift). Keep in step with it. One
+// change: `Card` reads a kind this version doesn't know (or can't read) as `.unsupported`, so a newer
+// Mac never stops a whole conversation from loading.
+
+public struct EmailAddress: Codable, Sendable, Hashable {
+    public var name: String?
+    public var email: String
+
+    public init(name: String?, email: String) {
+        self.name = name
+        self.email = email
+    }
+
+    /// The name when there is one, otherwise the address.
+    public var display: String {
+        if let name, !name.trimmingCharacters(in: .whitespaces).isEmpty { return name }
+        return email
+    }
+}
+
+/// Enough to fetch an email again: which server, which account, and the server's own IDs.
+public struct EmailRef: Codable, Sendable, Hashable {
+    public var server: String
+    public var account: String?
+    /// As the server gave it: a string for Gmail, a number for Apple Mail (MacIA). Sent back exactly so.
+    public var id: JSONValue
+    public var threadID: String?
+
+    public init(server: String, account: String?, id: JSONValue, threadID: String?) {
+        self.server = server
+        self.account = account
+        self.id = id
+        self.threadID = threadID
+    }
+
+    public var idString: String { id.stringValue ?? id.intValue.map(String.init) ?? id.serialized() }
+}
+
+/// One row of an email list.
+public struct EmailSummary: Codable, Sendable, Hashable, Identifiable {
+    public var ref: EmailRef
+    public var received: Date?
+    public var from: EmailAddress?
+    public var subject: String
+    /// Gmail gives a short preview; Apple Mail doesn't.
+    public var snippet: String?
+    public var unread: Bool
+
+    public var id: String { "\(ref.server)/\(ref.account ?? "")/\(ref.idString)" }
+}
+
+public struct EmailListCard: Codable, Sendable, Hashable {
+    public enum Kind: Codable, Sendable, Hashable {
+        case unread
+        case inbox
+        case search(String)
+        /// `/archive` and the chat's search_archive. The text describes the search ("" for the newest).
+        case archive(String)
+    }
+
+    public var kind: Kind
+    public var items: [EmailSummary]
+    /// Servers or accounts that couldn't be reached, as readable lines.
+    public var problems: [String]
+    /// Account exclusions a server reported applying, by server name.
+    public var exclusions: [String: [String]]
+    /// Archive lists only: how to fetch the next page ("Show more"). nil when there's no more.
+    public var more: ArchivePaging?
+
+    public init(kind: Kind, items: [EmailSummary], problems: [String], exclusions: [String: [String]],
+                more: ArchivePaging? = nil) {
+        self.kind = kind
+        self.items = items
+        self.problems = problems
+        self.exclusions = exclusions
+        self.more = more
+    }
+
+    public var title: String {
+        switch kind {
+        case .unread: "Unread"
+        case .inbox: "Inbox"
+        case .search(let query): "Search: \(query)"
+        case .archive(let text): text.isEmpty ? "Archive" : "Archive: \(text)"
+        }
+    }
+
+    public var emptyText: String {
+        switch kind {
+        case .unread: "No unread email."
+        case .inbox: "The inbox is empty."
+        case .search: "Nothing matched."
+        case .archive(let text): text.isEmpty ? "The archive is empty." : "Nothing in the archive matched."
+        }
+    }
+}
+
+/// One message as the server returned it. The body is never touched by an LLM.
+public struct EmailMessage: Codable, Sendable, Hashable, Identifiable {
+    public var id: String
+    public var from: EmailAddress?
+    public var to: [EmailAddress]
+    public var cc: [EmailAddress]
+    public var received: Date?
+    public var subject: String
+    public var unread: Bool
+    public var attachments: [String]
+    public var body: String
+    public var bodyTruncated: Bool
+    public var bodyTotalChars: Int?
+    public var quotedRemoved: Bool
+    /// The server's note when there's no readable text (e.g. images only).
+    public var bodyNote: String?
+
+    /// The start of the text on one line, for a folded message.
+    public var preview: String {
+        let text = body.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        if text.isEmpty { return bodyNote ?? "(no text)" }
+        return text.count > 140 ? String(text.prefix(140)) + "…" : text
+    }
+}
+
+/// A thread (Gmail) or a single email (Apple Mail, which has no threads).
+public struct ThreadCard: Codable, Sendable, Hashable {
+    public enum Side: String, Codable, Sendable, Hashable {
+        case original
+        case summary
+    }
+
+    /// An LLM summary of the thread, kept with the card so switching sides doesn't regenerate it.
+    public struct Summary: Codable, Sendable, Hashable {
+        public enum State: Codable, Sendable, Hashable {
+            case writing
+            case done
+            case failed(String)
+        }
+
+        public var text: String
+        public var state: State
+        /// e.g. "local · gemma-4-E4B-it-Q4_K_M"
+        public var by: String
+        /// The memory.md notes sent with the prompt, by name (never their text).
+        public var notes: [String]?
+
+        public init(text: String, state: State, by: String, notes: [String]? = nil) {
+            self.text = text
+            self.state = state
+            self.by = by
+            self.notes = notes
+        }
+    }
+
+    public var ref: EmailRef
+    public var subject: String
+    /// Oldest first.
+    public var messages: [EmailMessage]
+    /// A link to open it in the web app, when the server gives one.
+    public var link: String?
+    /// True when this was fetched with the full text (no length cap, quotes kept).
+    public var fullText: Bool
+    /// The mailbox's own address, when the server says (google-mcp does), for "reply all".
+    public var mailbox: String?
+    public var side: Side = .original
+    public var summary: Summary?
+    /// Older messages the reader unfolded (by message id).
+    public var unfolded: Set<String>?
+    /// From an archive (BCC-MCP): read-only, so no Reply or Reply all. nil for live mail.
+    public var archived: Bool?
+
+    /// Whether a message is shown in full: the one the card was opened from, the newest from someone
+    /// else, and any the reader unfolded. Your own messages fold, even when they're the newest.
+    public func isOpen(_ message: EmailMessage) -> Bool {
+        isOpenByDefault(message) || unfolded?.contains(message.id) == true
+    }
+
+    /// Open without the reader unfolding it (so it can't be folded either).
+    public func isOpenByDefault(_ message: EmailMessage) -> Bool {
+        if message.id == ref.idString { return true }
+        if let newest = messages.last(where: { !isFromMailbox($0) }) { return message.id == newest.id }
+        // Every message is yours: the one opened from, else the newest.
+        return !messages.contains { $0.id == ref.idString } && message.id == messages.last?.id
+    }
+
+    /// Sent from this mailbox (the address the server reports for the account).
+    public func isFromMailbox(_ message: EmailMessage) -> Bool {
+        guard let mailbox = mailbox?.lowercased(), let from = message.from?.email.lowercased() else { return false }
+        return from == mailbox
+    }
+
+    /// How many messages are folded to one line.
+    public var foldedCount: Int { messages.filter { !isOpen($0) }.count }
+
+    /// Folds or unfolds one older message (the change `toggle_fold` makes on the Mac, shown at once).
+    public mutating func toggle(_ messageID: String) {
+        var set = unfolded ?? []
+        if set.remove(messageID) == nil { set.insert(messageID) }
+        unfolded = set.isEmpty ? nil : set
+    }
+
+    /// Whether "Show full text" would show more.
+    public var canShowMore: Bool {
+        !fullText && messages.contains { $0.bodyTruncated || $0.quotedRemoved }
+    }
+
+    /// The message a reply answers: the one the card was opened from, else the newest.
+    public var replyTarget: EmailMessage? {
+        messages.last { $0.id == ref.idString } ?? messages.last
+    }
+}
+
+public struct DraftSummary: Codable, Sendable, Hashable, Identifiable {
+    public var server: String
+    public var account: String?
+    public var draftID: String
+    public var to: [EmailAddress]
+    public var subject: String
+    public var snippet: String?
+    public var threadID: String?
+
+    public var id: String { "\(server)/\(account ?? "")/\(draftID)" }
+}
+
+public struct DraftListCard: Codable, Sendable, Hashable {
+    public var items: [DraftSummary]
+    public var problems: [String]
+}
+
+public struct DraftCard: Codable, Sendable, Hashable {
+    public var server: String
+    public var account: String?
+    public var draftID: String
+    public var to: [EmailAddress]
+    public var cc: [EmailAddress]
+    public var bcc: [EmailAddress]
+    public var subject: String
+    public var body: String
+    public var isReply: Bool
+    public var link: String?
+}
+
+public enum Card: Sendable, Hashable {
+    case emailList(EmailListCard)
+    case thread(ThreadCard)
+    case draftList(DraftListCard)
+    case draft(DraftCard)
+    case events(EventListCard)
+    case suggestedNote(SuggestedNoteCard)
+    case notes(NotesCard)
+    case crm(CRMCard)
+    case noteView(NoteViewCard)
+    case tasks(TaskListCard)
+    case taskDraft(TaskDraftCard)
+    case taskChange(TaskChangeCard)
+    /// A kind this version doesn't know (from a newer Mac), or one it couldn't read. Shown as a note
+    /// instead of failing the message.
+    case unsupported(String)
+}
+
+/// The same JSON as Swift's synthesized `Codable` on the Mac: `{"thread":{"_0":{…}}}`.
+extension Card: Codable {
+    private struct CaseKey: CodingKey {
+        var stringValue: String
+        var intValue: Int? { nil }
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
+    }
+
+    private enum ValueKey: String, CodingKey { case _0 }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CaseKey.self)
+        guard let key = container.allKeys.first else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A card with no kind."))
+        }
+        func value<T: Decodable>(_ type: T.Type) -> T? {
+            try? container.nestedContainer(keyedBy: ValueKey.self, forKey: key).decode(type, forKey: ._0)
+        }
+        let card: Card? = switch key.stringValue {
+        case "emailList": value(EmailListCard.self).map(Card.emailList)
+        case "thread": value(ThreadCard.self).map(Card.thread)
+        case "draftList": value(DraftListCard.self).map(Card.draftList)
+        case "draft": value(DraftCard.self).map(Card.draft)
+        case "events": value(EventListCard.self).map(Card.events)
+        case "suggestedNote": value(SuggestedNoteCard.self).map(Card.suggestedNote)
+        case "notes": value(NotesCard.self).map(Card.notes)
+        case "crm": value(CRMCard.self).map(Card.crm)
+        case "noteView": value(NoteViewCard.self).map(Card.noteView)
+        case "tasks": value(TaskListCard.self).map(Card.tasks)
+        case "taskDraft": value(TaskDraftCard.self).map(Card.taskDraft)
+        case "taskChange": value(TaskChangeCard.self).map(Card.taskChange)
+        default: nil
+        }
+        self = card ?? .unsupported(key.stringValue)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CaseKey.self)
+        func put<T: Encodable>(_ name: String, _ value: T) throws {
+            var nested = container.nestedContainer(keyedBy: ValueKey.self, forKey: CaseKey(stringValue: name))
+            try nested.encode(value, forKey: ._0)
+        }
+        switch self {
+        case .emailList(let card): try put("emailList", card)
+        case .thread(let card): try put("thread", card)
+        case .draftList(let card): try put("draftList", card)
+        case .draft(let card): try put("draft", card)
+        case .events(let card): try put("events", card)
+        case .suggestedNote(let card): try put("suggestedNote", card)
+        case .notes(let card): try put("notes", card)
+        case .crm(let card): try put("crm", card)
+        case .noteView(let card): try put("noteView", card)
+        case .tasks(let card): try put("tasks", card)
+        case .taskDraft(let card): try put("taskDraft", card)
+        case .taskChange(let card): try put("taskChange", card)
+        case .unsupported(let name):
+            _ = container.nestedContainer(keyedBy: ValueKey.self, forKey: CaseKey(stringValue: name))
+        }
+    }
+}

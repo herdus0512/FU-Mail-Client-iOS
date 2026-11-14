@@ -1,0 +1,4 @@
+{"id":"9F1C2B3A-0000-4000-8000-000000000002","conversationID":"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A00","title":"Edit draft","isReply":true,"server":"gmail-mcp","canSave":true,
+ "form":{"to":"Bob <bob@example.com>","cc":"","bcc":"","subject":"Re: Q4","body":"Thanks Bob","replyAll":false},"instructions":"",
+ "status":{"idle":{}},
+ "mode":{"existing":{"_0":{"server":"gmail-mcp","account":"fanda","draftID":"r-1","to":[{"name":"Bob","email":"bob@example.com"}],"cc":[],"bcc":[],"subject":"Re: Q4","body":"Thanks Bob","isReply":true},"messageID":"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A02"}}}

@@ -1,0 +1,10 @@
+[
+ {"tasks":{"_0":{"list":"Urgent","tasks":[{"id":"t1","title":"Dentist","list":"Inbox","completed":false,
+  "dueDate":"2026-11-20","notes":"","link":"https://tasks.google.com/t1"},{"id":"t2","title":"Pay invoice","list":"Urgent","completed":true,"dueDate":"2026-11-10","notes":"From Bob\nRef 123"},{"id":"t3","title":"Read report","list":"Later","completed":false,"notes":""}],"lists":["Inbox","Urgent","Later"],
+  "problems":[],"busy":["t2"],"readAt":"2026-11-14T09:00:00Z"}}},
+ {"taskDraft":{"_0":{"title":"Call Bob","list":"Inbox","dueDate":"2026-11-20","notes":"About Q4","lists":["Inbox","Urgent","Later"],
+  "stage":"editing","suggestingTitle":false,"titleBy":"summary · gemini"}}},
+ {"taskChange":{"_0":{"task":{"id":"t1","title":"Dentist","list":"Inbox","completed":false,"dueDate":"2026-11-20","notes":""},"change":{"reschedule":{"dueDate":"2026-11-23"}},"stage":"confirming"}}},
+ {"taskChange":{"_0":{"task":{"id":"t1","title":"Dentist","list":"Inbox","completed":false,"notes":""},"change":{"reschedule":{}},"stage":"done"}}},
+ {"taskChange":{"_0":{"task":{"id":"t2","title":"Pay invoice","list":"Urgent","completed":false,"notes":""},"change":{"complete":{}},"stage":"cancelled"}}}
+]

@@ -1,0 +1,11 @@
+[
+ {"noteView":{"_0":{"stage":"showing","query":"UOB","candidates":[],
+  "chosen":{"path":"ignivo/project/A.md","title":"A","reason":"title","score":3},"only":"crm","kind":"project",
+  "summary":"One\nTwo","crm":[{"heading":"### 261113: fyoo","lines":["Secured Frank's time for Monday."]},{"heading":"### 261110: kim","lines":["a"]},{"heading":"### 261109: kim","lines":["b"]},{"heading":"### 261108: kim","lines":["c"]},{"heading":"### 261107: kim","lines":["d"]},{"heading":"### 261106: kim","lines":["e"]}],
+  "correspondence":[{"heading":"### 261110: Invitation Update","lines":["- Teo cancelled."]}],"crmSection":"CRM",
+  "correspondenceSection":"Correspondence","expanded":[],"readAt":"2026-11-13T10:05:00Z","canPostCRM":true,
+  "catchUp":{"text":"Frank is meeting UOB on Monday.","state":{"done":{}},"by":"summary · gemini"}}}},
+ {"noteView":{"_0":{"stage":"choosing","query":"ntt","candidates":[{"path":"ignivo/company/NTT Data.md","title":"NTT Data","reason":"company · in the title","score":2},{"path":"ignivo/project/NTT Migration.md","title":"NTT Migration","reason":"project · in the title","score":2}],
+  "summary":"","crm":[],"correspondence":[],"crmSection":"CRM","correspondenceSection":"Correspondence","expanded":["crm","meetings"],"canPostCRM":false}}},
+ {"crm":{"_0":{"text":"","candidates":[],"chosen":{"path":"ignivo/project/A.md","title":"A","reason":"title","score":3},"stage":"preview","entry":["### 261113: fyoo"],"createsSection":false,"postedToday":false,"rewriting":false}}}
+]

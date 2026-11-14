@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged with what Xcode generates from the INFOPLIST_KEY_* build settings. -->
+<plist version="1.0">
+<dict>
+	<!-- Plain HTTP only to local addresses: IP addresses (home Wi-Fi, Tailscale 100.x), .local names and
+	     names without dots (MagicDNS). Anything else needs HTTPS (tailscale serve). The app also sends
+	     requests only to the host in Settings, with redirects refused. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<!-- Open in Obsidian. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>obsidian</string>
+	</array>
+	<!-- Only Apple's own HTTPS (exempt from export paperwork), so TestFlight doesn't ask per build. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
+</plist>

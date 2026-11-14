@@ -1,0 +1,10 @@
+# Copy to local.mk (which git ignores) and fill in. Not a password, but it stays out of the
+# repository anyway.
+
+# developer.apple.com → Account → Membership details → Team ID (10 characters).
+TEAM_ID =
+
+# The App Store Connect API key (not used by the Makefile yet: signing and uploading go through the
+# Apple ID signed in to Xcode). The key file stays in ~/.appstoreconnect/private_keys/.
+ASC_KEY_ID =
+ASC_ISSUER_ID =

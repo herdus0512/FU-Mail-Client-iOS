@@ -1,0 +1,35 @@
+import Foundation
+
+// How the cards show what the Mac sent, as the Mac's own window and the Android app do. The rules
+// that live on the Mac's types (folding, reply targets) are in Models; these are the phone's own.
+
+extension ThreadCard {
+    /// Newest first, as the thread card shows them (the card's own order is oldest first).
+    public var newestFirst: [EmailMessage] { messages.reversed() }
+
+    /// Only messages the reader unfolded can be folded again (the Mac's chevron).
+    public func canFoldAgain(_ message: EmailMessage) -> Bool {
+        unfolded?.contains(message.id) == true && !isOpenByDefault(message)
+    }
+
+    /// The thread card's Expand all / Fold older button, on the Original side of a thread of more than one.
+    public enum FoldAllButton: Sendable { case expandAll, foldOlder }
+
+    public var foldAllButton: FoldAllButton? {
+        guard side == .original, messages.count > 1 else { return nil }
+        if foldedCount > 0 { return .expandAll }
+        return unfolded != nil ? .foldOlder : nil
+    }
+
+    /// Whether Reply all is offered: live mail where it reaches someone a plain reply doesn't.
+    public var offersReplyAll: Bool {
+        archived != true && Drafts.canReplyAll(ReplyContext(thread: self))
+    }
+}
+
+extension NoteViewCard {
+    /// The entries to show for a section: all when expanded, else the newest few.
+    public func shown(_ section: NoteSection, _ entries: [NoteEntry]) -> [NoteEntry] {
+        expanded.contains(section) ? entries : Array(entries.prefix(Self.recent))
+    }
+}

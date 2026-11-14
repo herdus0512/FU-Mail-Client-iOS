@@ -1,0 +1,9 @@
+{"id":"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A01","role":"assistant","text":"","createdAt":"2026-11-13T08:11:55Z",
+ "card":{"thread":{"_0":{
+   "ref":{"server":"gmail-mcp","account":"fanda","id":"18c2a","threadID":"t-18c2a"},
+   "subject":"Q4","mailbox":"me@example.com","link":"https://mail.google.com/x","fullText":false,
+   "side":"original",
+   "messages":[{"id":"18c2a","from":{"name":"Bob","email":"bob@example.com"},"to":[{"email":"me@example.com"}],
+                "cc":[],"received":"2026-11-06T21:20:00Z","subject":"Q4","unread":true,"attachments":["a.pdf"],
+                "body":"Hi","bodyTruncated":false,"quotedRemoved":true}],
+   "summary":{"text":"- Bob wants approval","state":{"done":{}},"by":"gemini · flash"}}}}}

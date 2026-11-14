@@ -1,0 +1,17 @@
+# Build output
+build/
+FUMailKit/.build/
+DerivedData/
+
+# Xcode per-user state
+xcuserdata/
+*.xcuserstate
+FUMail.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Your Apple IDs (see local.mk.example), and never a signing or API key
+local.mk
+*.p8
+*.p12
+*.mobileprovision
+
+.DS_Store

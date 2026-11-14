@@ -1,0 +1,291 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F0A1B2C3D4E5F6A7B8C90010 /* FUMailKit in Frameworks */ = {isa = PBXBuildFile; productRef = F0A1B2C3D4E5F6A7B8C90011 /* FUMailKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F0A1B2C3D4E5F6A7B8C90001 /* FUMail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FUMail.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0A1B2C3D4E5F6A7B8C90014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F0A1B2C3D4E5F6A7B8C90016 /* FUMailKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = FUMailKit; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F0A1B2C3D4E5F6A7B8C90002 /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; path = App; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F0A1B2C3D4E5F6A7B8C90003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F0A1B2C3D4E5F6A7B8C90010 /* FUMailKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F0A1B2C3D4E5F6A7B8C90004 = {
+			isa = PBXGroup;
+			children = (
+				F0A1B2C3D4E5F6A7B8C90002 /* App */,
+				F0A1B2C3D4E5F6A7B8C90015 /* Support */,
+				F0A1B2C3D4E5F6A7B8C90016 /* FUMailKit */,
+				F0A1B2C3D4E5F6A7B8C90005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F0A1B2C3D4E5F6A7B8C90005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F0A1B2C3D4E5F6A7B8C90001 /* FUMail.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F0A1B2C3D4E5F6A7B8C90015 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				F0A1B2C3D4E5F6A7B8C90014 /* Info.plist */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F0A1B2C3D4E5F6A7B8C90006 /* FUMail */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0A1B2C3D4E5F6A7B8C90020 /* Build configuration list for PBXNativeTarget "FUMail" */;
+			buildPhases = (
+				F0A1B2C3D4E5F6A7B8C90007 /* Sources */,
+				F0A1B2C3D4E5F6A7B8C90003 /* Frameworks */,
+				F0A1B2C3D4E5F6A7B8C90008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F0A1B2C3D4E5F6A7B8C90002 /* App */,
+			);
+			name = FUMail;
+			packageProductDependencies = (
+				F0A1B2C3D4E5F6A7B8C90011 /* FUMailKit */,
+			);
+			productName = FUMail;
+			productReference = F0A1B2C3D4E5F6A7B8C90001 /* FUMail.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F0A1B2C3D4E5F6A7B8C90009 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2720;
+				LastUpgradeCheck = 2720;
+				TargetAttributes = {
+					F0A1B2C3D4E5F6A7B8C90006 = {
+						CreatedOnToolsVersion = 27.2;
+					};
+				};
+			};
+			buildConfigurationList = F0A1B2C3D4E5F6A7B8C90021 /* Build configuration list for PBXProject "FUMail" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F0A1B2C3D4E5F6A7B8C90004;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F0A1B2C3D4E5F6A7B8C90013 /* XCLocalSwiftPackageReference "FUMailKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F0A1B2C3D4E5F6A7B8C90005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F0A1B2C3D4E5F6A7B8C90006 /* FUMail */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F0A1B2C3D4E5F6A7B8C90008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F0A1B2C3D4E5F6A7B8C90007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F0A1B2C3D4E5F6A7B8C90022 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F0A1B2C3D4E5F6A7B8C90023 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F0A1B2C3D4E5F6A7B8C90024 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Support/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "FU Mail";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "FU Mail connects to FU Mail on your Mac when it's on the same Wi-Fi.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.h3rdus.fumail;
+				PRODUCT_NAME = FUMail;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F0A1B2C3D4E5F6A7B8C90025 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Support/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "FU Mail";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "FU Mail connects to FU Mail on your Mac when it's on the same Wi-Fi.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.h3rdus.fumail;
+				PRODUCT_NAME = FUMail;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F0A1B2C3D4E5F6A7B8C90020 /* Build configuration list for PBXNativeTarget "FUMail" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0A1B2C3D4E5F6A7B8C90024 /* Debug */,
+				F0A1B2C3D4E5F6A7B8C90025 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F0A1B2C3D4E5F6A7B8C90021 /* Build configuration list for PBXProject "FUMail" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0A1B2C3D4E5F6A7B8C90022 /* Debug */,
+				F0A1B2C3D4E5F6A7B8C90023 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		F0A1B2C3D4E5F6A7B8C90013 /* XCLocalSwiftPackageReference "FUMailKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = FUMailKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F0A1B2C3D4E5F6A7B8C90011 /* FUMailKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FUMailKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = F0A1B2C3D4E5F6A7B8C90009 /* Project object */;
+}

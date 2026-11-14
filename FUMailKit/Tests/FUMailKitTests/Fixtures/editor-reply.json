@@ -1,0 +1,5 @@
+{"id":"9F1C2B3A-0000-4000-8000-000000000001","conversationID":"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A00","title":"Reply to Bob","isReply":true,"server":"gmail-mcp","canSave":true,
+ "form":{"to":"Bob <bob@example.com>","cc":"","bcc":"","subject":"Re: Q4","body":"","replyAll":false},"instructions":"decline politely","signature":"Frank",
+ "status":{"writing":{"_0":"draft · gemini-3.5-flash-lite"}},
+ "mode":{"reply":{"_0":{"ref":{"server":"gmail-mcp","account":"fanda","id":"18c2a","threadID":"t-18c2a"},"original":{"id":"18c2a","from":{"name":"Bob","email":"bob@example.com"},"to":[{"email":"me@example.com"}],"cc":[],"received":"2026-11-06T21:20:00Z","subject":"Q4","unread":false,"attachments":[],"body":"Hi","bodyTruncated":false,"quotedRemoved":false},"threadSubject":"Q4","mailbox":"me@example.com"},
+                  "_1":{"ref":{"server":"gmail-mcp","account":"fanda","id":"18c2a","threadID":"t-18c2a"},"subject":"Q4","messages":[],"fullText":false,"side":"original"}}}}
