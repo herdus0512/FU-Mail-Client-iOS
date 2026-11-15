@@ -35,8 +35,12 @@ struct StateTests {
         var state = loaded(conv("C1", title: Conversation.untitled))
         let text = "search for any emails from Bob from the last two days please"
         state.apply(APIEvent(type: "message_appended", conversationID: id("C1"), message: msg("M1", text, role: .user)))
-        #expect(state.conversation(id("C1"))?.title == "search for any emails from Bob from the…")
-        #expect(Conversation.title(from: "\n  /unread  \nmore") == "/unread")
+        #expect(state.conversation(id("C1"))?.title.hasSuffix(" · search for any emails from Bob from the…") == true)
+        let monday = ISO8601DateFormatter().date(from: "2026-11-16T09:00:00Z")!
+        let utc = TimeZone(identifier: "UTC")!
+        #expect(Conversation.title(from: "\n  what's new from Bob  \nmore", at: monday, timeZone: utc) == "Mon 16 Nov · what's new from Bob")
+        // A command waits for the Mac's own name for it.
+        #expect(Conversation.title(from: "/unread", at: monday, timeZone: utc) == Conversation.untitled)
     }
 
     @Test func aMessageForAnUnknownChatFetchesTheList() {

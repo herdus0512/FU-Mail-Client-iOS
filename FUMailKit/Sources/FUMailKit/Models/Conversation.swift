@@ -28,7 +28,7 @@ public struct Conversation: Identifiable, Sendable, Equatable, Codable {
         messages.append(message)
         updatedAt = message.createdAt
         if title == Conversation.untitled, message.role == .user {
-            title = Conversation.title(from: message.text)
+            title = Conversation.title(from: message.text, at: message.createdAt)
         }
     }
 
@@ -51,14 +51,32 @@ public struct Conversation: Identifiable, Sendable, Equatable, Codable {
         change(&messages[index])
     }
 
-    /// The first line of `text`, cut to about 40 characters at a word boundary.
-    public static func title(from text: String, maxLength: Int = 40) -> String {
+    /// A new chat's title from its first message, as the Mac (3.2) names it: the day, then the
+    /// question's first words, e.g. "Mon 16 Nov · what's new from Bob". Only a stand-in until the
+    /// Mac's own title comes with the list (it announces it at once): a command stays untitled here,
+    /// since only the Mac knows its short name ("Mon 16 Nov · Unread").
+    public static func title(from text: String, at date: Date = .now, timeZone: TimeZone = .current,
+                             maxLength: Int = 40) -> String {
         let line = text.split(whereSeparator: \.isNewline).first.map(String.init)?
             .trimmingCharacters(in: .whitespaces) ?? ""
-        guard !line.isEmpty else { return untitled }
-        guard line.count > maxLength else { return line }
-        let cut = line.prefix(maxLength)
-        let trimmed = cut.lastIndex(of: " ").map { cut[..<$0] } ?? cut
+        guard !line.isEmpty, !line.hasPrefix("/") else { return untitled }
+        return "\(day(date, timeZone: timeZone)) · \(cut(line, maxLength))"
+    }
+
+    /// "Mon 16 Nov", always in English like the rest of the app.
+    static func day(_ date: Date, timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_AU")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "EEE d MMM"
+        return formatter.string(from: date)
+    }
+
+    /// At most `maxLength` characters, cut at a word.
+    static func cut(_ text: String, _ maxLength: Int) -> String {
+        guard text.count > maxLength else { return text }
+        let prefix = text.prefix(maxLength)
+        let trimmed = prefix.lastIndex(of: " ").map { prefix[..<$0] } ?? prefix
         return trimmed.trimmingCharacters(in: .whitespaces) + "…"
     }
 }
