@@ -104,21 +104,13 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker("Appearance", selection: $appearance) {
-                        ForEach(Appearance.allCases) { Text($0.label).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+                    SegmentedChoice(options: Appearance.allCases.map { ($0, $0.label) }, selection: $appearance)
                 } header: {
                     Text("Appearance")
                 }
 
                 Section {
-                    Picker("Text size", selection: $textSize) {
-                        ForEach(TextSize.allCases) { Text($0.label).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+                    SegmentedChoice(options: TextSize.allCases.map { ($0, $0.label) }, selection: $textSize)
                 } header: {
                     Text("Text size")
                 } footer: {

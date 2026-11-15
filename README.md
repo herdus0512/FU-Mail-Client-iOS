@@ -8,9 +8,10 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **The Mac's own types.** The models are copied from the Mac app's Swift code, so the JSON is
   Swift's `Codable` on both ends. They're copies, not shared code: this repository stands alone, and
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
-- **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
+- **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
+  font where you type: the message bar and search), no third-party code.
 
-> **Status: 0.8.0, matching the Android app 0.8.0 and FU Mail 2.8.0.** Connecting (at home and
+> **Status: 3.0.0, matching FU Mail 3.0.0 on the Mac.** Connecting (at home and
 > over Tailscale, switched by itself), the conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -116,6 +117,8 @@ like `mac`), At home otherwise. The token stays as it is.
 - **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the
   Mac. **Type `/` and the commands appear** above the box, narrowing as you type; tap one to put it in
   the box. While the chat model works, its status shows above the box, with **Stop**.
+- **Long chats** open with their newest 20 messages; **Show earlier messages** at the top adds 20
+  more at a time.
 - **The chat** follows new messages while you're at the bottom; scrolled up, it stays put and
   **Latest** jumps down. What you asked for yourself (an email opened from a list, a command, Add to
   note, Add task) is always shown when it arrives, a card from its start. Tap or scroll the messages,
@@ -169,10 +172,11 @@ Not in this version: push notifications, offline mail, attachments.
 
 The version is in [`VERSION`](VERSION) and the project's `MARKETING_VERSION` (bumped by hand);
 `make testflight` gives each upload its own build number. Settings and the indicator's details show
-it. From 0.8.0 the numbers follow the Android app and FU Mail on the Mac (0.8.0 ↔ 2.8.0).
+it. From 3.0.0 the version matches FU Mail on the Mac (3.0.0 ↔ 3.0.0).
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.0.0 | 2026-11-15 | Version matched to FU Mail 3.0.0 on the Mac (the API is the same since 2.6.0; the Mac's 2.7.0–3.0.0 additions need nothing here: an auto Bcc arrives in the draft editor's Bcc field, where it shows and can be removed). **Long chats are quick again:** a chat opens with its newest 20 messages, and **Show earlier messages** adds 20 more. **Fonts:** the message bar and the search fields use the standard iOS font; Original \| Summary and Settings' Appearance and Text size switches are in the app's font and follow Text size; card buttons match the card text's size. |
 | 0.8.0 | 2026-11-15 | **Two addresses**, picked by themselves: **At home (Wi-Fi)** and **Tailscale**. On Wi-Fi the home one is used when FU Mail answers there (a quick `/health`, no token), otherwise Tailscale; it picks again on every reconnect and when Wi-Fi comes or goes, and the indicator says which. Save and connect checks each address. The one address from before moves into the right field. `/health` must now be FU Mail's own answer. Matches the Android app 0.8.0 and FU Mail 2.8.0 (no Mac changes needed). |
 | 0.7.2 | 2026-11-15 | An email opened from a list, a command's answer, Add to note and Add task come into view when they arrive (a card from its start), even scrolled up. The keyboard hides on a tap or scroll of the messages, or Done. Settings… in the connection popover opens Settings (and no longer leaves the gear stuck). Unchanged messages aren't rebuilt when another changes. |
 | 0.7.1 | 2026-11-14 | Fix: the chat could go blank after Summary or Add to note in a long chat (until it was opened again). |

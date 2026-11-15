@@ -71,11 +71,16 @@ private struct MessageList: View {
     /// Following the chat: true unless you scrolled up yourself. Decided when a scroll comes to rest,
     /// so new messages arriving (which grow the list) don't change it.
     @State private var following = true
+    /// How many of the newest messages are shown. A long chat opens with the newest few, and "Show
+    /// earlier messages" adds more: laying out a whole long history (long emails) made opening and
+    /// scrolling slow.
+    @State private var limit = Self.page
     private let bottom = "bottom"
+    private static let page = 20
 
-    /// `make run-fake UPTO=6`: only the first messages, so the ones wanted for a screenshot end up at
-    /// the bottom. Debug builds only.
-    private var shown: [ChatMessage] {
+    /// Every message there is to show (`make run-fake UPTO=6`: only the first few, so the ones wanted
+    /// for a screenshot end up at the bottom; debug builds only).
+    private var all: [ChatMessage] {
         #if DEBUG
         if let upTo = ProcessInfo.processInfo.environment["FUMAIL_UPTO"].flatMap(Int.init) {
             return Array(messages.prefix(upTo))
@@ -85,12 +90,32 @@ private struct MessageList: View {
     }
 
     var body: some View {
+        let all = self.all
+        let shown = all.suffix(limit)
+        let earlier = all.count - shown.count
         ScrollViewReader { proxy in
             ScrollView {
                 // Not lazy: a lazy stack estimates the height of messages off screen, and with long
                 // emails a jump to the bottom (a new message, a card growing) could land past the real
-                // end and show nothing until the chat was opened again.
+                // end and show nothing until the chat was opened again. Showing only the newest
+                // messages keeps that cheap.
                 VStack(alignment: .leading, spacing: 12) {
+                    if earlier > 0 {
+                        Button {
+                            let firstShown = shown.first?.id
+                            limit += Self.page
+                            // Stay where you were: the earlier messages appear above it.
+                            if let firstShown {
+                                Task { proxy.scrollTo(firstShown, anchor: .top) }
+                            }
+                        } label: {
+                            Label("Show earlier messages (\(earlier))", systemImage: "chevron.up")
+                                .font(.subheadline.weight(.medium))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .padding(.bottom, 4)
+                    }
                     ForEach(shown) { message in
                         // Equatable: a message that didn't change isn't rebuilt when another one does
                         // (a summary streaming in, a status line), which keeps scrolling smooth.
@@ -271,8 +296,11 @@ private struct Composer: View {
                 .background(Color(.secondarySystemGroupedBackground))
             }
             HStack(alignment: .bottom, spacing: 8) {
-                TextField("/unread, or ask…", text: $text, axis: .vertical)
+                // The standard iOS font here, for typing (the placeholder takes its font on its own).
+                TextField("", text: $text, prompt: Text("/unread, or ask…").font(.body).fontDesign(.default), axis: .vertical)
                     .lineLimit(1...5)
+                    .font(.body)
+                    .fontDesign(.default)
                     .focused($focused)
                     // Commands go as typed: no autocorrect turning "/unread" into something else.
                     .autocorrectionDisabled(text.hasPrefix("/"))

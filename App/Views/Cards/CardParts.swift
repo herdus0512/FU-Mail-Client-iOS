@@ -72,7 +72,7 @@ struct CardActions<Content: View>: View {
         Divider()
         FlowLayout(spacing: 18) { content }
             .buttonStyle(.borderless)
-            .font(.callout)
+            .font(.subheadline)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
     }

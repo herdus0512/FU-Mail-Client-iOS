@@ -123,7 +123,7 @@ private struct TaskRow: View {
                     }
                 }
                 .buttonStyle(.borderless)
-                .font(.callout)
+                .font(.subheadline)
                 .padding(.top, 2)
             }
             Spacer(minLength: 0)

@@ -79,6 +79,42 @@ private extension UIColor {
     }
 }
 
+/// A segmented choice in the app's own font and text size. iOS's segmented picker is a system control
+/// that stays in the system font at the system size, whatever Settings → Text size says.
+struct SegmentedChoice<Value: Hashable>: View {
+    var options: [(value: Value, label: String)]
+    @Binding var selection: Value
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options, id: \.value) { option in
+                let selected = option.value == selection
+                Button {
+                    selection = option.value
+                } label: {
+                    Text(option.label)
+                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background {
+                            if selected {
+                                Capsule().fill(Color(.systemBackground)).shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+                            }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(Capsule().fill(Color(.tertiarySystemFill)))
+    }
+}
+
 /// A warning line, as on the Mac: an orange triangle and the text.
 struct WarningText: View {
     var text: String

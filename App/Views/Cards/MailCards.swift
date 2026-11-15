@@ -32,7 +32,7 @@ struct EmailListCardView: View {
                         .disabled(scope.busy)
                     if scope.busy { ProgressView().controlSize(.small) }
                 }
-                .font(.callout)
+                .font(.subheadline)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
@@ -102,14 +102,10 @@ struct ThreadCardView: View {
             .padding(.top, 10)
             .padding(.bottom, 6)
 
-            Picker("Show", selection: Binding(get: { card.side }, set: { side in
-                if side != card.side { scope.act(.setSide(side)) }
-            })) {
-                Text("Original").tag(ThreadCard.Side.original)
-                Text("Summary").tag(ThreadCard.Side.summary)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            SegmentedChoice(options: [(.original, "Original"), (.summary, "Summary")],
+                            selection: Binding(get: { card.side }, set: { side in
+                                if side != card.side { scope.act(.setSide(side)) }
+                            }))
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
 
@@ -190,14 +186,14 @@ private struct SummaryView: View {
                     HStack {
                         Text("Summary by \(summary.by)").font(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        Button("Rewrite", action: onRewrite).font(.callout).buttonStyle(.borderless)
+                        Button("Rewrite", action: onRewrite).font(.subheadline).buttonStyle(.borderless)
                     }
                     if let notes = summary.notes, !notes.isEmpty {
                         Text("With your notes: \(notes.joined(separator: ", "))").font(.caption).foregroundStyle(.secondary)
                     }
                 case .failed(let reason):
                     WarningText(reason)
-                    Button("Try again", action: onRewrite).font(.callout).buttonStyle(.borderless)
+                    Button("Try again", action: onRewrite).font(.subheadline).buttonStyle(.borderless)
                 }
             } else {
                 Text("No summary yet.").font(.footnote).foregroundStyle(.secondary)
@@ -450,7 +446,7 @@ private struct EventRow: View {
             }
             Spacer(minLength: 0)
             if let link = event.videoLink.flatMap(URL.init(string:)) {
-                Button("Join") { openURL(link) }.font(.callout).buttonStyle(.borderless)
+                Button("Join") { openURL(link) }.font(.subheadline).buttonStyle(.borderless)
             }
         }
         .padding(.horizontal, 12)
