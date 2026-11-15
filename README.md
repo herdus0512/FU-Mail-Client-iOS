@@ -11,8 +11,8 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.1.0, for FU Mail 3.0.0 on the Mac. Connects over Tailscale only.** Connecting (at home and
-> over Tailscale, switched by itself), the conversations, the chat, every card with its buttons (mail,
+> **Status: 3.1.1, for FU Mail 3.0.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
 
@@ -39,9 +39,7 @@ make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (le
                   #   python3 tools/fake_mac.py --editor starts with a draft editor open, --long makes
                   #   the chat long; Summary and Add to note on a thread answer as the Mac does)
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
-                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages;
-                  #   TWO=1 adds python3 tools/fake_mac.py --port 8798 as the Tailscale address, and
-                  #   WIFI=1 / WIFI=0 pretends to be on Wi-Fi or not (the Simulator can't switch)
+                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages
 make testflight   # test, archive, sign and upload to TestFlight
 ```
 
@@ -56,58 +54,29 @@ replaces the old one and keeps its settings.
 
 ## Connecting to the Mac
 
-As for the Android app: the Mac's `api` must be on with `allow_from` covering the home network
-and/or Tailscale (`100.64.0.0/10`), and each device gets its own token (**API → New Device
-Token…**). In the app, **Settings** (the gear; it opens by itself the first time) takes two addresses
-for the same Mac, either of which can be left empty, and the token:
+The app connects over **Tailscale only** (since 3.1.0): Tailscale has to be on on the iPhone or
+iPad. The Mac's `api` must be on with `allow_from` covering Tailscale (`100.64.0.0/10`, or
+`127.0.0.1/32` with `tailscale serve`), and each device gets its own token (**API → New Device
+Token…**). In the app, **Settings** (the gear; it opens by itself the first time) takes the Mac's
+Tailscale address and the token:
 
-| Field | Address |
-| ----- | ------- |
-| At home (Wi-Fi) | `http://192.168.107.138:8765` (the Mac's IP on the home network) |
-| Tailscale | `http://<mac>:8765` (MagicDNS name), `http://100.x.y.z:8765`, or `https://<mac>.<tailnet>.ts.net` (with `tailscale serve`) |
+| Address | |
+| ------- | - |
+| `https://<mac>.<tailnet>.ts.net` | with `tailscale serve` on the Mac |
+| `http://<mac>:8765` | MagicDNS name |
+| `http://100.x.y.z:8765` | the Mac's Tailscale IP |
 
-**Save and connect** checks each filled address on its own (`/health`, then the token with
-`/v1/info`) and shows a line for each ("At home: connected to FU Mail 2.8.0 as "iphone"." /
-"Tailscale: can't reach …"). It saves when at least one works, so it can be set up at home with
-Tailscale off; **Save anyway** keeps settings none of which can be checked right now.
+**Save and connect** checks the address (`/health`, then the token with `/v1/info`) and saves when
+it works ("Connected to FU Mail 3.0.0 as "iphone". Saved."); **Save anyway** keeps settings that
+can't be checked right now. The connection indicator shows Connected, Connecting… or Can't connect.
 
-**How it picks** (the same rule as the Android app, so both phones agree):
-
-1. With only one address set, that one.
-2. Not on Wi-Fi: Tailscale, without contacting the home address at all.
-3. On Wi-Fi: a `GET /health` to the home address, with no token and a 2-second timeout. Home only if
-   it answers 2xx with FU Mail's own `{"ok":true}`; otherwise Tailscale.
-4. It picks again on every (re)connect, so a home address that stops answering falls over to
-   Tailscale on the next attempt, and as soon as Wi-Fi comes or goes (about 1.5 s after, once the
-   network has settled), when both addresses are set.
-
-The token never goes to the home address until FU Mail itself has answered there, so another network
-that happens to use the same 192.168.x range doesn't get it. No Wi-Fi name is read (that would need
-location permission): only whether the Wi-Fi interface is up, watched on its own so that Tailscale's
-VPN running over it doesn't hide it. The first connection waits for the first reading (at most a
-second), so it doesn't start on Tailscale and switch a moment later.
-
-**Back to Home without waiting (iOS):** when anything about the network changes, such as Tailscale's
-VPN being switched off at home, and the app is on Wi-Fi but not using the home address, it checks the
-home address again (the same token-less `/health`, after the network settles) and moves to it as soon
-as FU Mail answers there. On Android the Tailscale connection fails at once when the VPN goes; on
-iOS it can hang, so the app doesn't wait for that. When Tailscale is used on Wi-Fi, the indicator's
-details say why Home wasn't ("Home not used: … didn't answer within 2 seconds", or that iOS's Local
-Network access is off for FU Mail).
-
-**Upgrading from 0.7 or earlier:** the one saved address moves into the right field once: Tailscale
-if its host is in 100.64.0.0/10, ends in `.ts.net` or is a bare name with no dots (a MagicDNS name
-like `mac`), At home otherwise. The token stays as it is.
-
-- **`/health`** must be FU Mail's own answer. If something else answers at an address (a router's
-  page, another app on that port), Settings says "Something answered at <url>, but not FU Mail's API.
-  Check the address and the port."
-- **Plain HTTP** is allowed by iOS only to local addresses: IP addresses (the home LAN and
-  Tailscale's 100.x), `.local` names and names without dots (MagicDNS). A `*.ts.net` name needs
-  HTTPS. Each address's connection also sends requests only to its own host, with redirects refused.
-- **Local Network:** iOS asks the first time the home address is used. If it was declined, the home
-  address can't be reached and Settings says so (and suggests Tailscale); allow it in **Settings →
-  Privacy & Security → Local Network → FU Mail**. Tailscale addresses don't need it.
+- **`/health`** must be FU Mail's own answer. If something else answers (another app on that port),
+  Settings says "Something answered at <url>, but not FU Mail's API. Check the address and the port."
+- **Plain HTTP** is allowed by iOS only to IP addresses, `.local` names and names without dots
+  (MagicDNS). A `*.ts.net` name needs HTTPS. Requests go only to the address's own host, with
+  redirects refused.
+- **No Local Network permission** is asked for. A home-network address (192.168.x) can't be reached,
+  and the app says to use the Tailscale address.
 - **The token** is kept in the Keychain on this device only: not synced to iCloud and not backed up.
   **Forget token** in Settings removes it.
 - **The indicator** at the top right is green when connected, orange while connecting, and red
@@ -185,6 +154,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.1.1 | 2026-11-16 | Clean-up after 3.1.0: the home address, Wi-Fi watching and address picking are gone from the code too (a saved home address is forgotten), and Save and connect checks the one address. |
 | 3.1.0 | 2026-11-15 | **Tailscale only.** The home (Wi-Fi) address and the automatic switching are gone: Settings has one address, the Tailscale one, and the indicator just says Connected, Connecting… or Can't connect. No Local Network permission is asked for any more. |
 | 3.0.1 | 2026-11-15 | Fix: **back to Home sooner** after Tailscale's VPN is switched off at home. Wi-Fi is now watched on its own interface (a VPN could hide it, so the app thought it was off Wi-Fi and kept to Tailscale), and any network change, the VPN coming or going included, re-checks the home address (token-less `/health`) and moves to it when FU Mail answers, rather than retrying Tailscale. When Tailscale is used on Wi-Fi, the indicator's details say why Home wasn't. |
 | 3.0.0 | 2026-11-15 | Version matched to FU Mail 3.0.0 on the Mac (the API is the same since 2.6.0; the Mac's 2.7.0–3.0.0 additions need nothing here: an auto Bcc arrives in the draft editor's Bcc field, where it shows and can be removed). **Long chats are quick again:** a chat opens with its newest 20 messages, and **Show earlier messages** adds 20 more. **Fonts:** the message bar and the search fields use the standard iOS font; Original \| Summary and Settings' Appearance and Text size switches are in the app's font and follow Text size; card buttons match the card text's size. |

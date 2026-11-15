@@ -5,16 +5,10 @@ public struct Connection: Equatable, Sendable {
     public var connected = false
     /// Plain words: can't reach, token rejected, locked out…
     public var problem: String?
-    /// Which address is in use when there are two ("Home", "Tailscale"); nil with one.
-    public var via: String?
-    /// On Wi-Fi with Tailscale in use: why the home address wasn't (it didn't answer in time, iOS's
-    /// Local Network access is off, something else answered there…).
-    public var homeSkipped: String?
 
-    public init(connected: Bool = false, problem: String? = nil, via: String? = nil) {
+    public init(connected: Bool = false, problem: String? = nil) {
         self.connected = connected
         self.problem = problem
-        self.via = via
     }
 
     public enum Indicator: Sendable { case connected, connecting, failed }

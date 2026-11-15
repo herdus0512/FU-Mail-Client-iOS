@@ -91,10 +91,11 @@ public enum Problems {
                                  "\(url) closed the connection without answering. If it keeps happening: is this network "
                                  + "in the Mac's api.allow_from? (Tailscale is 100.64.0.0/10.)")
         case .notConnectedToInternet where ServerSettings.mayBeLocalNetwork(host):
-            // What iOS reports when Local Network access is off, as well as when there's no network.
+            // What iOS reports for a home-network address (this app doesn't ask for Local Network
+            // access), as well as when there's no network.
             return RemoteProblem(.localNetworkDenied,
-                                 "Can't reach \(url). If you're on the same Wi-Fi as the Mac, FU Mail may not be allowed "
-                                 + "on the local network: Settings → Privacy & Security → Local Network → FU Mail.")
+                                 "Can't reach \(url). FU Mail connects over Tailscale only: use the Mac's Tailscale "
+                                 + "address in Settings.")
         case .badServerResponse, .cannotParseResponse:
             return RemoteProblem(.badResponse, "\(url) sent something this app couldn't read. Is it FU Mail's API?")
         default:
@@ -109,6 +110,6 @@ public enum Problems {
         }
         return RemoteProblem(.unreachable,
                              "Can't reach \(url) (\(why)). Is the Mac awake, with FU Mail running and the API on, "
-                             + "and is this device on the same Wi-Fi or tailnet?")
+                             + "and is Tailscale on on this device?")
     }
 }

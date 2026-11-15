@@ -23,10 +23,8 @@ public struct Backoff: Sendable {
 public final class RemoteClient {
     public private(set) var state = RemoteState()
 
-    /// The address in use: the last one picked (Home or Tailscale when there are two).
-    public private(set) var endpoint: Endpoint
-    /// Which address to use, asked on every (re)connect.
-    @ObservationIgnored public let picker: EndpointPicker
+    /// The Mac's API, at the address in Settings.
+    @ObservationIgnored public let transport: any DesktopTransport
     @ObservationIgnored private let backoff: Backoff
     @ObservationIgnored private let typedHold: Duration
     @ObservationIgnored private let now: @Sendable () -> Date
@@ -36,40 +34,14 @@ public final class RemoteClient {
     /// Card actions and typed text go out one at a time, in order (Done, then Insert).
     @ObservationIgnored private var actionChain: Task<Void, Never>?
 
-    public var transport: any DesktopTransport { endpoint.transport }
     public var display: String { transport.display }
 
-    public init(picker: EndpointPicker, backoff: Backoff = Backoff(), typedHold: Duration = .seconds(1),
+    public init(transport: any DesktopTransport, backoff: Backoff = Backoff(), typedHold: Duration = .seconds(1),
                 now: @escaping @Sendable () -> Date = { .now }) {
-        self.picker = picker
-        endpoint = picker.first
+        self.transport = transport
         self.backoff = backoff
         self.typedHold = typedHold
         self.now = now
-    }
-
-    /// One address only.
-    public convenience init(transport: any DesktopTransport, backoff: Backoff = Backoff(), typedHold: Duration = .seconds(1),
-                            now: @escaping @Sendable () -> Date = { .now }) {
-        self.init(picker: EndpointPicker(only: transport), backoff: backoff, typedHold: typedHold, now: now)
-    }
-
-    /// After a network change: when on Wi-Fi but not using the home address (on Tailscale, or not
-    /// connected), and FU Mail answers at home (no token), reconnects so it's used. Android gets this
-    /// from the Tailscale connection failing at once when the VPN goes; on iOS that connection can
-    /// hang, so it's checked here instead.
-    public func switchHomeIfItAnswers() async {
-        guard picker.hasBoth, eventsTask != nil, state.connection.via != EndpointPicker.homeLabel || !state.connection.connected
-        else { return }
-        guard await picker.homeAnswers(), !closed else { return }
-        reconnect()
-    }
-
-    /// Reconnects now, picking the address again (Wi-Fi came or went), when the stream is open or opening.
-    public func reconnect() {
-        guard eventsTask != nil else { return }
-        stop()
-        start()
     }
 
     // MARK: Connection
@@ -97,15 +69,8 @@ public final class RemoteClient {
     private func runEvents() async {
         var pause = backoff.first
         while !Task.isCancelled, !closed {
-            // Which address, this time: Home on its Wi-Fi when FU Mail answers there, else Tailscale.
-            let choice = await picker.choose()
-            if Task.isCancelled || closed { break }
-            let chosen = choice.endpoint
-            endpoint = chosen
-            state.connection.via = chosen.label
-            state.connection.homeSkipped = choice.homeProblem?.message
             do {
-                for try await item in chosen.transport.events() {
+                for try await item in transport.events() {
                     switch item {
                     case .opened:
                         // Anything that changed while disconnected: fetch it now that events will follow.

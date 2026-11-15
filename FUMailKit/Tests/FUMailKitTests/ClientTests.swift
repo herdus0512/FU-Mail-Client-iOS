@@ -17,7 +17,7 @@ final class FakeDesktop: DesktopTransport {
         var status = 200
         var tokenSent = token
         var commandsMissing = false
-        /// FU Mail answers `/health` here (false: nothing answers, or something else does).
+        /// FU Mail answers here (false: nothing answers).
         var answersHealth = true
         var stream: AsyncThrowingStream<StreamItem, Error>.Continuation?
     }
@@ -76,14 +76,6 @@ final class FakeDesktop: DesktopTransport {
 
     func health() async throws {
         recorded.withLock { $0.requests.append("GET /health") }
-    }
-
-    /// Recorded as "probe /health": the token-less check made when choosing an address.
-    func probeHealth(timeout: Duration) async -> RemoteProblem? {
-        recorded.withLock { state in
-            state.requests.append("probe /health")
-            return state.answersHealth ? nil : RemoteProblem(.unreachable, "\(display) didn't answer within 2 seconds.")
-        }
     }
 
     func events() -> AsyncThrowingStream<StreamItem, Error> {

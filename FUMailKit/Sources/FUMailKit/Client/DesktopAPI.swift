@@ -16,18 +16,8 @@ public protocol DesktopTransport: Sendable {
     func send(_ method: String, _ path: String, body: Data?) async throws -> Data
     /// `GET /health`, which needs no token. Throws unless it's FU Mail answering (`{"ok":true}`).
     func health() async throws
-    /// `/health` within `timeout`, without the token: nil when FU Mail answers, else why not. Never
-    /// throws: for choosing between the home and Tailscale addresses.
-    func probeHealth(timeout: Duration) async -> RemoteProblem?
     /// `GET /v1/events`. Ends by throwing when the connection closes.
     func events() -> AsyncThrowingStream<StreamItem, Error>
-}
-
-extension DesktopTransport {
-    /// Whether FU Mail answers `/health` here within `timeout`, without the token.
-    public func answersHealth(timeout: Duration) async -> Bool {
-        await probeHealth(timeout: timeout) == nil
-    }
 }
 
 /// The Mac's HTTP API over URLSession. Requests go only to the address in Settings (redirects are
@@ -100,38 +90,6 @@ public final class DesktopAPI: DesktopTransport {
             throw Problems.describe(error, url: display)
         }
         guard Self.isFUMailHealth(data, response) else { throw Problems.notFUMail(url: display) }
-    }
-
-    public func probeHealth(timeout: Duration) async -> RemoteProblem? {
-        let display = self.display
-        let request: URLRequest
-        do {
-            var built = try self.request("GET", "/health", token: false)
-            built.timeoutInterval = Double(timeout.components.seconds) + Double(timeout.components.attoseconds) / 1e18
-            request = built
-        } catch {
-            return Problems.describe(error, url: display)
-        }
-        let http = self.http
-        let late = RemoteProblem(.unreachable, "\(display) didn't answer within \(timeout.formatted(.units(allowed: [.seconds]))).")
-        // The request's own timeout covers a silent address; the race covers a slow answer too.
-        return await withTaskGroup(of: RemoteProblem??.self) { group in
-            group.addTask {
-                do {
-                    let (data, response) = try await http.data(for: request)
-                    return .some(Self.isFUMailHealth(data, response) ? nil : Problems.notFUMail(url: display))
-                } catch {
-                    return .some(Problems.describe(error, url: display))
-                }
-            }
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                return .none
-            }
-            let first = await group.next() ?? .none
-            group.cancelAll()
-            return first ?? late
-        }
     }
 
     /// FU Mail's own answer to `/health`: a 2xx with `{"ok":true}`. Anything else on that address and

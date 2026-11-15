@@ -72,7 +72,7 @@ struct SettingsTests {
     @Test func localNetworkAndPlainHTTPRefusals() {
         let home = Problems.describe(URLError(.notConnectedToInternet), url: "http://192.168.107.138:8765")
         #expect(home.kind == .localNetworkDenied)
-        #expect(home.message.contains("Local Network"))
+        #expect(home.message.contains("Tailscale address"))
         let tailnet = Problems.describe(URLError(.notConnectedToInternet), url: "http://100.101.102.103:8765")
         #expect(tailnet.kind == .unreachable)
         #expect(tailnet.message.contains("offline"))

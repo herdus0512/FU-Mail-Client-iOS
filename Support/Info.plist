@@ -3,7 +3,7 @@
 <!-- Merged with what Xcode generates from the INFOPLIST_KEY_* build settings. -->
 <plist version="1.0">
 <dict>
-	<!-- Plain HTTP only to local addresses: IP addresses (home Wi-Fi, Tailscale 100.x), .local names and
+	<!-- Plain HTTP only to local addresses: IP addresses (Tailscale 100.x), .local names and
 	     names without dots (MagicDNS). Anything else needs HTTPS (tailscale serve). The app also sends
 	     requests only to the host in Settings, with redirects refused. -->
 	<key>NSAppTransportSecurity</key>

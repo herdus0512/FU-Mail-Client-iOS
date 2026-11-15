@@ -66,42 +66,6 @@ struct DesktopAPITests {
         #expect(Problems.notFUMail(url: "u").message == "Something answered at u, but not FU Mail's API. Check the address and the port.")
     }
 
-    @Test func theQuickCheckSendsNoTokenAndWantsOkTrue() async {
-        let fuMail = api { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
-        #expect(await fuMail.answersHealth(timeout: .seconds(2)))
-        let seen = StubProtocol.seen.withLock { $0 }
-        #expect(seen.map { $0.url?.path() } == ["/health"])
-        #expect(seen.first?.value(forHTTPHeaderField: "Authorization") == nil)  // the token never goes there first
-        let other = api { _ in .init(status: 200, body: Data(#"{"ok":false}"#.utf8)) }
-        #expect(await !other.answersHealth(timeout: .seconds(2)))
-        let error = api { _ in .init(status: 500, body: Data(#"{"ok":true}"#.utf8)) }
-        #expect(await !error.answersHealth(timeout: .seconds(2)))
-        let nothing = api { _ in nil }  // nothing answers: the stub fails the connection
-        #expect(await !nothing.answersHealth(timeout: .seconds(2)))
-    }
-
-    @Test func theQuickCheckSaysWhyHomeDidntCount() async {
-        let other = api { _ in .init(status: 200, body: Data("<html>Router</html>".utf8)) }
-        #expect(await other.probeHealth(timeout: .seconds(2)) == Problems.notFUMail(url: "http://192.168.107.138:8765"))
-        let nothing = api { _ in nil }
-        #expect(await nothing.probeHealth(timeout: .seconds(2))?.kind == .unreachable)
-        let slow = api { _ in
-            Thread.sleep(forTimeInterval: 1.5)
-            return .init(status: 200, body: Data(#"{"ok":true}"#.utf8))
-        }
-        #expect(await slow.probeHealth(timeout: .milliseconds(300))?.message.contains("didn't answer within") == true)
-    }
-
-    @Test func theQuickCheckGivesUpAfterItsTimeout() async {
-        let slow = api { _ in
-            Thread.sleep(forTimeInterval: 1.5)
-            return .init(status: 200, body: Data(#"{"ok":true}"#.utf8))
-        }
-        let started = Date.now
-        #expect(await !slow.answersHealth(timeout: .milliseconds(300)))
-        #expect(Date.now.timeIntervalSince(started) < 1.2)
-    }
-
     @Test func errorsComeBackInPlainWords() async {
         let api = api { _ in .init(status: 401, body: Data(#"{"error":"Unauthorized"}"#.utf8)) }
         await #expect(throws: Problems.unauthorized) { try await api.send("GET", "/v1/info", body: nil) }

@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # --editor: start with a reply's draft editor open for the device (closed again by Cancel or Save).
 EDITOR = "--editor" in sys.argv
-# --port N: another port (two copies stand for the home and Tailscale addresses).
+# --port N: another port.
 PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else 8799
 ARGS = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith("--") and sys.argv[i - 1] != "--port"]
 FIX = ARGS[0] if ARGS else os.path.join(os.path.dirname(__file__), "..", "FUMailKit", "Tests", "FUMailKitTests", "Fixtures")

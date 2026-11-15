@@ -18,7 +18,7 @@ FU Mail for iPhone and iPad: a thin client of the Mac's FU Mail API, at parity w
 | JSON | hand-written serializers for Swift's shapes | the Mac's own `Codable` types, copied |
 | Token | Android Keystore | Keychain, this device only, not backed up |
 | Plain HTTP | allowed, guarded in the app | App Transport Security: local addresses only, plus the same guard |
-| Local network | Android 17 "nearby devices" | iOS Local Network prompt (`NSLocalNetworkUsageDescription`) |
+| Local network | Android 17 "nearby devices" | not used since 3.1.0: Tailscale only, no Local Network prompt |
 | Font | JetBrains Mono | SF Mono (the system's) |
 | Rename / delete | long-press | swipe to delete, context menu to rename |
 | Install | sideloaded APK | TestFlight |

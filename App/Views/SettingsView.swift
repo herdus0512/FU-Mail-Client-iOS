@@ -1,23 +1,19 @@
 import FUMailKit
 import SwiftUI
 
-/// The Mac's two addresses (either can be left empty) and this device's token. Save and connect checks
-/// each filled address on its own (`/health`, then `/v1/info` with the token) and says how each went;
-/// it saves when at least one works, so it can be set up at home with Tailscale off. Save anyway keeps
-/// settings that can't be checked right now.
+/// The Mac's Tailscale address and this device's token. Save and connect checks them (`/health`, then
+/// `/v1/info` with the token) and saves when that works; Save anyway keeps settings that can't be
+/// checked right now.
 struct SettingsView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("textSize") private var textSize: TextSize = .standard
 
-    @State private var homeURL = ""
     @State private var tailscaleURL = ""
     @State private var token = ""
     @State private var showToken = false
     @State private var checking = false
-    /// One line per address checked, and how it went.
-    @State private var lines: [(text: String, ok: Bool)] = []
     @State private var result: String?
     @State private var problem: String?
     @State private var canSaveAnyway = false
@@ -26,7 +22,7 @@ struct SettingsView: View {
     private func trimmed(_ text: String) -> String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private var canSave: Bool {
-        !checking && !(trimmed(homeURL).isEmpty && trimmed(tailscaleURL).isEmpty)
+        !checking && !trimmed(tailscaleURL).isEmpty
             && (!trimmed(token).isEmpty || app.hasToken)
     }
 
@@ -85,13 +81,6 @@ struct SettingsView: View {
                     if canSaveAnyway {
                         Button("Save anyway") { save(check: false) }
                     }
-                    ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                        if line.ok {
-                            Text(line.text).font(.footnote).foregroundStyle(StatusColors.connected)
-                        } else {
-                            WarningText(line.text)
-                        }
-                    }
                     if let result {
                         Text(result).font(.footnote).foregroundStyle(StatusColors.connected)
                     }
@@ -147,79 +136,47 @@ struct SettingsView: View {
             .onAppear {
                 if tailscaleURL.isEmpty { tailscaleURL = app.tailscaleURL }
             }
-            .onChange(of: homeURL) { canSaveAnyway = false }
             .onChange(of: tailscaleURL) { canSaveAnyway = false }
             .onChange(of: token) { canSaveAnyway = false }
         }
     }
 
     private func save(check: Bool) {
-        lines = []
         result = nil
         problem = nil
         canSaveAnyway = false
         let typed = trimmed(token).isEmpty ? nil : trimmed(token)
-        let effectiveToken = typed ?? app.savedToken() ?? ""
-        // Each filled address on its own; a wrong one stops here with why.
-        var addresses: [(label: String, settings: ServerSettings)] = []
-        for (label, text) in [("Tailscale", trimmed(tailscaleURL))] where !text.isEmpty {
-            switch ServerSettings.parse(url: text, token: effectiveToken) {
-            case .success(let settings): addresses.append((label, settings))
-            case .failure(let invalid):
-                problem = "\(label): \(invalid.message)"
-                return
-            }
+        let settings: ServerSettings
+        switch ServerSettings.parse(url: trimmed(tailscaleURL), token: typed ?? app.savedToken() ?? "") {
+        case .success(let parsed): settings = parsed
+        case .failure(let invalid):
+            problem = invalid.message
+            return
         }
-        let home = addresses.first { $0.label == "At home" }?.settings.display ?? ""
-        let tailscale = addresses.first { $0.label == "Tailscale" }?.settings.display ?? ""
         Task {
+            var connected: String?
             if check {
                 checking = true
-                var anyWorked = false
-                for (label, settings) in addresses {
-                    do {
-                        let info = try await app.check(settings)
-                        let device = info.device.map { " as “\($0)”" } ?? ""
-                        lines.append(("\(label): connected to FU Mail \(info.version)\(device).", true))
-                        anyWorked = true
-                    } catch {
-                        lines.append(("\(label): \(Self.describe(error, home: label == "At home"))", false))
-                    }
-                }
-                checking = false
-                // Saved when at least one works (e.g. set up at home with Tailscale off).
-                guard anyWorked else {
+                defer { checking = false }
+                do {
+                    let info = try await app.check(settings)
+                    connected = "Connected to FU Mail \(info.version)" + (info.device.map { " as “\($0)”" } ?? "") + "."
+                } catch {
+                    problem = (error as? RemoteProblem)?.message ?? error.localizedDescription
                     canSaveAnyway = true
                     return
                 }
             }
             do {
-                try app.save(home: home, tailscale: tailscale, newToken: typed)
+                try app.save(tailscale: settings.display, newToken: typed)
             } catch {
                 problem = error.localizedDescription
                 return
             }
             token = ""
             showToken = false
-            if !home.isEmpty, !tailscale.isEmpty {
-                result = "Saved. On Wi-Fi it uses the home address when FU Mail answers there, otherwise Tailscale."
-            } else if !check {
-                result = "Saved. Connecting to \(home.isEmpty ? tailscale : home)…"
-            } else {
-                result = "Saved."
-            }
+            result = connected.map { "\($0) Saved." } ?? "Saved. Connecting to \(settings.display)…"
         }
-    }
-
-    /// Why an address didn't work, in plain words. The home address can be blocked by iOS's Local
-    /// Network setting, and Tailscale is the way round that.
-    private static func describe(_ error: Error, home: Bool) -> String {
-        guard let problem = error as? RemoteProblem else { return error.localizedDescription }
-        if home, problem.kind == .localNetworkDenied {
-            return "iOS isn't letting FU Mail reach your local network, so the home address can't be reached. "
-                + "Allow it in Settings → Privacy & Security → Local Network → FU Mail, or use the Tailscale address."
-        }
-        return problem.message
     }
 }
 
