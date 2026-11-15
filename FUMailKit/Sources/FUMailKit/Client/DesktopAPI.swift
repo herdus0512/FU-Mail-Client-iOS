@@ -14,8 +14,11 @@ public protocol DesktopTransport: Sendable {
     var display: String { get }
     /// A request with an optional JSON body. Throws a `RemoteProblem` for anything but 2xx.
     func send(_ method: String, _ path: String, body: Data?) async throws -> Data
-    /// `GET /health`, which needs no token.
+    /// `GET /health`, which needs no token. Throws unless it's FU Mail answering (`{"ok":true}`).
     func health() async throws
+    /// Whether FU Mail answers `/health` here within `timeout`, without the token. Never throws: for
+    /// choosing between the home and Tailscale addresses.
+    func answersHealth(timeout: Duration) async -> Bool
     /// `GET /v1/events`. Ends by throwing when the connection closes.
     func events() -> AsyncThrowingStream<StreamItem, Error>
 }
@@ -81,12 +84,44 @@ public final class DesktopAPI: DesktopTransport {
     }
 
     public func health() async throws {
+        let data: Data
+        let response: URLResponse
         do {
-            let (data, response) = try await http.data(for: try request("GET", "/health", token: false))
+            (data, response) = try await http.data(for: try request("GET", "/health", token: false))
             try check(response, body: data)
         } catch {
             throw Problems.describe(error, url: display)
         }
+        guard Self.isFUMailHealth(data, response) else { throw Problems.notFUMail(url: display) }
+    }
+
+    public func answersHealth(timeout: Duration) async -> Bool {
+        guard var request = try? request("GET", "/health", token: false) else { return false }
+        let seconds = Double(timeout.components.seconds) + Double(timeout.components.attoseconds) / 1e18
+        request.timeoutInterval = seconds
+        let probe = request
+        let http = self.http
+        // The request's own timeout covers a silent address; the race covers a slow answer too.
+        return await withTaskGroup(of: Bool?.self) { group in
+            group.addTask {
+                guard let (data, response) = try? await http.data(for: probe) else { return false }
+                return Self.isFUMailHealth(data, response)
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first ?? false
+        }
+    }
+
+    /// FU Mail's own answer to `/health`: a 2xx with `{"ok":true}`. Anything else on that address and
+    /// port (a router's page, another app) doesn't count.
+    static func isFUMailHealth(_ data: Data, _ response: URLResponse) -> Bool {
+        guard let status = (response as? HTTPURLResponse)?.statusCode, (200..<300).contains(status) else { return false }
+        return (try? JSONValue.parse(data))?["ok"] == .bool(true)
     }
 
     public func events() -> AsyncThrowingStream<StreamItem, Error> {

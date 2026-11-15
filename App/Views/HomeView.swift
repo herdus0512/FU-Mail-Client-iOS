@@ -39,7 +39,7 @@ struct HomeView: View {
         }
         .onAppear {
             // First run: nothing to connect to yet, so start in Settings.
-            if app.client == nil, !askedOnce {
+            if !app.isConfigured, !askedOnce {
                 askedOnce = true
                 showSettings = true
             }

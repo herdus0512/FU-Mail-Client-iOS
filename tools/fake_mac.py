@@ -11,7 +11,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # --editor: start with a reply's draft editor open for the device (closed again by Cancel or Save).
 EDITOR = "--editor" in sys.argv
-ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+# --port N: another port (two copies stand for the home and Tailscale addresses).
+PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else 8799
+ARGS = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith("--") and sys.argv[i - 1] != "--port"]
 FIX = ARGS[0] if ARGS else os.path.join(os.path.dirname(__file__), "..", "FUMailKit", "Tests", "FUMailKitTests", "Fixtures")
 TOKEN = "fum_smoke"
 C1 = "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A00"
@@ -208,5 +210,5 @@ class H(BaseHTTPRequestHandler):
     def do_PATCH(self): self.handle_any("PATCH")
     def do_DELETE(self): self.handle_any("DELETE")
 
-print("Fake desktop on http://127.0.0.1:8799 (emulator: http://10.0.2.2:8799), token fum_smoke. Ctrl-C stops it.", flush=True)
-ThreadingHTTPServer(("127.0.0.1", 8799), H).serve_forever()
+print(f"Pretend Mac on http://127.0.0.1:{PORT}, token fum_smoke. Ctrl-C stops it.", flush=True)
+ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()

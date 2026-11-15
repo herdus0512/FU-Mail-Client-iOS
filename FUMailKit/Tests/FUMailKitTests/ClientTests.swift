@@ -3,11 +3,12 @@ import Synchronization
 import Testing
 @testable import FUMailKit
 
-private let token = "fum_test-token"
+let token = "fum_test-token"
 private let editorID = UUID(uuidString: "9F1C2B3A-0000-4000-8000-000000000001")!
 
-/// A pretend Mac: answers the API's requests, records them, and sends events when told to.
-private final class FakeDesktop: DesktopTransport {
+/// A pretend Mac: answers the API's requests, records them, and sends events when told to. Two of
+/// them stand for the home and Tailscale addresses of the same Mac.
+final class FakeDesktop: DesktopTransport {
     struct Recorded: Sendable {
         var requests: [String] = []
         var bodies: [String] = []
@@ -16,11 +17,17 @@ private final class FakeDesktop: DesktopTransport {
         var status = 200
         var tokenSent = token
         var commandsMissing = false
+        /// FU Mail answers `/health` here (false: nothing answers, or something else does).
+        var answersHealth = true
         var stream: AsyncThrowingStream<StreamItem, Error>.Continuation?
     }
 
-    let display = "http://fake-mac:8765"
+    let display: String
     let recorded = Mutex(Recorded())
+
+    init(display: String = "http://fake-mac:8765") {
+        self.display = display
+    }
 
     var requests: [String] { recorded.withLock { $0.requests } }
     var bodies: [String] { recorded.withLock { $0.bodies } }
@@ -71,11 +78,20 @@ private final class FakeDesktop: DesktopTransport {
         recorded.withLock { $0.requests.append("GET /health") }
     }
 
+    /// Recorded as "probe /health": the token-less check made when choosing an address.
+    func answersHealth(timeout: Duration) async -> Bool {
+        recorded.withLock { state in
+            state.requests.append("probe /health")
+            return state.answersHealth
+        }
+    }
+
     func events() -> AsyncThrowingStream<StreamItem, Error> {
         let (stream, continuation) = AsyncThrowingStream<StreamItem, Error>.makeStream()
         let refused: RemoteProblem? = recorded.withLock { state in
             state.requests.append("GET /v1/events")
             state.streams += 1
+            if !state.answersHealth { return RemoteProblem(.unreachable, "Can't reach \(display).") }
             if state.tokenSent != token { return Problems.unauthorized }
             if state.status == 429 { return Problems.lockedOut }
             state.stream = continuation

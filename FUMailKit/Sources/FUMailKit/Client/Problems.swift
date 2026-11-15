@@ -44,6 +44,11 @@ public enum Problems {
     public static let lockedOut = RemoteProblem(
         .lockedOut, "The Mac has locked this device out for a few minutes after wrong tokens. Wait, then try again.")
 
+    /// `/health` answered, but not as FU Mail does (`{"ok":true}`).
+    public static func notFUMail(url: String) -> RemoteProblem {
+        RemoteProblem(.server, "Something answered at \(url), but not FU Mail's API. Check the address and the port.")
+    }
+
     /// A status other than 2xx, with the Mac's `{"error": "…"}` if it sent one. `url` is the address in Settings.
     public static func forStatus(_ status: Int, reason: String?, url: String) -> RemoteProblem {
         switch status {

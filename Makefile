@@ -39,6 +39,8 @@ sim-ipad:
 	$(MAKE) run SIM="iPad Air 11-inch (M4)"
 
 # A pretend Mac with sample cards (leave it running in another terminal), and the simulator using it.
+# Two addresses: also run `python3 tools/fake_mac.py --port 8798` as the Tailscale one, then
+# `make run-fake TWO=1 WIFI=1` (or WIFI=0: the Simulator can't turn its own Wi-Fi off).
 fake-mac:
 	python3 tools/fake_mac.py
 
@@ -48,7 +50,8 @@ run-fake: build
 	xcrun simctl bootstatus "$(SIM)" -b >/dev/null
 	xcrun simctl install "$(SIM)" $(DERIVED)/Build/Products/Debug-iphonesimulator/FUMail.app
 	xcrun simctl terminate "$(SIM)" $(BUNDLE_ID) 2>/dev/null || true
-	SIMCTL_CHILD_FUMAIL_URL=http://127.0.0.1:8799 SIMCTL_CHILD_FUMAIL_TOKEN=fum_smoke \
+	SIMCTL_CHILD_FUMAIL_HOME=http://127.0.0.1:8799 SIMCTL_CHILD_FUMAIL_TOKEN=fum_smoke \
+		$(if $(TWO),SIMCTL_CHILD_FUMAIL_TAILSCALE=http://localhost:8798) $(if $(WIFI),SIMCTL_CHILD_FUMAIL_WIFI=$(WIFI)) \
 		$(if $(OPEN),SIMCTL_CHILD_FUMAIL_OPEN=$(OPEN)) $(if $(UPTO),SIMCTL_CHILD_FUMAIL_UPTO=$(UPTO)) xcrun simctl launch "$(SIM)" $(BUNDLE_ID)
 
 check-ids:

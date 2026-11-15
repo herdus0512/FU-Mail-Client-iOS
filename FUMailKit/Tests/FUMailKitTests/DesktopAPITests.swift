@@ -11,7 +11,7 @@ private final class StubProtocol: URLProtocol, @unchecked Sendable {
         var body: Data
     }
 
-    static let handler = Mutex<(@Sendable (URLRequest) -> Answer)?>(nil)
+    static let handler = Mutex<(@Sendable (URLRequest) -> Answer?)?>(nil)
     static let seen = Mutex<[URLRequest]>([])
 
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -35,7 +35,7 @@ private final class StubProtocol: URLProtocol, @unchecked Sendable {
 /// The real HTTP client, through a pretend server. One suite, run in order: the stub is shared.
 @Suite(.serialized)
 struct DesktopAPITests {
-    private func api(_ answer: @escaping @Sendable (URLRequest) -> StubProtocol.Answer) -> DesktopAPI {
+    private func api(_ answer: @escaping @Sendable (URLRequest) -> StubProtocol.Answer?) -> DesktopAPI {
         StubProtocol.handler.withLock { $0 = answer }
         StubProtocol.seen.withLock { $0 = [] }
         let configuration = URLSessionConfiguration.ephemeral
@@ -54,6 +54,40 @@ struct DesktopAPITests {
         #expect(seen[0].value(forHTTPHeaderField: "Authorization") == "Bearer fum_secret")
         #expect(seen[0].value(forHTTPHeaderField: "Content-Type") == "application/json")
         #expect(seen[1].value(forHTTPHeaderField: "Authorization") == nil)  // /health needs none
+    }
+
+    @Test func healthMustBeFUMailsOwnAnswer() async throws {
+        let fuMail = api { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        try await fuMail.health()
+        for body in [#"{"ok":false}"#, #"{"ok":"true"}"#, "<html>Router</html>", "", #"[true]"#] {
+            let other = api { _ in .init(status: 200, body: Data(body.utf8)) }
+            await #expect(throws: Problems.notFUMail(url: "http://192.168.107.138:8765"), "\(body)") { try await other.health() }
+        }
+        #expect(Problems.notFUMail(url: "u").message == "Something answered at u, but not FU Mail's API. Check the address and the port.")
+    }
+
+    @Test func theQuickCheckSendsNoTokenAndWantsOkTrue() async {
+        let fuMail = api { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        #expect(await fuMail.answersHealth(timeout: .seconds(2)))
+        let seen = StubProtocol.seen.withLock { $0 }
+        #expect(seen.map { $0.url?.path() } == ["/health"])
+        #expect(seen.first?.value(forHTTPHeaderField: "Authorization") == nil)  // the token never goes there first
+        let other = api { _ in .init(status: 200, body: Data(#"{"ok":false}"#.utf8)) }
+        #expect(await !other.answersHealth(timeout: .seconds(2)))
+        let error = api { _ in .init(status: 500, body: Data(#"{"ok":true}"#.utf8)) }
+        #expect(await !error.answersHealth(timeout: .seconds(2)))
+        let nothing = api { _ in nil }  // nothing answers: the stub fails the connection
+        #expect(await !nothing.answersHealth(timeout: .seconds(2)))
+    }
+
+    @Test func theQuickCheckGivesUpAfterItsTimeout() async {
+        let slow = api { _ in
+            Thread.sleep(forTimeInterval: 1.5)
+            return .init(status: 200, body: Data(#"{"ok":true}"#.utf8))
+        }
+        let started = Date.now
+        #expect(await !slow.answersHealth(timeout: .milliseconds(300)))
+        #expect(Date.now.timeIntervalSince(started) < 1.2)
     }
 
     @Test func errorsComeBackInPlainWords() async {

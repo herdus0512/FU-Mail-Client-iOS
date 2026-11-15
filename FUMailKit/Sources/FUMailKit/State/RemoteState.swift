@@ -5,10 +5,13 @@ public struct Connection: Equatable, Sendable {
     public var connected = false
     /// Plain words: can't reach, token rejected, locked out…
     public var problem: String?
+    /// Which address is in use when there are two ("Home", "Tailscale"); nil with one.
+    public var via: String?
 
-    public init(connected: Bool = false, problem: String? = nil) {
+    public init(connected: Bool = false, problem: String? = nil, via: String? = nil) {
         self.connected = connected
         self.problem = problem
+        self.via = via
     }
 
     public enum Indicator: Sendable { case connected, connecting, failed }

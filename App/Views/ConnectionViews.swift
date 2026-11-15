@@ -22,7 +22,8 @@ struct ConnectionIndicator: View {
 
     private var label: String {
         guard client != nil else { return "Not set up" }
-        if connection.connected { return "Connected" }
+        // With two addresses, which one is in use; with one, as before.
+        if connection.connected { return connection.via ?? "Connected" }
         return connection.problem != nil ? "Can't connect" : "Connecting…"
     }
 
@@ -58,7 +59,7 @@ struct ConnectionIndicator: View {
                 .font(.headline)
                 .foregroundStyle(color)
             if let client {
-                Detail(label: "Mac", value: client.display)
+                Detail(label: "Mac", value: client.display + (connection.via.map { " (via \($0))" } ?? ""))
                 if let info = client.state.info {
                     Detail(label: "This device", value: info.device.flatMap { $0.isEmpty ? nil : $0 } ?? "(unnamed token)")
                     Detail(label: "FU Mail there",

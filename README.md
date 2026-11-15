@@ -10,9 +10,10 @@ and this shows the same conversations and cards. For personal use: installed thr
   follows the Mac's API ([docs/API.md](../FU-Mail-Client/docs/API.md)) when it changes.
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono throughout, no third-party code.
 
-> **Status: 0.7.2, milestone 7: everything the Android app 0.6.0 does.** Connecting, the
-> conversations, the chat, every card with its buttons (mail, drafts, events, notes, CRM, tasks) and
-> the draft editor, side by side on the iPad. See [docs/PLAN.md](docs/PLAN.md).
+> **Status: 0.8.0, matching the Android app 0.8.0 and FU Mail 2.8.0.** Connecting (at home and
+> over Tailscale, switched by itself), the conversations, the chat, every card with its buttons (mail,
+> drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
+> [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
 
 ## Setting up the Mac (once)
 
@@ -37,7 +38,9 @@ make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (le
                   #   python3 tools/fake_mac.py --editor starts with a draft editor open, --long makes
                   #   the chat long; Summary and Add to note on a thread answer as the Mac does)
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
-                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages
+                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages;
+                  #   TWO=1 adds python3 tools/fake_mac.py --port 8798 as the Tailscale address, and
+                  #   WIFI=1 / WIFI=0 pretends to be on Wi-Fi or not (the Simulator can't switch)
 make testflight   # test, archive, sign and upload to TestFlight
 ```
 
@@ -54,28 +57,54 @@ replaces the old one and keeps its settings.
 
 As for the Android app: the Mac's `api` must be on with `allow_from` covering the home network
 and/or Tailscale (`100.64.0.0/10`), and each device gets its own token (**API → New Device
-Token…**). In the app, **Settings** (the gear; it opens by itself the first time) takes the address
-and the token. **Save and connect** checks the address (`/health`) and the token (`/v1/info`) first
-and says which one is wrong; **Save anyway** keeps settings it can't check right now, e.g. while
-you're away from home.
+Token…**). In the app, **Settings** (the gear; it opens by itself the first time) takes two addresses
+for the same Mac, either of which can be left empty, and the token:
 
-| Where | Address |
+| Field | Address |
 | ----- | ------- |
-| Home Wi-Fi | `http://192.168.107.138:8765` (the Mac's IP) |
-| Tailnet | `http://<mac>:8765` (MagicDNS name) or `http://100.x.y.z:8765` |
-| Tailnet, HTTPS | `https://<mac>.<tailnet>.ts.net` (with `tailscale serve`) |
+| At home (Wi-Fi) | `http://192.168.107.138:8765` (the Mac's IP on the home network) |
+| Tailscale | `http://<mac>:8765` (MagicDNS name), `http://100.x.y.z:8765`, or `https://<mac>.<tailnet>.ts.net` (with `tailscale serve`) |
 
-- **Plain HTTP** is allowed by iOS only to local addresses: IP addresses, `.local` names and names
-  without dots (MagicDNS). Any other name needs HTTPS. The app also sends requests only to the host
-  in Settings, with redirects refused.
-- **Local Network:** iOS asks the first time the address is on your home network. If it was
-  declined: **Settings → Privacy & Security → Local Network → FU Mail**. Tailscale addresses don't
-  need it.
+**Save and connect** checks each filled address on its own (`/health`, then the token with
+`/v1/info`) and shows a line for each ("At home: connected to FU Mail 2.8.0 as "iphone"." /
+"Tailscale: can't reach …"). It saves when at least one works, so it can be set up at home with
+Tailscale off; **Save anyway** keeps settings none of which can be checked right now.
+
+**How it picks** (the same rule as the Android app, so both phones agree):
+
+1. With only one address set, that one.
+2. Not on Wi-Fi: Tailscale, without contacting the home address at all.
+3. On Wi-Fi: a `GET /health` to the home address, with no token and a 2-second timeout. Home only if
+   it answers 2xx with FU Mail's own `{"ok":true}`; otherwise Tailscale.
+4. It picks again on every (re)connect, so a home address that stops answering falls over to
+   Tailscale on the next attempt, and as soon as Wi-Fi comes or goes (about 1.5 s after, once the
+   network has settled), when both addresses are set.
+
+The token never goes to the home address until FU Mail itself has answered there, so another network
+that happens to use the same 192.168.x range doesn't get it. No Wi-Fi name is read (that would need
+location permission): only whether Wi-Fi is one of the network path's interfaces, which also holds
+while Tailscale's VPN runs over Wi-Fi. The first connection waits for the first reading (at most a
+second), so it doesn't start on Tailscale and switch a moment later.
+
+**Upgrading from 0.7 or earlier:** the one saved address moves into the right field once: Tailscale
+if its host is in 100.64.0.0/10, ends in `.ts.net` or is a bare name with no dots (a MagicDNS name
+like `mac`), At home otherwise. The token stays as it is.
+
+- **`/health`** must be FU Mail's own answer. If something else answers at an address (a router's
+  page, another app on that port), Settings says "Something answered at <url>, but not FU Mail's API.
+  Check the address and the port."
+- **Plain HTTP** is allowed by iOS only to local addresses: IP addresses (the home LAN and
+  Tailscale's 100.x), `.local` names and names without dots (MagicDNS). A `*.ts.net` name needs
+  HTTPS. Each address's connection also sends requests only to its own host, with redirects refused.
+- **Local Network:** iOS asks the first time the home address is used. If it was declined, the home
+  address can't be reached and Settings says so (and suggests Tailscale); allow it in **Settings →
+  Privacy & Security → Local Network → FU Mail**. Tailscale addresses don't need it.
 - **The token** is kept in the Keychain on this device only: not synced to iCloud and not backed up.
   **Forget token** in Settings removes it.
 - **The indicator** at the top right is green when connected, orange while connecting, and red
-  when it can't connect. Tap it for the address, this device's name, the Mac's version and what's
-  wrong. Problems also show in a banner across the top.
+  when it can't connect. With two addresses it says **Home** or **Tailscale** instead of
+  "Connected". Tap it for the address in use ("(via Home)" / "(via Tailscale)"), this device's name,
+  the Mac's version and what's wrong. Problems also show in a banner across the top.
 - **The connection** is open only while the app is on screen. When it comes back, or the
   connection drops, it reconnects (1 s, doubling up to 30 s) and fetches everything again.
 
@@ -135,6 +164,25 @@ you're away from home.
 - **Settings → Text size:** a step smaller or larger than iOS's own text size.
 
 Not in this version: push notifications, offline mail, attachments.
+
+## Versions
+
+The version is in [`VERSION`](VERSION) and the project's `MARKETING_VERSION` (bumped by hand);
+`make testflight` gives each upload its own build number. Settings and the indicator's details show
+it. From 0.8.0 the numbers follow the Android app and FU Mail on the Mac (0.8.0 ↔ 2.8.0).
+
+| Version | Date | What changed |
+| ------- | ---- | ------------ |
+| 0.8.0 | 2026-11-15 | **Two addresses**, picked by themselves: **At home (Wi-Fi)** and **Tailscale**. On Wi-Fi the home one is used when FU Mail answers there (a quick `/health`, no token), otherwise Tailscale; it picks again on every reconnect and when Wi-Fi comes or goes, and the indicator says which. Save and connect checks each address. The one address from before moves into the right field. `/health` must now be FU Mail's own answer. Matches the Android app 0.8.0 and FU Mail 2.8.0 (no Mac changes needed). |
+| 0.7.2 | 2026-11-15 | An email opened from a list, a command's answer, Add to note and Add task come into view when they arrive (a card from its start), even scrolled up. The keyboard hides on a tap or scroll of the messages, or Done. Settings… in the connection popover opens Settings (and no longer leaves the gear stuck). Unchanged messages aren't rebuilt when another changes. |
+| 0.7.1 | 2026-11-14 | Fix: the chat could go blank after Summary or Add to note in a long chat (until it was opened again). |
+| 0.7.0 | 2026-11-14 | Milestone 7: the tasks card (Done / Undo, Reschedule, Edit, Open, refresh), new task (Create, Edit…, Cancel), Confirm for task changes asked in chat, Add task on emails. Everything the Android app 0.6.0 does. |
+| 0.6.0 | 2026-11-14 | Milestone 6: Add to note, note cards (Catch me up, Post CRM update, Refresh), Send to CRM (Rewrite professionally), suggested notes, Open in Obsidian. |
+| 0.5.0 | 2026-11-14 | Milestone 5: the draft editor (Write / Rewrite streaming in, Reply all, Save to Drafts, Copy text, Cancel). |
+| 0.4.0 | 2026-11-14 | Milestone 4: mail cards (lists with archive Show more, threads with folding, Summary, Reply, Reply all, Open in browser; drafts; events with Join). A message that can't be read no longer blanks the conversation. |
+| 0.3.0 | 2026-11-14 | Milestone 3: conversations (new, rename, delete, history search) and the chat (commands, `/` suggestions, Stop, provider line), cards as text, side by side on the iPad, Settings → Text size. |
+| 0.2.0 | 2026-11-14 | Milestone 2: Settings, the token in the Keychain, the connection indicator, problem banners, reconnecting; conversations listed read-only. |
+| 0.1.0 | 2026-11-14 | Milestone 1: the core (the Mac's models, state, client) with the Android core's tests, the app shell, signing and `make testflight`. |
 
 ## Where things are
 
