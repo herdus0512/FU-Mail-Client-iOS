@@ -31,7 +31,7 @@ final class AppModel {
     private static let oldKey = "macURL"
 
     /// Settings has what's needed to connect.
-    var isConfigured: Bool { hasToken && !(homeURL.isEmpty && tailscaleURL.isEmpty) }
+    var isConfigured: Bool { hasToken && !tailscaleURL.isEmpty }
 
     init() {
         let defaults = UserDefaults.standard
@@ -46,8 +46,7 @@ final class AppModel {
         // nothing is saved.
         let environment = ProcessInfo.processInfo.environment
         if let fake = environment["FUMAIL_TOKEN"] {
-            homeURL = environment["FUMAIL_HOME"] ?? environment["FUMAIL_URL"] ?? ""
-            tailscaleURL = environment["FUMAIL_TAILSCALE"] ?? ""
+            tailscaleURL = environment["FUMAIL_TAILSCALE"] ?? environment["FUMAIL_HOME"] ?? environment["FUMAIL_URL"] ?? ""
             token = fake
         }
         forcedWifi = environment["FUMAIL_WIFI"].map { $0 == "1" }
@@ -115,7 +114,8 @@ final class AppModel {
             return DesktopAPI(settings: settings)
         }
         let wifi = self.wifi
-        guard let picker = EndpointPicker(home: transport(homeURL), tailscale: transport(tailscaleURL),
+        // Since 3.1.0 Tailscale only: a saved home address is ignored.
+        guard let picker = EndpointPicker(home: nil, tailscale: transport(tailscaleURL),
                                           onWifi: { wifi.onWifi }) else { return }
         let fresh = RemoteClient(picker: picker)
         client = fresh

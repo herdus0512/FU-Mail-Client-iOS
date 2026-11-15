@@ -34,15 +34,12 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    AddressRow(label: "At home (Wi-Fi)", placeholder: "http://192.168.1.5:8765", text: $homeURL)
                     AddressRow(label: "Tailscale", placeholder: "http://mac:8765", text: $tailscaleURL)
                 } header: {
                     Text("Mac")
                 } footer: {
-                    Text("Either can be left empty. At home: http://<Mac's IP>:8765. Tailscale: http://<mac>:8765, "
-                         + "http://100.x.y.z:8765, or https://<mac>.<tailnet>.ts.net with tailscale serve. "
-                         + "With both, FU Mail picks by itself: on Wi-Fi the home address when FU Mail answers there, "
-                         + "otherwise Tailscale.")
+                    Text("http://<mac>:8765, http://100.x.y.z:8765, or https://<mac>.<tailnet>.ts.net "
+                         + "with tailscale serve. Tailscale needs to be on.")
                 }
 
                 Section {
@@ -148,10 +145,7 @@ struct SettingsView: View {
                 Text("FU Mail stops connecting until a new token is pasted.")
             }
             .onAppear {
-                if homeURL.isEmpty, tailscaleURL.isEmpty {
-                    homeURL = app.homeURL
-                    tailscaleURL = app.tailscaleURL
-                }
+                if tailscaleURL.isEmpty { tailscaleURL = app.tailscaleURL }
             }
             .onChange(of: homeURL) { canSaveAnyway = false }
             .onChange(of: tailscaleURL) { canSaveAnyway = false }
@@ -168,7 +162,7 @@ struct SettingsView: View {
         let effectiveToken = typed ?? app.savedToken() ?? ""
         // Each filled address on its own; a wrong one stops here with why.
         var addresses: [(label: String, settings: ServerSettings)] = []
-        for (label, text) in [("At home", trimmed(homeURL)), ("Tailscale", trimmed(tailscaleURL))] where !text.isEmpty {
+        for (label, text) in [("Tailscale", trimmed(tailscaleURL))] where !text.isEmpty {
             switch ServerSettings.parse(url: text, token: effectiveToken) {
             case .success(let settings): addresses.append((label, settings))
             case .failure(let invalid):

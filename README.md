@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.0.1, for FU Mail 3.0.0 on the Mac.** Connecting (at home and
+> **Status: 3.1.0, for FU Mail 3.0.0 on the Mac. Connects over Tailscale only.** Connecting (at home and
 > over Tailscale, switched by itself), the conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -185,6 +185,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.1.0 | 2026-11-15 | **Tailscale only.** The home (Wi-Fi) address and the automatic switching are gone: Settings has one address, the Tailscale one, and the indicator just says Connected, Connecting… or Can't connect. No Local Network permission is asked for any more. |
 | 3.0.1 | 2026-11-15 | Fix: **back to Home sooner** after Tailscale's VPN is switched off at home. Wi-Fi is now watched on its own interface (a VPN could hide it, so the app thought it was off Wi-Fi and kept to Tailscale), and any network change, the VPN coming or going included, re-checks the home address (token-less `/health`) and moves to it when FU Mail answers, rather than retrying Tailscale. When Tailscale is used on Wi-Fi, the indicator's details say why Home wasn't. |
 | 3.0.0 | 2026-11-15 | Version matched to FU Mail 3.0.0 on the Mac (the API is the same since 2.6.0; the Mac's 2.7.0–3.0.0 additions need nothing here: an auto Bcc arrives in the draft editor's Bcc field, where it shows and can be removed). **Long chats are quick again:** a chat opens with its newest 20 messages, and **Show earlier messages** adds 20 more. **Fonts:** the message bar and the search fields use the standard iOS font; Original \| Summary and Settings' Appearance and Text size switches are in the app's font and follow Text size; card buttons match the card text's size. |
 | 0.8.0 | 2026-11-15 | **Two addresses**, picked by themselves: **At home (Wi-Fi)** and **Tailscale**. On Wi-Fi the home one is used when FU Mail answers there (a quick `/health`, no token), otherwise Tailscale; it picks again on every reconnect and when Wi-Fi comes or goes, and the indicator says which. Save and connect checks each address. The one address from before moves into the right field. `/health` must now be FU Mail's own answer. Matches the Android app 0.8.0 and FU Mail 2.8.0 (no Mac changes needed). |
