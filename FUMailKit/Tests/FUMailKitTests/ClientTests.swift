@@ -79,10 +79,10 @@ final class FakeDesktop: DesktopTransport {
     }
 
     /// Recorded as "probe /health": the token-less check made when choosing an address.
-    func answersHealth(timeout: Duration) async -> Bool {
+    func probeHealth(timeout: Duration) async -> RemoteProblem? {
         recorded.withLock { state in
             state.requests.append("probe /health")
-            return state.answersHealth
+            return state.answersHealth ? nil : RemoteProblem(.unreachable, "\(display) didn't answer within 2 seconds.")
         }
     }
 

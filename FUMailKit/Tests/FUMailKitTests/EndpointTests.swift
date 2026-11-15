@@ -84,6 +84,53 @@ struct EndpointTests {
         client.close()
     }
 
+    @Test func whyHomeWasntUsedIsKept() async {
+        home.set { $0.answersHealth = false }
+        let onWifi = await picker(onWifi: true, home: home, tailscale: tailscale).choose()
+        #expect(onWifi.endpoint.label == "Tailscale")
+        #expect(onWifi.homeProblem?.message == "\(home.display) didn't answer within 2 seconds.")
+        let offWifi = await picker(onWifi: false, home: home, tailscale: tailscale).choose()
+        #expect(offWifi.homeProblem == nil)  // not on Wi-Fi: Home wasn't even tried, nothing to explain
+    }
+
+    @Test func theClientShowsWhyHomeWasntUsed() async {
+        home.set { $0.answersHealth = false }
+        let client = RemoteClient(picker: picker(onWifi: true, home: home, tailscale: tailscale),
+                                  backoff: Backoff(first: .milliseconds(20), max: .milliseconds(100)))
+        client.start()
+        await eventually("connected via Tailscale") { client.state.connection.connected && client.state.connection.via == "Tailscale" }
+        #expect(client.state.connection.homeSkipped?.contains("didn't answer") == true)
+        client.close()
+    }
+
+    /// The VPN switched off at home: Wi-Fi didn't change, and on iOS the Tailscale connection can hang
+    /// instead of failing. A network change checks Home and moves to it as soon as FU Mail answers.
+    @Test func aNetworkChangeMovesBackToHomeWhenItAnswers() async {
+        home.set { $0.answersHealth = false }
+        let client = RemoteClient(picker: picker(onWifi: true, home: home, tailscale: tailscale),
+                                  backoff: Backoff(first: .milliseconds(20), max: .milliseconds(100)))
+        client.start()
+        await eventually("connected via Tailscale") { client.state.connection.connected && client.state.connection.via == "Tailscale" }
+        await client.switchHomeIfItAnswers()  // Home still not answering: stays on Tailscale
+        #expect(client.state.connection.via == "Tailscale")
+        home.set { $0.answersHealth = true }
+        await client.switchHomeIfItAnswers()
+        await eventually("connected via Home") { client.state.connection.connected && client.state.connection.via == "Home" }
+        #expect(client.state.connection.homeSkipped == nil)
+        client.close()
+    }
+
+    @Test func offWiFiANetworkChangeDoesntTouchHome() async {
+        let client = RemoteClient(picker: picker(onWifi: false, home: home, tailscale: tailscale),
+                                  backoff: Backoff(first: .milliseconds(20), max: .milliseconds(100)))
+        client.start()
+        await eventually("connected via Tailscale") { client.state.connection.connected && client.state.connection.via == "Tailscale" }
+        await client.switchHomeIfItAnswers()
+        #expect(home.requests.isEmpty)
+        #expect(client.state.connection.via == "Tailscale")
+        client.close()
+    }
+
     @Test func oneAddressShowsNoLabel() async {
         let client = RemoteClient(transport: home, backoff: Backoff(first: .milliseconds(20), max: .milliseconds(100)))
         client.start()

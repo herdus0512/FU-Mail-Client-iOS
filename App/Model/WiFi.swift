@@ -12,28 +12,45 @@ final class WiFiState: Sendable {
     func set(_ onWifi: Bool) { value.withLock { $0 = onWifi } }
 }
 
-/// Watches the system's network path for Wi-Fi coming and going. No permission is needed and no Wi-Fi
-/// name (SSID) is read: only "is Wi-Fi one of this path's interfaces". Wi-Fi counts as Wi-Fi while a
-/// VPN (Tailscale) runs over it, since the Wi-Fi interface is still there under the VPN's.
+/// Watches the network. No permission is needed and no Wi-Fi name (SSID) is read.
+///
+/// - **Wi-Fi:** a monitor for the Wi-Fi interface only, satisfied while Wi-Fi is up. A VPN running
+///   over it (Tailscale) doesn't hide it, as it can from the device's main network path, where iOS may
+///   report only the VPN's interface.
+/// - **Any change:** the main path, which changes when a VPN comes or goes as well (Wi-Fi itself
+///   unchanged). That's when the home address may have become reachable again.
 @MainActor
-final class WiFiWatcher {
-    private let monitor = NWPathMonitor()
-    private let onReading: @MainActor (Bool) -> Void
+final class NetworkWatcher {
+    private let wifiMonitor = NWPathMonitor(requiredInterfaceType: .wifi)
+    private let anyMonitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "com.h3rdus.fumail.network")
+    private let onWifiReading: @MainActor (Bool) -> Void
+    private let onChange: @MainActor () -> Void
 
-    /// `onReading` gets every reading (the first one soon after `start`); the caller decides what's a change.
-    init(onReading: @escaping @MainActor (Bool) -> Void) {
-        self.onReading = onReading
+    /// `onWifiReading` gets every Wi-Fi reading (the first one soon after `start`); `onChange` any
+    /// change of the main path after the first.
+    init(onWifiReading: @escaping @MainActor (Bool) -> Void, onChange: @escaping @MainActor () -> Void) {
+        self.onWifiReading = onWifiReading
+        self.onChange = onChange
     }
 
     func start() {
-        monitor.pathUpdateHandler = { [weak self] path in
-            let onWifi = path.availableInterfaces.contains { $0.type == .wifi }
-            Task { @MainActor in self?.onReading(onWifi) }
+        wifiMonitor.pathUpdateHandler = { [weak self] path in
+            let onWifi = path.status == .satisfied
+            Task { @MainActor in self?.onWifiReading(onWifi) }
         }
-        monitor.start(queue: DispatchQueue(label: "com.h3rdus.fumail.wifi"))
+        let seenFirst = Mutex(false)
+        anyMonitor.pathUpdateHandler = { [weak self] _ in
+            // The first update only says how things are now; later ones are changes.
+            guard seenFirst.withLock({ seen in defer { seen = true }; return seen }) else { return }
+            Task { @MainActor in self?.onChange() }
+        }
+        wifiMonitor.start(queue: queue)
+        anyMonitor.start(queue: queue)
     }
 
     deinit {
-        monitor.cancel()
+        wifiMonitor.cancel()
+        anyMonitor.cancel()
     }
 }

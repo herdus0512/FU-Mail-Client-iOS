@@ -80,6 +80,18 @@ struct DesktopAPITests {
         #expect(await !nothing.answersHealth(timeout: .seconds(2)))
     }
 
+    @Test func theQuickCheckSaysWhyHomeDidntCount() async {
+        let other = api { _ in .init(status: 200, body: Data("<html>Router</html>".utf8)) }
+        #expect(await other.probeHealth(timeout: .seconds(2)) == Problems.notFUMail(url: "http://192.168.107.138:8765"))
+        let nothing = api { _ in nil }
+        #expect(await nothing.probeHealth(timeout: .seconds(2))?.kind == .unreachable)
+        let slow = api { _ in
+            Thread.sleep(forTimeInterval: 1.5)
+            return .init(status: 200, body: Data(#"{"ok":true}"#.utf8))
+        }
+        #expect(await slow.probeHealth(timeout: .milliseconds(300))?.message.contains("didn't answer within") == true)
+    }
+
     @Test func theQuickCheckGivesUpAfterItsTimeout() async {
         let slow = api { _ in
             Thread.sleep(forTimeInterval: 1.5)

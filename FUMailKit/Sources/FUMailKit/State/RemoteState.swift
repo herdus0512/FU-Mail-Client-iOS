@@ -7,6 +7,9 @@ public struct Connection: Equatable, Sendable {
     public var problem: String?
     /// Which address is in use when there are two ("Home", "Tailscale"); nil with one.
     public var via: String?
+    /// On Wi-Fi with Tailscale in use: why the home address wasn't (it didn't answer in time, iOS's
+    /// Local Network access is off, something else answered there…).
+    public var homeSkipped: String?
 
     public init(connected: Bool = false, problem: String? = nil, via: String? = nil) {
         self.connected = connected

@@ -83,9 +83,17 @@ Tailscale off; **Save anyway** keeps settings none of which can be checked right
 
 The token never goes to the home address until FU Mail itself has answered there, so another network
 that happens to use the same 192.168.x range doesn't get it. No Wi-Fi name is read (that would need
-location permission): only whether Wi-Fi is one of the network path's interfaces, which also holds
-while Tailscale's VPN runs over Wi-Fi. The first connection waits for the first reading (at most a
+location permission): only whether the Wi-Fi interface is up, watched on its own so that Tailscale's
+VPN running over it doesn't hide it. The first connection waits for the first reading (at most a
 second), so it doesn't start on Tailscale and switch a moment later.
+
+**Back to Home without waiting (iOS):** when anything about the network changes, such as Tailscale's
+VPN being switched off at home, and the app is on Wi-Fi but not using the home address, it checks the
+home address again (the same token-less `/health`, after the network settles) and moves to it as soon
+as FU Mail answers there. On Android the Tailscale connection fails at once when the VPN goes; on
+iOS it can hang, so the app doesn't wait for that. When Tailscale is used on Wi-Fi, the indicator's
+details say why Home wasn't ("Home not used: … didn't answer within 2 seconds", or that iOS's Local
+Network access is off for FU Mail).
 
 **Upgrading from 0.7 or earlier:** the one saved address moves into the right field once: Tailscale
 if its host is in 100.64.0.0/10, ends in `.ts.net` or is a bare name with no dots (a MagicDNS name
@@ -176,7 +184,7 @@ it. From 3.0.0 the version matches FU Mail on the Mac (3.0.0 ↔ 3.0.0).
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
-| 3.0.0 | 2026-11-15 | Version matched to FU Mail 3.0.0 on the Mac (the API is the same since 2.6.0; the Mac's 2.7.0–3.0.0 additions need nothing here: an auto Bcc arrives in the draft editor's Bcc field, where it shows and can be removed). **Long chats are quick again:** a chat opens with its newest 20 messages, and **Show earlier messages** adds 20 more. **Fonts:** the message bar and the search fields use the standard iOS font; Original \| Summary and Settings' Appearance and Text size switches are in the app's font and follow Text size; card buttons match the card text's size. |
+| 3.0.0 | 2026-11-15 | Version matched to FU Mail 3.0.0 on the Mac (the API is the same since 2.6.0; the Mac's 2.7.0–3.0.0 additions need nothing here: an auto Bcc arrives in the draft editor's Bcc field, where it shows and can be removed). **Long chats are quick again:** a chat opens with its newest 20 messages, and **Show earlier messages** adds 20 more. **Fonts:** the message bar and the search fields use the standard iOS font; Original \| Summary and Settings' Appearance and Text size switches are in the app's font and follow Text size; card buttons match the card text's size. A later 3.0.0 build: **back to Home sooner** after Tailscale's VPN is switched off at home (Wi-Fi is watched on its own interface, and a network change re-checks Home), and the indicator says why Home wasn't used. |
 | 0.8.0 | 2026-11-15 | **Two addresses**, picked by themselves: **At home (Wi-Fi)** and **Tailscale**. On Wi-Fi the home one is used when FU Mail answers there (a quick `/health`, no token), otherwise Tailscale; it picks again on every reconnect and when Wi-Fi comes or goes, and the indicator says which. Save and connect checks each address. The one address from before moves into the right field. `/health` must now be FU Mail's own answer. Matches the Android app 0.8.0 and FU Mail 2.8.0 (no Mac changes needed). |
 | 0.7.2 | 2026-11-15 | An email opened from a list, a command's answer, Add to note and Add task come into view when they arrive (a card from its start), even scrolled up. The keyboard hides on a tap or scroll of the messages, or Done. Settings… in the connection popover opens Settings (and no longer leaves the gear stuck). Unchanged messages aren't rebuilt when another changes. |
 | 0.7.1 | 2026-11-14 | Fix: the chat could go blank after Summary or Add to note in a long chat (until it was opened again). |

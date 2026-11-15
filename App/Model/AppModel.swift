@@ -19,10 +19,11 @@ final class AppModel {
 
     @ObservationIgnored private var onScreen = false
     @ObservationIgnored private let wifi = WiFiState()
-    @ObservationIgnored private var watcher: WiFiWatcher?
+    @ObservationIgnored private var watcher: NetworkWatcher?
     /// The first Wi-Fi reading is in (or waiting for it took too long): connecting may start.
     @ObservationIgnored private var knowsWifi = false
     @ObservationIgnored private var wifiSettle: Task<Void, Never>?
+    @ObservationIgnored private var changeSettle: Task<Void, Never>?
 
     private static let homeKey = "homeURL"
     private static let tailscaleKey = "tailscaleURL"
@@ -129,7 +130,8 @@ final class AppModel {
             reading(forced)
             return
         }
-        let watcher = WiFiWatcher { [weak self] onWifi in self?.reading(onWifi) }
+        let watcher = NetworkWatcher(onWifiReading: { [weak self] onWifi in self?.reading(onWifi) },
+                                     onChange: { [weak self] in self?.networkChanged() })
         self.watcher = watcher
         watcher.start()
         // The first reading comes within moments; don't hold the connection for longer than a second.
@@ -154,6 +156,19 @@ final class AppModel {
             try? await Task.sleep(for: .milliseconds(1500))
             guard !Task.isCancelled else { return }
             client?.reconnect()
+        }
+    }
+
+    /// Something else about the network changed, e.g. the VPN (Tailscale) came or went while Wi-Fi
+    /// stayed. On Wi-Fi and not using the home address, check it (no token) once the network has
+    /// settled, and move to it if FU Mail answers there, rather than keep retrying Tailscale.
+    private func networkChanged() {
+        guard knowsWifi, wifi.onWifi, client?.picker.hasBoth == true else { return }
+        changeSettle?.cancel()
+        changeSettle = Task {
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled else { return }
+            await client?.switchHomeIfItAnswers()
         }
     }
 

@@ -54,11 +54,30 @@ public struct EndpointPicker: Sendable {
     /// The likely one before anything's been asked (for showing an address straight away).
     public var first: Endpoint { ((onWifi() ? home : tailscale) ?? home ?? tailscale)! }
 
-    public func pick() async -> Endpoint {
-        guard let home else { return tailscale! }
-        guard let tailscale else { return home }
-        guard onWifi() else { return tailscale }
-        return await home.transport.answersHealth(timeout: probeTimeout) ? home : tailscale
+    public func pick() async -> Endpoint { await choose().endpoint }
+
+    /// The address to use, and when Tailscale is used on Wi-Fi, why the home address wasn't (shown in
+    /// the connection indicator's details).
+    public struct Choice: Sendable {
+        public let endpoint: Endpoint
+        public let homeProblem: RemoteProblem?
+    }
+
+    public func choose() async -> Choice {
+        guard let home else { return Choice(endpoint: tailscale!, homeProblem: nil) }
+        guard let tailscale else { return Choice(endpoint: home, homeProblem: nil) }
+        guard onWifi() else { return Choice(endpoint: tailscale, homeProblem: nil) }
+        if let problem = await home.transport.probeHealth(timeout: probeTimeout) {
+            return Choice(endpoint: tailscale, homeProblem: problem)
+        }
+        return Choice(endpoint: home, homeProblem: nil)
+    }
+
+    /// Whether FU Mail answers at the home address right now, on Wi-Fi (no token): for switching
+    /// back to it from Tailscale when the network changes, without waiting for Tailscale to fail.
+    public func homeAnswers() async -> Bool {
+        guard hasBoth, onWifi(), let home else { return false }
+        return await home.transport.answersHealth(timeout: probeTimeout)
     }
 }
 

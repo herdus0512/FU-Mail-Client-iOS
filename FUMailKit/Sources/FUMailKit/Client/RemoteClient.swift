@@ -54,6 +54,17 @@ public final class RemoteClient {
         self.init(picker: EndpointPicker(only: transport), backoff: backoff, typedHold: typedHold, now: now)
     }
 
+    /// After a network change: when on Wi-Fi but not using the home address (on Tailscale, or not
+    /// connected), and FU Mail answers at home (no token), reconnects so it's used. Android gets this
+    /// from the Tailscale connection failing at once when the VPN goes; on iOS that connection can
+    /// hang, so it's checked here instead.
+    public func switchHomeIfItAnswers() async {
+        guard picker.hasBoth, eventsTask != nil, state.connection.via != EndpointPicker.homeLabel || !state.connection.connected
+        else { return }
+        guard await picker.homeAnswers(), !closed else { return }
+        reconnect()
+    }
+
     /// Reconnects now, picking the address again (Wi-Fi came or went), when the stream is open or opening.
     public func reconnect() {
         guard eventsTask != nil else { return }
@@ -87,10 +98,12 @@ public final class RemoteClient {
         var pause = backoff.first
         while !Task.isCancelled, !closed {
             // Which address, this time: Home on its Wi-Fi when FU Mail answers there, else Tailscale.
-            let chosen = await picker.pick()
+            let choice = await picker.choose()
             if Task.isCancelled || closed { break }
+            let chosen = choice.endpoint
             endpoint = chosen
             state.connection.via = chosen.label
+            state.connection.homeSkipped = choice.homeProblem?.message
             do {
                 for try await item in chosen.transport.events() {
                     switch item {

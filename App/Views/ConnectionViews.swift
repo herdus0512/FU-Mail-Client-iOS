@@ -60,6 +60,9 @@ struct ConnectionIndicator: View {
                 .foregroundStyle(color)
             if let client {
                 Detail(label: "Mac", value: client.display + (connection.via.map { " (via \($0))" } ?? ""))
+                if let skipped = connection.homeSkipped {
+                    Detail(label: "Home not used", value: skipped)
+                }
                 if let info = client.state.info {
                     Detail(label: "This device", value: info.device.flatMap { $0.isEmpty ? nil : $0 } ?? "(unnamed token)")
                     Detail(label: "FU Mail there",
