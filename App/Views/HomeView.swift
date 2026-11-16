@@ -8,15 +8,17 @@ struct HomeView: View {
     /// The window's width class (inside the split view, each column reports compact).
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var selection: Conversation.ID?
+    /// A history search result's message, to scroll to once its chat is open.
+    @State private var jumpTo: MessageJump?
     @State private var showSettings = false
     @State private var askedOnce = false
 
     var body: some View {
         NavigationSplitView {
-            ConversationListView(selection: $selection, sideBySide: sizeClass == .regular) { showSettings = true }
+            ConversationListView(selection: $selection, jumpTo: $jumpTo, sideBySide: sizeClass == .regular) { showSettings = true }
         } detail: {
             if let id = selection, let client = app.client {
-                ChatView(id: id, client: client, sideBySide: sizeClass == .regular) { showSettings = true }
+                ChatView(id: id, client: client, jumpTo: $jumpTo, sideBySide: sizeClass == .regular) { showSettings = true }
                     .id(id)
             } else {
                 ContentUnavailableView {

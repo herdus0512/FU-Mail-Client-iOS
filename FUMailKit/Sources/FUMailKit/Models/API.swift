@@ -147,6 +147,8 @@ public struct SearchHit: Sendable, Equatable, Identifiable, Codable {
     public var snippet: String
     /// Found by meaning (semantic search) rather than by its words.
     public var byMeaning: Bool?
+    /// The message that matched, to scroll to (since FU Mail 3.3.0; nil from an older Mac).
+    public var messageID: UUID?
     public var id: UUID { conversationID }
 }
 

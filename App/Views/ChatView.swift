@@ -6,6 +6,8 @@ import SwiftUI
 struct ChatView: View {
     let id: Conversation.ID
     let client: RemoteClient
+    /// A history search result's message: scrolled to once the messages are shown.
+    @Binding var jumpTo: MessageJump?
     /// Beside the list (iPad), which shows the banners already.
     var sideBySide: Bool
     var onSettings: () -> Void
@@ -50,7 +52,8 @@ struct ChatView: View {
                     .padding(24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             } else {
-                MessageList(messages: conversation.messages, busy: client.state.busyMessages, client: client, conversationID: id)
+                MessageList(messages: conversation.messages, busy: client.state.busyMessages, client: client, conversationID: id,
+                            jumpTo: $jumpTo)
             }
         } else {
             ContentUnavailableView("Not on the Mac any more", systemImage: "bubble.left.and.exclamationmark.bubble.right",
@@ -66,8 +69,11 @@ private struct MessageList: View {
     var busy: Set<ChatMessage.ID>
     var client: RemoteClient
     var conversationID: Conversation.ID
+    @Binding var jumpTo: MessageJump?
 
     @State private var atBottom = true
+    /// Lit up briefly after a jump to it from history search.
+    @State private var highlighted: ChatMessage.ID?
     /// Following the chat: true unless you scrolled up yourself. Decided when a scroll comes to rest,
     /// so new messages arriving (which grow the list) don't change it.
     @State private var following = true
@@ -123,6 +129,10 @@ private struct MessageList: View {
                                    scope: CardScope(client: client, conversationID: conversationID, messageID: message.id,
                                                     busy: busy.contains(message.id)))
                             .equatable()
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.accentColor.opacity(highlighted == message.id ? 0.15 : 0))
+                                .padding(-4)
+                                .animation(.easeOut(duration: 0.3), value: highlighted))
                             .id(message.id)
                     }
                     Color.clear.frame(height: 1).id(bottom)
@@ -143,6 +153,9 @@ private struct MessageList: View {
                 if phase == .idle { following = atBottom }
             }
             .onChange(of: messages.last?.id) { reveal(proxy) }
+            // A history search result: show back to its message, then scroll to it.
+            .onAppear { jump(proxy) }
+            .onChange(of: jumpTo) { jump(proxy) }
             // A card growing (a summary streaming in) while following: stay at the bottom.
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, _ in
                 if following { proxy.scrollTo(bottom, anchor: .bottom) }
@@ -166,6 +179,25 @@ private struct MessageList: View {
 }
 
 extension MessageList {
+    /// To the message a history search found, as the Mac does: earlier messages are shown back to
+    /// it, it comes to the middle, and it lights up for a moment. An id not in this chat is let go.
+    fileprivate func jump(_ proxy: ScrollViewProxy) {
+        guard let jump = jumpTo, jump.conversationID == conversationID else { return }
+        jumpTo = nil
+        let target = jump.messageID
+        guard let index = all.firstIndex(where: { $0.id == target }) else { return }
+        limit = max(limit, all.count - index)
+        following = false
+        // After the bottom-scroll of opening, and after the messages shown back are laid out.
+        Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(target, anchor: .center) }
+            highlighted = target
+            try? await Task.sleep(for: .seconds(1.5))
+            if highlighted == target { highlighted = nil }
+        }
+    }
+
     /// Something new at the bottom. What you just sent goes into view. A card that answers something
     /// asked for here (an email opened, a command, Add to note) is shown from its start, even when the
     /// chat was scrolled up, so an opened email is read from the top. Anything else is shown only while
@@ -193,6 +225,12 @@ extension MessageList {
             following = atBottom
         }
     }
+}
+
+/// A message to scroll to once its chat is open (a history search result).
+struct MessageJump: Equatable {
+    var conversationID: Conversation.ID
+    var messageID: ChatMessage.ID
 }
 
 @MainActor

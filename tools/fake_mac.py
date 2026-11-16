@@ -183,7 +183,7 @@ class H(BaseHTTPRequestHandler):
             return self.send_json(202, {"ok": True})
         if method == "GET" and path == "/v1/commands": return self.send_json(200, COMMANDS)
         if method == "GET" and path == "/v1/history/search":
-            return self.send_json(200, [{"conversationID": C1, "title": "Unread this morning", "updatedAt": "2026-11-13T08:05:00Z", "snippet": "Bob wants approval of Q4", "byMeaning": True}])
+            return self.send_json(200, [{"conversationID": C1, "title": "Unread this morning", "updatedAt": "2026-11-13T08:05:00Z", "snippet": "Bob wants approval of Q4", "byMeaning": True, "messageID": CONV["conversation"]["messages"][0]["id"]}])
         if method == "GET" and path == "/v1/events":
             self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.send_header("Connection", "close"); self.end_headers()
             with EVENTS_LOCK: sent = len(EVENTS)

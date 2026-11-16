@@ -6,6 +6,8 @@ import SwiftUI
 struct ConversationListView: View {
     @Environment(AppModel.self) private var app
     @Binding var selection: Conversation.ID?
+    /// Set with a history search result: the message that matched.
+    @Binding var jumpTo: MessageJump?
     /// The list and the chat side by side (iPad): the indicator sits over the chat then.
     var sideBySide: Bool
     var onSettings: () -> Void
@@ -122,6 +124,7 @@ struct ConversationListView: View {
             } else {
                 List(hits) { hit in
                     Button {
+                        jumpTo = hit.messageID.map { MessageJump(conversationID: hit.conversationID, messageID: $0) }
                         selection = hit.conversationID
                     } label: {
                         SearchHitRow(hit: hit)

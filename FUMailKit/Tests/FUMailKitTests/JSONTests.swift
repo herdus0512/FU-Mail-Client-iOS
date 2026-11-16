@@ -276,4 +276,11 @@ struct JSONTests {
         let message = ChatMessage(id: id("M1"), role: .user, createdAt: Date(timeIntervalSince1970: 1_799_999_999.5))
         #expect(try json(message).contains(#""createdAt":"2027-01-15T07:59:59Z""#))
     }
+
+    @Test func aSearchHitSaysWhichMessageMatched() throws {
+        let base = #""conversationID":"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A00","title":"T","updatedAt":"2026-11-16T09:00:00Z","snippet":"«Bob»""#
+        let hit = try decode(SearchHit.self, "{\(base),\"messageID\":\"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A01\"}")
+        #expect(hit.messageID == UUID(uuidString: "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A01"))
+        #expect(try decode(SearchHit.self, "{\(base)}").messageID == nil)  // a Mac before 3.3.0
+    }
 }

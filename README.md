@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.2.0, for FU Mail 3.2.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 3.3.0, for FU Mail 3.3.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -67,7 +67,7 @@ Tailscale address and the token:
 | `http://100.x.y.z:8765` | the Mac's Tailscale IP |
 
 **Save and connect** checks the address (`/health`, then the token with `/v1/info`) and saves when
-it works ("Connected to FU Mail 3.2.0 as "iphone". Saved."); **Save anyway** keeps settings that
+it works ("Connected to FU Mail 3.3.0 as "iphone". Saved."); **Save anyway** keeps settings that
 can't be checked right now. The connection indicator shows Connected, Connecting… or Can't connect.
 
 - **`/health`** must be FU Mail's own answer. If something else answers (another app on that port),
@@ -96,6 +96,8 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   the box. While the chat model works, its status shows above the box, with **Stop**.
 - **Long chats** open with their newest 10 messages; **Show earlier messages** at the top adds 10
   more at a time.
+- **History search:** opening a result goes to the message that matched, showing earlier messages
+  back to it, and lights it up for a moment (with FU Mail 3.3.0 or later on the Mac).
 - **The chat** follows new messages while you're at the bottom; scrolled up, it stays put and
   **Latest** jumps down. What you asked for yourself (an email opened from a list, a command, Add to
   note, Add task) is always shown when it arrives, a card from its start. Tap or scroll the messages,
@@ -154,6 +156,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.3.0 | 2026-11-16 | Version matched to FU Mail 3.3.0. **Long chats** open with their newest 10 messages, and **Show earlier messages** adds 10 (was 20). **History search** results go to the message that matched (the Mac's new `messageID`), showing earlier messages back to it and lighting it up for a moment. |
 | 3.2.0 | 2026-11-16 | Version matched to FU Mail 3.2.0. New chats are titled the Mac's new way, the day then what it's about ("Mon 16 Nov · Unread"); the app's stand-in title until the Mac's arrives uses the same form. No API changes. |
 | 3.1.1 | 2026-11-16 | Clean-up after 3.1.0: the home address, Wi-Fi watching and address picking are gone from the code too (a saved home address is forgotten), and Save and connect checks the one address. |
 | 3.1.0 | 2026-11-15 | **Tailscale only.** The home (Wi-Fi) address and the automatic switching are gone: Settings has one address, the Tailscale one, and the indicator just says Connected, Connecting… or Can't connect. No Local Network permission is asked for any more. |
