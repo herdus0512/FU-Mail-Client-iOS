@@ -94,7 +94,7 @@ can't be checked right now. The connection indicator shows Connected, Connecting
 - **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the
   Mac. **Type `/` and the commands appear** above the box, narrowing as you type; tap one to put it in
   the box. While the chat model works, its status shows above the box, with **Stop**.
-- **Long chats** open with their newest 20 messages; **Show earlier messages** at the top adds 20
+- **Long chats** open with their newest 10 messages; **Show earlier messages** at the top adds 10
   more at a time.
 - **The chat** follows new messages while you're at the bottom; scrolled up, it stays put and
   **Latest** jumps down. What you asked for yourself (an email opened from a list, a command, Add to

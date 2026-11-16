@@ -76,7 +76,7 @@ private struct MessageList: View {
     /// scrolling slow.
     @State private var limit = Self.page
     private let bottom = "bottom"
-    private static let page = 20
+    private static let page = 10
 
     /// Every message there is to show (`make run-fake UPTO=6`: only the first few, so the ones wanted
     /// for a screenshot end up at the bottom; debug builds only).
