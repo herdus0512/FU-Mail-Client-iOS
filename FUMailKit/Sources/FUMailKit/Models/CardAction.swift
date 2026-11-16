@@ -15,6 +15,8 @@ public enum CardAction: Sendable, Equatable {
     case addToNotes
     /// Opens a draft card's draft in an editor.
     case editDraft
+    /// Fetches a Google Mail draft again for its current link (Open in browser); since FU Mail 3.4.0.
+    case refreshDraft
     case chooseNote(NoteCandidate)
     case backToChoices
     case editNoteEntry(heading: String?, body: String?)
@@ -75,6 +77,7 @@ public enum CardAction: Sendable, Equatable {
             ["action": "reply", "instructions": .string(instructions), "blank": .bool(blank), "reply_all": .bool(replyAll)]
         case .addToNotes: ["action": "add_to_notes"]
         case .editDraft: ["action": "edit_draft"]
+        case .refreshDraft: ["action": "refresh_draft"]
         case .chooseNote(let value): ["action": "choose_note", "candidate": candidate(value)]
         case .backToChoices: ["action": "back_to_choices"]
         case .editNoteEntry(let heading, let body):

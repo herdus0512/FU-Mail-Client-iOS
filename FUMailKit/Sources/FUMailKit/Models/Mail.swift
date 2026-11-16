@@ -238,6 +238,11 @@ public struct DraftCard: Codable, Sendable, Hashable {
     public var body: String
     public var isReply: Bool
     public var link: String?
+    /// The draft was sent or deleted (found by `refresh_draft`); left out otherwise.
+    public var gone: Bool?
+
+    /// A Google Mail link, which goes stale whenever the draft is saved (its autosave included).
+    public var hasGmailLink: Bool { link?.contains("mail.google.com") == true }
 }
 
 public enum Card: Sendable, Hashable {

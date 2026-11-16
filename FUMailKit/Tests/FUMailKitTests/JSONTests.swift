@@ -63,6 +63,7 @@ struct JSONTests {
         #expect(thread.archived == true)
         #expect(!thread.offersReplyAll)
         #expect(CardAction.archiveMore.json.serialized() == #"{"action":"archive_more"}"#)
+        #expect(CardAction.refreshDraft.json.serialized() == #"{"action":"refresh_draft"}"#)
     }
 
     @Test func theCRMCardFromTheAPIDocs() throws {
@@ -282,5 +283,13 @@ struct JSONTests {
         let hit = try decode(SearchHit.self, "{\(base),\"messageID\":\"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A01\"}")
         #expect(hit.messageID == UUID(uuidString: "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A01"))
         #expect(try decode(SearchHit.self, "{\(base)}").messageID == nil)  // a Mac before 3.3.0
+    }
+
+    @Test func aDraftCardSaysWhenItsDraftIsGone() throws {
+        let fields = #""server":"gmail-mcp","draftID":"r-1","to":[],"cc":[],"bcc":[],"subject":"S","body":"B","isReply":false,"link":"https://mail.google.com/d""#
+        let there = try decode(DraftCard.self, "{\(fields)}")
+        #expect(there.gone == nil && there.hasGmailLink)
+        #expect(try decode(DraftCard.self, "{\(fields),\"gone\":true}").gone == true)
+        #expect(!(try json(there)).contains("gone"))  // left out unless set
     }
 }

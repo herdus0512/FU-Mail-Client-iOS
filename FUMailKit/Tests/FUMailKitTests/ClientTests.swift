@@ -311,4 +311,71 @@ struct ClientTests {
         #expect(desktop.bodies.contains { $0.contains(#"{"title":"Bob's mail"}"#) })
         client.close()
     }
+
+    // MARK: Open in browser on a draft card
+
+    private func draftMessage(link: String, gone: Bool = false) -> String {
+        #"{"id":"\#(id("D1"))","role":"assistant","text":"","createdAt":"2026-11-16T09:00:00Z","card":{"draft":{"_0":"#
+            + #"{"server":"gmail-mcp","draftID":"r-1","to":[],"cc":[],"bcc":[],"subject":"Re: Q4","body":"Hi","isReply":true,"#
+            + #""link":"\#(link)"\#(gone ? #","gone":true"# : "")}}}}"#
+    }
+
+    /// A client with C1 loaded and a draft card in it.
+    private func clientWithDraft(link: String, gone: Bool = false) async -> RemoteClient {
+        let client = client()
+        client.start()
+        await eventually("listed") { !client.state.conversations.isEmpty }
+        client.loadMessages(id("C1"))
+        await eventually("loaded") { !client.state.unloaded.contains(id("C1")) }
+        desktop.push(#"{"type":"message_appended","conversationID":"\#(id("C1"))","message":\#(draftMessage(link: link, gone: gone))}"#)
+        await eventually("the draft card") { client.state.conversation(id("C1"))?.messages.contains { $0.id == id("D1") } == true }
+        return client
+    }
+
+    private var refreshesSent: Int { desktop.bodies.filter { $0.contains(#""action":"refresh_draft""#) }.count }
+
+    @Test func aGmailDraftIsFetchedAgainAndItsNewLinkOpened() async {
+        let client = await clientWithDraft(link: "https://mail.google.com/old")
+        let desktop = self.desktop
+        let message = draftMessage(link: "https://mail.google.com/new")
+        Task { @MainActor in
+            await eventually("refresh_draft sent") { self.refreshesSent == 1 }
+            desktop.push(#"{"type":"busy","messageID":"\#(id("D1"))","busy":true}"#)
+            try? await Task.sleep(for: .milliseconds(200))
+            desktop.push(#"{"type":"message_updated","conversationID":"\#(id("C1"))","message":\#(message)}"#)
+            desktop.push(#"{"type":"busy","messageID":"\#(id("D1"))","busy":false}"#)
+        }
+        let link = await client.draftLinkToOpen(on: id("D1"), in: id("C1"), noBusyAfter: .seconds(3))
+        #expect(link?.absoluteString == "https://mail.google.com/new")
+        client.close()
+    }
+
+    @Test func aMacThatNeverGoesBusyIsWaitedForBriefly() async {
+        let client = await clientWithDraft(link: "https://mail.google.com/old")
+        let started = Date.now
+        let link = await client.draftLinkToOpen(on: id("D1"), in: id("C1"), noBusyAfter: .milliseconds(300))
+        #expect(link?.absoluteString == "https://mail.google.com/old")
+        #expect(Date.now.timeIntervalSince(started) < 2)
+        #expect(refreshesSent == 1)
+        client.close()
+    }
+
+    @Test func aGoneDraftOpensNothing() async {
+        let client = await clientWithDraft(link: "https://mail.google.com/old", gone: true)
+        #expect(await client.draftLinkToOpen(on: id("D1"), in: id("C1")) == nil)
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(refreshesSent == 0)
+        client.close()
+    }
+
+    @Test func anOutlookLinkOpensAtOnce() async {
+        let client = await clientWithDraft(link: "https://outlook.office.com/mail/drafts/x")
+        let started = Date.now
+        let link = await client.draftLinkToOpen(on: id("D1"), in: id("C1"))
+        #expect(link?.absoluteString == "https://outlook.office.com/mail/drafts/x")
+        #expect(Date.now.timeIntervalSince(started) < 0.2)
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(refreshesSent == 0)
+        client.close()
+    }
 }

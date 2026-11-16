@@ -287,6 +287,36 @@ public final class RemoteClient {
         enqueue { try await self.postAction(action, on: messageID, in: id) }
     }
 
+    /// Open in browser on a draft card: the link to open, or nil (no link, or the draft is gone). A
+    /// Google Mail link goes stale whenever the draft is saved, so the Mac fetches the draft again
+    /// first (`refresh_draft`): this waits until the card has been busy and isn't any more, or the
+    /// card changed, at most `timeout`, or `noBusyAfter` when it never goes busy (a Mac before 3.4.0),
+    /// and then gives the card's link as it is by then. Other links come back at once.
+    public func draftLinkToOpen(on messageID: ChatMessage.ID, in id: Conversation.ID, timeout: Duration = .seconds(5),
+                                noBusyAfter: Duration = .milliseconds(1500)) async -> URL? {
+        func draft() -> DraftCard? {
+            guard case .draft(let card) = state.conversation(id)?.messages.first(where: { $0.id == messageID })?.card
+            else { return nil }
+            return card
+        }
+        guard let before = draft(), before.gone != true else { return nil }
+        guard before.hasGmailLink else { return before.link.flatMap(URL.init(string:)) }
+        cardAction(.refreshDraft, on: messageID, in: id)
+        let clock = ContinuousClock()
+        let started = clock.now
+        var wasBusy = false
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(50))
+            let busy = state.busyMessages.contains(messageID)
+            wasBusy = wasBusy || busy
+            if (wasBusy && !busy) || draft() != before { break }
+            let waited = clock.now - started
+            if waited >= timeout || (!wasBusy && waited >= noBusyAfter) { break }
+        }
+        guard let after = draft(), after.gone != true else { return nil }
+        return after.link.flatMap(URL.init(string:))
+    }
+
     /// Done in a notes card's Edit sheet: the entry's heading and lines.
     public func editNoteEntry(heading: String, body: String, on messageID: ChatMessage.ID, in id: Conversation.ID) {
         sendTyped(TypedEdit(heading: heading, body: body), .editNoteEntry(heading: heading, body: body), on: messageID, in: id)

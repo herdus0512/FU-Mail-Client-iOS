@@ -323,11 +323,13 @@ struct DraftListCardView: View {
     }
 }
 
-/// One draft, with Edit (which opens it in the draft editor on this device).
+/// One draft, with Edit (which opens it in the draft editor on this device) and Open in browser
+/// (a Google Mail draft is fetched again first, for its current link).
 struct DraftCardView: View {
     var card: DraftCard
     var scope: CardScope
     @Environment(\.openURL) private var openURL
+    @State private var opening = false
 
     var body: some View {
         CardBox {
@@ -345,10 +347,30 @@ struct DraftCardView: View {
                 Text(card.body.isEmpty ? "(empty)" : card.body).font(.subheadline).textSelection(.enabled)
             }
             .padding(12)
-            CardActions {
-                Button("Edit") { scope.act(.editDraft) }
-                if let link = card.link.flatMap(URL.init(string:)) {
-                    Button("Open in browser") { openURL(link) }
+            if card.gone == true {
+                Text("This draft no longer exists (sent or deleted).")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+            } else {
+                CardActions {
+                    Button("Edit") { scope.act(.editDraft) }
+                    if card.link.flatMap(URL.init(string:)) != nil {
+                        Button {
+                            opening = true
+                            Task {
+                                let link = await scope.client.draftLinkToOpen(on: scope.messageID, in: scope.conversationID)
+                                opening = false
+                                if let link { openURL(link) }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text("Open in browser")
+                                if opening { ProgressView().controlSize(.mini) }
+                            }
+                        }
+                        .disabled(opening)
+                    }
                 }
             }
         }
