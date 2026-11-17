@@ -240,6 +240,9 @@ public struct DraftCard: Codable, Sendable, Hashable {
     public var link: String?
     /// The draft was sent or deleted (found by `refresh_draft`); left out otherwise.
     public var gone: Bool?
+    /// What the mail server warned about when saving it (since FU Mail 3.7.0), e.g. "The new body
+    /// replaced the draft's formatting, including any signature added in Google Mail."; left out otherwise.
+    public var warning: String?
 
     /// A Google Mail link, which goes stale whenever the draft is saved (its autosave included).
     public var hasGmailLink: Bool { link?.contains("mail.google.com") == true }

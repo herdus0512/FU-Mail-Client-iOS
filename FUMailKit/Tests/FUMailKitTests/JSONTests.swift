@@ -291,5 +291,8 @@ struct JSONTests {
         #expect(there.gone == nil && there.hasGmailLink)
         #expect(try decode(DraftCard.self, "{\(fields),\"gone\":true}").gone == true)
         #expect(!(try json(there)).contains("gone"))  // left out unless set
+        #expect(there.warning == nil)  // a Mac before 3.7.0, or nothing to warn about
+        let warned = try decode(DraftCard.self, "{\(fields),\"warning\":\"The new body replaced the draft's formatting.\"}")
+        #expect(warned.warning == "The new body replaced the draft's formatting.")
     }
 }

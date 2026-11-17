@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.4.0, for FU Mail 3.4.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 3.7.0, for FU Mail 3.7.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -67,7 +67,7 @@ Tailscale address and the token:
 | `http://100.x.y.z:8765` | the Mac's Tailscale IP |
 
 **Save and connect** checks the address (`/health`, then the token with `/v1/info`) and saves when
-it works ("Connected to FU Mail 3.4.0 as "iphone". Saved."); **Save anyway** keeps settings that
+it works ("Connected to FU Mail 3.7.0 as "iphone". Saved."); **Save anyway** keeps settings that
 can't be checked right now. The connection indicator shows Connected, Connecting… or Can't connect.
 
 - **`/health`** must be FU Mail's own answer. If something else answers (another app on that port),
@@ -113,6 +113,8 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     link changes whenever the draft is saved, so Open in browser first has the Mac fetch the draft
     again (a spinner on the button, a few seconds at most) and opens its current link; other links
     open at once. A draft that was sent or deleted says so instead of offering either button.
+    When the mail server warned about saving the draft (say, a new body replaced a signature added
+    in Google Mail or Outlook), the warning shows under the body.
   - **Events:** by day, with Join for video calls.
   - **Add to note** (`/note [n]`, or the thread's button): the note (None of these… lists every note,
     filtered as you type), Edit…, Insert / Insert anyway / Replace, Change note, Skip, then Undo and
@@ -159,6 +161,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.7.0 | 2026-11-17 | Version matched to FU Mail 3.7.0 (3.5.0 and 3.6.0 needed nothing here). **Draft cards show the mail server's warning** about saving the draft, such as a new body replacing formatting or a signature added in Google Mail or Outlook, under the body (not on a draft that's gone). |
 | 3.4.0 | 2026-11-17 | Version matched to FU Mail 3.4.0. **Open in browser on a Google Mail draft** opens the draft as it is now: the Mac fetches it again first (`refresh_draft`), as its link changes whenever the draft is saved, autosave included; a spinner shows meanwhile (at most 5 s, or about 1.5 s with an older Mac). Other links open at once. A draft sent or deleted since (`gone`) says so instead of Edit and Open in browser. |
 | 3.3.0 | 2026-11-16 | Version matched to FU Mail 3.3.0. **Long chats** open with their newest 10 messages, and **Show earlier messages** adds 10 (was 20). **History search** results go to the message that matched (the Mac's new `messageID`), showing earlier messages back to it and lighting it up for a moment. |
 | 3.2.0 | 2026-11-16 | Version matched to FU Mail 3.2.0. New chats are titled the Mac's new way, the day then what it's about ("Mon 16 Nov · Unread"); the app's stand-in title until the Mac's arrives uses the same form. No API changes. |

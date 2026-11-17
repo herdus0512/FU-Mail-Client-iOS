@@ -345,6 +345,9 @@ struct DraftCardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 Text(card.body.isEmpty ? "(empty)" : card.body).font(.subheadline).textSelection(.enabled)
+                if let warning = card.warning, card.gone != true {
+                    WarningText(warning)
+                }
             }
             .padding(12)
             if card.gone == true {
