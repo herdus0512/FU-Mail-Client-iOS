@@ -1,7 +1,7 @@
 import FUMailKit
 import SwiftUI
 
-/// The Mac's Tailscale address and this device's token. Save and connect checks them (`/health`, then
+/// The Mac's address, this device's token and an optional Cloudflare Access service token. Save and connect checks them (`/health`, then
 /// `/v1/info` with the token) and saves when that works; Save anyway keeps settings that can't be
 /// checked right now.
 struct SettingsView: View {
@@ -13,6 +13,10 @@ struct SettingsView: View {
     @State private var tailscaleURL = ""
     @State private var token = ""
     @State private var showToken = false
+    /// Cloudflare Access: the Client ID as saved (it isn't secret); the secret only when typed.
+    @State private var accessID = ""
+    @State private var accessSecret = ""
+    @State private var hasAccessSecret = false
     @State private var checking = false
     @State private var result: String?
     @State private var problem: String?
@@ -30,12 +34,13 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    AddressRow(label: "Tailscale", placeholder: "http://mac:8765", text: $tailscaleURL)
+                    AddressRow(label: "Address", placeholder: "http://mac:8765", text: $tailscaleURL)
                 } header: {
                     Text("Mac")
                 } footer: {
-                    Text("http://<mac>:8765, http://100.x.y.z:8765, or https://<mac>.<tailnet>.ts.net "
-                         + "with tailscale serve. Tailscale needs to be on.")
+                    Text("Over Tailscale (which needs to be on): http://<mac>:8765, http://100.x.y.z:8765, or "
+                         + "https://<mac>.<tailnet>.ts.net with tailscale serve. Or a Cloudflare Tunnel: "
+                         + "https://<hostname>, with its service token below.")
                 }
 
                 Section {
@@ -63,6 +68,26 @@ struct SettingsView: View {
                 } footer: {
                     Text("Make one on the Mac: API → New Device Token…, named for this device. It's shown once. "
                          + "It's kept in this device's Keychain, never synced or backed up.")
+                }
+
+                Section {
+                    TextField("Client ID (….access)", text: $accessID)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    SecureField(hasAccessSecret ? "Client Secret: saved, paste to replace" : "Client Secret", text: $accessSecret)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .textContentType(.password)
+                    if let hint = ServiceToken.clientIDHint(accessID) { WarningText(hint) }
+                    if !trimmed(accessID).isEmpty, !trimmed(tailscaleURL).lowercased().hasPrefix("https://") {
+                        WarningText("The service token is only sent to https:// addresses, not this one.")
+                    }
+                } header: {
+                    Text("Cloudflare Access (optional)")
+                } footer: {
+                    Text("Only for a Mac reached through a Cloudflare Tunnel guarded by Cloudflare Access: the "
+                         + "service token's Client ID and Secret. Fill in both, or leave both empty. Kept in this "
+                         + "device's Keychain, and sent only to https:// addresses.")
                 }
 
                 Section {
@@ -135,9 +160,15 @@ struct SettingsView: View {
             }
             .onAppear {
                 if tailscaleURL.isEmpty { tailscaleURL = app.tailscaleURL }
+                if accessID.isEmpty, let saved = app.savedAccess() {
+                    accessID = saved.clientID
+                    hasAccessSecret = true
+                }
             }
             .onChange(of: tailscaleURL) { canSaveAnyway = false }
             .onChange(of: token) { canSaveAnyway = false }
+            .onChange(of: accessID) { canSaveAnyway = false }
+            .onChange(of: accessSecret) { canSaveAnyway = false }
         }
     }
 
@@ -146,9 +177,18 @@ struct SettingsView: View {
         problem = nil
         canSaveAnyway = false
         let typed = trimmed(token).isEmpty ? nil : trimmed(token)
-        let settings: ServerSettings
+        var settings: ServerSettings
         switch ServerSettings.parse(url: trimmed(tailscaleURL), token: typed ?? app.savedToken() ?? "") {
         case .success(let parsed): settings = parsed
+        case .failure(let invalid):
+            problem = invalid.message
+            return
+        }
+        // An empty Secret field keeps the saved secret while the Client ID stays filled in; emptying
+        // the Client ID removes the service token.
+        let keptSecret = trimmed(accessID).isEmpty ? "" : (app.savedAccess()?.clientSecret ?? "")
+        switch ServiceToken.parse(clientID: accessID, clientSecret: trimmed(accessSecret).isEmpty ? keptSecret : accessSecret) {
+        case .success(let access): settings.access = access
         case .failure(let invalid):
             problem = invalid.message
             return
@@ -168,13 +208,15 @@ struct SettingsView: View {
                 }
             }
             do {
-                try app.save(tailscale: settings.display, newToken: typed)
+                try app.save(tailscale: settings.display, newToken: typed, access: settings.access)
             } catch {
                 problem = error.localizedDescription
                 return
             }
             token = ""
             showToken = false
+            accessSecret = ""
+            hasAccessSecret = settings.access != nil
             result = connected.map { "\($0) Saved." } ?? "Saved. Connecting to \(settings.display)…"
         }
     }

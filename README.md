@@ -75,6 +75,17 @@ can't be checked right now. The connection indicator shows Connected, Connecting
 - **Plain HTTP** is allowed by iOS only to IP addresses, `.local` names and names without dots
   (MagicDNS). A `*.ts.net` name needs HTTPS. Requests go only to the address's own host, with
   redirects refused.
+- **Cloudflare Tunnel:** the address can instead be `https://<hostname>` for a tunnel (cloudflared →
+  the Mac's `127.0.0.1:8765`) guarded by a Cloudflare Access application with a Service Auth
+  policy. Fill in **Cloudflare Access** in Settings with the service token's Client ID (ends in
+  `.access`) and Client Secret: both, or neither. They're kept in the Keychain like the device
+  token and sent (`CF-Access-Client-Id`, `CF-Access-Client-Secret`) with every request, `/health`
+  and the event stream included, but only to `https://` addresses. If Access turns the app away
+  (a 403 page, or a redirect to `*.cloudflareaccess.com` when the policy is Allow rather than
+  Service Auth), it says so: the service token is missing, or its Client ID and Secret weren't
+  accepted (check them, and that the token hasn't expired). The event stream's 75-second timeout
+  sits well above the Mac's 25-second pings, inside Cloudflare's ~100-second idle limit, and a
+  dropped stream reconnects (1 s, doubling, up to 30 s).
 - **No Local Network permission** is asked for. A home-network address (192.168.x) can't be reached,
   and the app says to use the Tailscale address.
 - **The token** is kept in the Keychain on this device only: not synced to iCloud and not backed up.

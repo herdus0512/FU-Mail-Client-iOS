@@ -35,12 +35,14 @@ private final class StubProtocol: URLProtocol, @unchecked Sendable {
 /// The real HTTP client, through a pretend server. One suite, run in order: the stub is shared.
 @Suite(.serialized)
 struct DesktopAPITests {
-    private func api(_ answer: @escaping @Sendable (URLRequest) -> StubProtocol.Answer?) -> DesktopAPI {
+    private func api(url: String = "http://192.168.107.138:8765/", access: ServiceToken? = nil,
+                     _ answer: @escaping @Sendable (URLRequest) -> StubProtocol.Answer?) -> DesktopAPI {
         StubProtocol.handler.withLock { $0 = answer }
         StubProtocol.seen.withLock { $0 = [] }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubProtocol.self]
-        let settings = try! ServerSettings.parse(url: "http://192.168.107.138:8765/", token: "fum_secret").get()
+        var settings = try! ServerSettings.parse(url: url, token: "fum_secret").get()
+        settings.access = access
         return DesktopAPI(settings: settings, configuration: configuration)
     }
 
@@ -91,6 +93,79 @@ struct DesktopAPITests {
         let api = api { _ in .init(status: 429, body: Data()) }
         await #expect(throws: Problems.lockedOut) {
             for try await _ in api.events() {}
+        }
+    }
+
+    // MARK: Cloudflare Access
+
+    private let serviceToken = ServiceToken(clientID: "abc.access", clientSecret: "s3cret")
+    private let tunnel = "https://fumail.example.com"
+    private let accessPage = Data("<!DOCTYPE html><html><title>Forbidden</title></html>".utf8)
+
+    @Test func theServiceTokenGoesToHTTPSOnlyEvenToHealth() async throws {
+        let ok: @Sendable (URLRequest) -> StubProtocol.Answer? = { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        let overTunnel = api(url: tunnel, access: serviceToken, ok)
+        _ = try await overTunnel.send("GET", "/v1/info", body: nil)
+        try await overTunnel.health()
+        for request in StubProtocol.seen.withLock({ $0 }) {
+            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Id") == "abc.access")
+            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Secret") == "s3cret")
+        }
+        let plain = api(access: serviceToken, ok)  // http://: the secret would travel in the clear
+        _ = try await plain.send("GET", "/v1/info", body: nil)
+        try await plain.health()
+        for request in StubProtocol.seen.withLock({ $0 }) {
+            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Id") == nil)
+            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Secret") == nil)
+        }
+        withExtendedLifetime(plain) {}
+        withExtendedLifetime(overTunnel) {}
+    }
+
+    @Test func aHalfFilledServiceTokenIsRefusedAndAnEmptyOneIsNone() throws {
+        #expect(try ServiceToken.parse(clientID: "", clientSecret: " ").get() == nil)
+        #expect(try ServiceToken.parse(clientID: " abc.access ", clientSecret: "s").get() == ServiceToken(clientID: "abc.access", clientSecret: "s"))
+        for (id, secret) in [("abc.access", ""), ("", "s3cret")] {
+            guard case .failure(let invalid) = ServiceToken.parse(clientID: id, clientSecret: secret) else {
+                Issue.record("half-filled accepted"); continue
+            }
+            #expect(invalid.message.contains("or neither"))
+        }
+        #expect(ServiceToken.clientIDHint("abc.access") == nil)
+        #expect(ServiceToken.clientIDHint("s3cret") != nil)
+        let settings = ServerSettings(url: URL(string: tunnel)!, token: "fum_secret", access: serviceToken)
+        #expect(!settings.description.contains("s3cret") && !settings.description.contains("fum_secret"))
+    }
+
+    @Test func aForbiddenPageIsCloudflareAccessTurningUsAway() async {
+        let page = accessPage
+        let without = api(url: tunnel) { _ in .init(status: 403, body: page) }
+        await #expect(throws: Problems.accessRefused(tokenSaved: false)) { _ = try await without.send("GET", "/v1/info", body: nil) }
+        await #expect(throws: Problems.accessRefused(tokenSaved: false)) { try await without.health() }
+        let wrong = api(url: tunnel, access: serviceToken) { _ in .init(status: 403, body: page) }
+        await #expect(throws: Problems.accessRefused(tokenSaved: true)) { _ = try await wrong.send("GET", "/v1/info", body: nil) }
+        #expect(Problems.accessRefused(tokenSaved: true).message.contains("hasn't expired"))
+        #expect(Problems.accessRefused(tokenSaved: false).message.contains("needs a service token"))
+        let login = api(url: tunnel, access: serviceToken) { _ in
+            .init(status: 302, headers: ["Location": "https://team.cloudflareaccess.com/cdn-cgi/access/login"], body: Data())
+        }
+        await #expect(throws: Problems.accessRefused(tokenSaved: true)) { _ = try await login.send("GET", "/v1/info", body: nil) }
+    }
+
+    @Test func otherAnswersKeepTheirMessages() async {
+        let page = accessPage
+        let wrongToken = api(url: tunnel, access: serviceToken) { _ in .init(status: 401, body: page) }
+        await #expect(throws: Problems.unauthorized) { _ = try await wrongToken.send("GET", "/v1/info", body: nil) }
+        let lockedOut = api(url: tunnel, access: serviceToken) { _ in .init(status: 429, body: page) }
+        await #expect(throws: Problems.lockedOut) { _ = try await lockedOut.send("GET", "/v1/info", body: nil) }
+        let fuMail = api(url: tunnel, access: serviceToken) { _ in .init(status: 403, body: Data(#"{"error":"Not here."}"#.utf8)) }
+        await #expect(throws: RemoteProblem(.server, "Not here.")) { _ = try await fuMail.send("GET", "/v1/info", body: nil) }
+        let elsewhere = api(url: tunnel) { _ in .init(status: 302, headers: ["Location": "https://example.com/"], body: Data()) }
+        await #expect(throws: RemoteProblem.self) {
+            do { _ = try await elsewhere.send("GET", "/v1/info", body: nil) } catch let problem as RemoteProblem {
+                #expect(problem.kind == .server && problem.message.contains("redirect"))
+                throw problem
+            }
         }
     }
 }

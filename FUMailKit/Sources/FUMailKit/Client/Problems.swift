@@ -9,6 +9,8 @@ public struct RemoteProblem: Error, Equatable, LocalizedError {
         case localNetworkDenied
         /// 401: the token was rejected.
         case unauthorized
+        /// 403 from Cloudflare Access (or its login redirect): no service token, or a wrong or expired one.
+        case accessRefused
         /// 429: too many wrong tokens from this address.
         case lockedOut
         /// 409: a draft editor is being written or saved.
@@ -43,6 +45,13 @@ public enum Problems {
 
     public static let lockedOut = RemoteProblem(
         .lockedOut, "The Mac has locked this device out for a few minutes after wrong tokens. Wait, then try again.")
+
+    /// Cloudflare Access turned the request away before it reached FU Mail.
+    public static func accessRefused(tokenSaved: Bool) -> RemoteProblem {
+        RemoteProblem(.accessRefused, tokenSaved
+            ? "Cloudflare Access didn't accept the service token's Client ID and Secret (check them and that the token hasn't expired)."
+            : "Cloudflare Access turned this device away: it needs a service token (Settings → Cloudflare Access).")
+    }
 
     /// `/health` answered, but not as FU Mail does (`{"ok":true}`).
     public static func notFUMail(url: String) -> RemoteProblem {
