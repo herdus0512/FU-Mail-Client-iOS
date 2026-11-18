@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.8.1, for FU Mail 3.8.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 3.8.2, for FU Mail 3.8.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -182,6 +182,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.8.2 | 2026-11-18 | Fix: **Text size** now changes every text by the same factor, as the Android app does (Smaller × 0.88, Larger × 1.15, of iOS's own size for each text): chat text, `/help` output, cards, labels and the chat titles all change together, where one Dynamic Type step before barely moved some and not others. |
 | 3.8.1 | 2026-11-18 | Fixes, as in FU Mail for Android 3.8.1. **A new card lands at its top:** the chat keeps the newest message's top in view while the Mac's placeholder ("Opening…") turns into the card and grows, until you scroll yourself. **Commands show when you tap into the empty message box** (not right after sending). **Touch and hold** a message, email, summary, draft or note text for **Copy** or **Select Text…** (iOS's own selection, everything selected to start). |
 | 3.8.0 | 2026-11-17 | Version matched to FU Mail 3.8.0. **Cloudflare Tunnel:** the address can be a tunnel's `https://<hostname>` guarded by Cloudflare Access; Settings takes the service token's Client ID and Secret (both or neither, kept in the Keychain), sent with every request but only to `https://` addresses. When Access turns the app away (a 403 page, or a redirect to its login), it says whether the service token is missing or wasn't accepted. |
 | 3.7.0 | 2026-11-17 | Version matched to FU Mail 3.7.0 (3.5.0 and 3.6.0 needed nothing here). **Draft cards show the mail server's warning** about saving the draft, such as a new body replacing formatting or a signature added in Google Mail or Outlook, under the body (not on a draft that's gone). |
