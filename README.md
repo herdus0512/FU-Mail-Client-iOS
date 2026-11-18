@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.8.4, for FU Mail 3.8.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 3.8.5, for FU Mail 3.8.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -193,6 +193,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.8.5 | 2026-11-18 | Fixes. **History search results open their chat again** on the iPhone (at the message that matched); tapping one did nothing. **The keyboard goes away** after sending and as soon as the chat is scrolled, a card dragged included (3.8.3 had made it go only when dragged down into the keyboard). |
 | 3.8.4 | 2026-11-18 | **Commands without a slash:** start typing a command's name (`u`, `obs`) and the matching commands show above the box; tapping one makes it `/unread `, `/obsidian ` (a question goes on as typed). **SF Mono** in the message box and the search fields too, as in the Android app. |
 | 3.8.3 | 2026-11-18 | Fixes. **Quicker to connect:** everything is fetched at once over one connection shared with the event stream (as the Android app shares one), and Control Center or a notification pulled over the app no longer drops the connection (it closes only in the background, like Android's). **Chat replies** are the cards' text size, a step under what you typed, as on Android. **No Done bar above the keyboard:** iOS floated it over the message bar and Send; drag the chat down or tap it (or an empty new chat) to put the keyboard away. |
 | 3.8.2 | 2026-11-18 | Fix: **Text size** now changes every text by the same factor, as the Android app does (Smaller × 0.88, Larger × 1.15, of iOS's own size for each text): chat text, `/help` output, cards, labels and the chat titles all change together, where one Dynamic Type step before barely moved some and not others. |
