@@ -537,10 +537,8 @@ private struct NotePicker: View {
                     .tint(.primary)
                 }
             }
-            .fontDesign(.monospaced)
             .searchable(text: $filter, placement: .navigationBarDrawer(displayMode: .always),
                         prompt: "Part of a name, a related name or a person")
-            .fontDesign(.default)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

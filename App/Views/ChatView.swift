@@ -368,19 +368,19 @@ private struct Composer: View {
                 .background(Color(.secondarySystemGroupedBackground))
             }
             HStack(alignment: .bottom, spacing: 8) {
-                // The standard iOS font here, for typing (the placeholder takes its font on its own).
-                TextField("", text: $text, prompt: Text("/unread, or ask…").font(.system(size: AppFont.size(.body, dynamicTypeSize, textSize))).fontDesign(.default), axis: .vertical)
+                // SF Mono, as everywhere else (and in the Android app).
+                TextField("", text: $text, prompt: Text("/unread, or ask…").font(.system(size: AppFont.size(.body, dynamicTypeSize, textSize))), axis: .vertical)
                     .lineLimit(1...5)
                     .appFont(.body)
-                    .fontDesign(.default)
                     .focused($focused)
                     // Tapping into the box, as it gets the cursor or again once it has it.
                     .simultaneousGesture(TapGesture().onEnded { if text.isEmpty { showAll = true } })
                     .onChange(of: focused) { _, now in showAll = now && text.isEmpty }
                     // Typing narrows the list as before; emptying the box again doesn't bring it all back.
                     .onChange(of: text) { if !text.isEmpty { showAll = false } }
-                    // Commands go as typed: no autocorrect turning "/unread" into something else.
-                    .autocorrectionDisabled(text.hasPrefix("/"))
+                    // Commands go as typed: no autocorrect turning "/unread" into something else, nor
+                    // (while it's the first word) "obs" into "obs." before its command can be picked.
+                    .autocorrectionDisabled(text.hasPrefix("/") || !Command.suggestions(text, from: commands).isEmpty)
                     .textInputAutocapitalization(text.hasPrefix("/") ? .never : .sentences)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)

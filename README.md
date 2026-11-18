@@ -112,7 +112,10 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   words and meaning.
 - **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the
   Mac. **Tap into the empty box, or type `/`, and the commands appear** above it, narrowing as you
-  type; tap one to put it in the box. (After sending, the box keeps the cursor but the list stays
+  type; tap one to put it in the box. **No slash needed:** start typing a command's name (`u`, `obs`)
+  and the matching commands show too; tapping one makes it `/unread `, `/obsidian `. A question goes
+  on as typed (the list goes at the first space). The box and the searches are in SF Mono, like the
+  rest of the app. (After sending, the box keeps the cursor but the list stays
   closed, so it doesn't cover the answer; tap the box again for it.) While the chat model works, its status shows above the box, with **Stop**.
 - **Long chats** open with their newest 10 messages; **Show earlier messages** at the top adds 10
   more at a time.

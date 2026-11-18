@@ -99,6 +99,22 @@ struct SettingsTests {
         #expect(names("/x") == [])
     }
 
+    @Test func commandSuggestionsFromLettersWithoutASlash() {
+        let commands = [Command(name: "/unread", args: "[n]", summary: "newest unread email"),
+                        Command(name: "/obsidian", args: "[name]", summary: "view a note"),
+                        Command(name: "/today", summary: "today's events"),
+                        Command(name: "/tasks", args: "[list]", summary: "your tasks")]
+        func names(_ typed: String) -> [String] { Command.suggestions(typed, from: commands).map(\.name) }
+        #expect(names("u") == ["/unread"])
+        #expect(names("O") == ["/obsidian"])  // iOS capitalises the first letter
+        #expect(names("t") == ["/today", "/tasks"])
+        #expect(names("tod") == ["/today"])
+        #expect(names("today") == ["/today"])  // not a command yet: tapping it makes it one
+        #expect(names("update me") == [])  // a question: gone at the first space
+        #expect(names("x") == [])
+        #expect(names("") == [])
+    }
+
     @Test func serverSentEvents() {
         var parser = EventStreamParser()
         let lines = [": ping", "", "data: {\"type\":\"a\"}", "", "data: one", "data: two", "", "event: x", "id: 3", "", "data:tight", ""]

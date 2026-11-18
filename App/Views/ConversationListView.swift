@@ -57,10 +57,7 @@ struct ConversationListView: View {
                 }
             }
         }
-        .fontDesign(.monospaced)
-        // The search field in the standard iOS font (the list and toolbar above stay monospaced).
         .searchable(text: $query, prompt: "Search history")
-        .fontDesign(.default)
         .task(id: query) { await search() }
         .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Title", text: $newTitle)

@@ -176,11 +176,15 @@ public struct Command: Codable, Sendable, Equatable, Identifiable {
         summary = try container.decodeIfPresent(String.self, forKey: .summary) ?? ""
     }
 
-    /// The commands to suggest for what's typed in the composer: while it's a slash and the start of a
-    /// name (no space yet), the commands whose names start with it, in `/help`'s order. Nothing once a
-    /// command that takes nothing more is typed in full.
+    /// The commands to suggest for what's typed in the composer, while it's one word (no space yet), in
+    /// `/help`'s order: after a slash, those whose names start with it; without one (a "/" is awkward
+    /// on a phone), those whose names start with the letters typed, so "u" offers /unread. Nothing
+    /// once a command that takes nothing more is typed in full.
     public static func suggestions(_ typed: String, from commands: [Command]) -> [Command] {
-        guard typed.hasPrefix("/"), !typed.contains(where: \.isWhitespace) else { return [] }
+        guard !typed.isEmpty, !typed.contains(where: \.isWhitespace) else { return [] }
+        guard typed.hasPrefix("/") else {
+            return commands.filter { $0.name.dropFirst().lowercased().hasPrefix(typed.lowercased()) }
+        }
         let matches = commands.filter { $0.name.lowercased().hasPrefix(typed.lowercased()) }
         if matches.count == 1, matches[0].name.lowercased() == typed.lowercased(), matches[0].args.isEmpty { return [] }
         return matches
