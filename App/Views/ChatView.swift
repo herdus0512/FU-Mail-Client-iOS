@@ -60,6 +60,9 @@ struct ChatView: View {
                     .foregroundStyle(.secondary)
                     .padding(24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    // A new chat has no messages to tap or drag: a tap anywhere here hides the keyboard.
+                    .contentShape(Rectangle())
+                    .onTapGesture { hideKeyboard() }
             } else {
                 MessageList(messages: conversation.messages, busy: client.state.busyMessages, client: client, conversationID: id,
                             jumpTo: $jumpTo)
@@ -157,8 +160,9 @@ private struct MessageList: View {
                 .padding(.vertical, 10)
             }
             .defaultScrollAnchor(.bottom)
-            // The keyboard goes away when the messages are scrolled or tapped.
-            .scrollDismissesKeyboard(.immediately)
+            // The keyboard goes away when the messages are tapped, or follows the chat down as it's
+            // dragged (as in Messages). No Done bar above it: iOS floats that over the message bar.
+            .scrollDismissesKeyboard(.interactively)
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
@@ -388,16 +392,19 @@ private struct Composer: View {
                 .keyboardShortcut(.return, modifiers: .command)
                 .accessibilityLabel("Send")
             }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { focused = false }
-                }
-            }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(.bar)
         }
+        #if DEBUG
+        // `make run-fake FOCUS=1`: the cursor in the box a moment after the chat opens, for checking
+        // it with the on-screen keyboard without tapping into the Simulator. Debug only.
+        .task {
+            guard ProcessInfo.processInfo.environment["FUMAIL_FOCUS"] != nil else { return }
+            try? await Task.sleep(for: .seconds(1.5))
+            focused = true
+        }
+        #endif
     }
 
     private func send() {
