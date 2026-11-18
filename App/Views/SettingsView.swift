@@ -107,7 +107,7 @@ struct SettingsView: View {
                         Button("Save anyway") { save(check: false) }
                     }
                     if let result {
-                        Text(result).font(.footnote).foregroundStyle(StatusColors.connected)
+                        Text(result).appFont(.footnote).foregroundStyle(StatusColors.connected)
                     }
                     if let problem {
                         WarningText(problem)
@@ -125,7 +125,8 @@ struct SettingsView: View {
                 } header: {
                     Text("Text size")
                 } footer: {
-                    Text("A step either side of the size set for iOS (Settings → Display & Brightness → Text Size).")
+                    Text("Every text 12% smaller or 15% larger than the size set for iOS (Settings → Display & Brightness → "
+                         + "Text Size), as in the Android app.")
                 }
 
                 if app.hasToken {
@@ -235,7 +236,7 @@ private struct AddressRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text(label).appFont(.caption, weight: .semibold).foregroundStyle(.secondary)
             TextField(placeholder, text: $text)
                 .keyboardType(.URL)
                 .textContentType(.URL)

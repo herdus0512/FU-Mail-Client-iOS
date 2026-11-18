@@ -31,7 +31,7 @@ struct ConnectionIndicator: View {
             HStack(spacing: 5) {
                 Image(systemName: "desktopcomputer")
                 Circle().frame(width: 7, height: 7)
-                Text(label).font(.caption.weight(.medium))
+                Text(label).appFont(.caption, weight: .medium)
             }
             .foregroundStyle(color)
         }
@@ -55,7 +55,7 @@ struct ConnectionIndicator: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(label, systemImage: "desktopcomputer")
-                .font(.headline)
+                .appFont(.headline)
                 .foregroundStyle(color)
             if let client {
                 Detail(label: "Mac", value: client.display)
@@ -66,10 +66,10 @@ struct ConnectionIndicator: View {
                                .compactMap { $0 }.joined(separator: " "))
                 }
                 if let problem = connection.problem {
-                    Text(problem).font(.footnote).foregroundStyle(StatusColors.failed)
+                    Text(problem).appFont(.footnote).foregroundStyle(StatusColors.failed)
                 }
             } else {
-                Text("Add the Mac's address and a device token in Settings.").font(.footnote)
+                Text("Add the Mac's address and a device token in Settings.").appFont(.footnote)
             }
             Detail(label: "This app", value: AppVersion.text)
             Button("Settings…") {
@@ -89,8 +89,8 @@ private struct Detail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
-            Text(value).font(.footnote).textSelection(.enabled)
+            Text(label).appFont(.caption2).foregroundStyle(.secondary)
+            Text(value).appFont(.footnote).textSelection(.enabled)
         }
     }
 }
@@ -104,7 +104,7 @@ struct Banner: View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.triangle")
             Text(text)
-                .font(.footnote)
+                .appFont(.footnote)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
             if let onDismiss {

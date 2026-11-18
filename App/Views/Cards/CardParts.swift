@@ -35,9 +35,9 @@ struct CardHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.subheadline.weight(.semibold))
+            Text(title).appFont(.subheadline, weight: .semibold)
             if let detail, !detail.isEmpty {
-                Text(detail).font(.caption2).foregroundStyle(.secondary)
+                Text(detail).appFont(.caption2).foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 12)
@@ -56,7 +56,7 @@ struct CardFooter: View {
             Divider()
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(problems, id: \.self) { WarningText($0) }
-                ForEach(notes, id: \.self) { Text($0).font(.caption2).foregroundStyle(.secondary) }
+                ForEach(notes, id: \.self) { Text($0).appFont(.caption2).foregroundStyle(.secondary) }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -72,7 +72,7 @@ struct CardActions<Content: View>: View {
         Divider()
         FlowLayout(spacing: 18) { content }
             .buttonStyle(.borderless)
-            .font(.subheadline)
+            .appFont(.subheadline)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
     }
@@ -134,7 +134,7 @@ struct RowNumber: View {
 
     var body: some View {
         Text("\(number)")
-            .font(.caption)
+            .appFont(.caption)
             .foregroundStyle(.secondary)
             .frame(width: 22, alignment: .leading)
     }
@@ -193,7 +193,7 @@ struct CardView: View {
         case .unsupported(let name):
             CardBox {
                 Text("A “\(name)” card this version of the app can't show. It's on the Mac.")
-                    .font(.footnote)
+                    .appFont(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(12)
             }

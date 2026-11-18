@@ -168,7 +168,7 @@ private struct ConversationRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(conversation.title).lineLimit(1)
                 Text(conversation.updatedAt, format: .relative(presentation: .named))
-                    .font(.caption)
+                    .appFont(.caption)
                     .foregroundStyle(.secondary)
             }
             if answering {
@@ -188,15 +188,15 @@ private struct SearchHitRow: View {
                 Text(hit.title).lineLimit(1)
                 Spacer()
                 if hit.byMeaning == true {
-                    Text("by meaning").font(.caption2).foregroundStyle(.secondary)
+                    Text("by meaning").appFont(.caption2).foregroundStyle(.secondary)
                 }
             }
             Text(Self.highlighted(hit.snippet))
-                .font(.caption)
+                .appFont(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
             Text(hit.updatedAt, format: .relative(presentation: .named))
-                .font(.caption2)
+                .appFont(.caption2)
                 .foregroundStyle(.tertiary)
         }
     }

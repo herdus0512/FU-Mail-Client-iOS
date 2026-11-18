@@ -167,7 +167,9 @@ can't be checked right now. The connection indicator shows Connected, Connecting
 - **The provider line** at the top shows which model each role uses on the Mac (a globe: off the
   Mac). Tap one for the details.
 - **iPad:** the conversations and the chat side by side. ⌘N starts a new one, ⌘Return sends.
-- **Settings → Text size:** a step smaller or larger than iOS's own text size.
+- **Settings → Text size:** Smaller, Default or Larger, as in the Android app: every text (chat,
+  cards, titles, labels) is iOS's own size for it times 0.88, 1 or 1.15, so they all change together
+  and keep their proportions. iOS's own text size (Display & Brightness → Text Size) still counts.
 
 Not in this version: push notifications, offline mail, attachments.
 

@@ -13,7 +13,7 @@ struct EmailListCardView: View {
             CardHeader(title: card.title, detail: card.items.isEmpty ? nil : "\(card.items.count)")
             Divider()
             if card.items.isEmpty {
-                Text(card.emptyText).font(.footnote).foregroundStyle(.secondary).padding(12)
+                Text(card.emptyText).appFont(.footnote).foregroundStyle(.secondary).padding(12)
             }
             ForEach(Array(card.items.enumerated()), id: \.element.id) { index, item in
                 if index > 0 { Divider().padding(.leading, 44) }
@@ -32,7 +32,7 @@ struct EmailListCardView: View {
                         .disabled(scope.busy)
                     if scope.busy { ProgressView().controlSize(.small) }
                 }
-                .font(.subheadline)
+                .appFont(.subheadline)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
@@ -59,19 +59,19 @@ private struct EmailRow: View {
                         .fontWeight(item.unread ? .semibold : .regular)
                         .lineLimit(1)
                     Spacer(minLength: 8)
-                    Text(CardDates.short(item.received)).font(.caption).foregroundStyle(.secondary)
+                    Text(CardDates.short(item.received)).appFont(.caption).foregroundStyle(.secondary)
                 }
                 Text(item.subject.isEmpty ? "(no subject)" : item.subject)
                     .fontWeight(item.unread ? .medium : .regular)
                     .lineLimit(1)
                 if let snippet = item.snippet, !snippet.isEmpty {
-                    Text(snippet).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    Text(snippet).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 if let account = item.ref.account {
-                    Text(account).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+                    Text(account).appFont(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                 }
             }
-            .font(.subheadline)
+            .appFont(.subheadline)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -92,10 +92,10 @@ struct ThreadCardView: View {
     var body: some View {
         CardBox {
             VStack(alignment: .leading, spacing: 2) {
-                Text(card.subject.isEmpty ? "(no subject)" : card.subject).font(.subheadline.weight(.semibold))
+                Text(card.subject.isEmpty ? "(no subject)" : card.subject).appFont(.subheadline, weight: .semibold)
                 let detail = [card.ref.account, card.messages.count > 1 ? "\(card.messages.count) messages" : nil].compactMap { $0 }
                 if !detail.isEmpty {
-                    Text(detail.joined(separator: " · ")).font(.caption2).foregroundStyle(.secondary)
+                    Text(detail.joined(separator: " · ")).appFont(.caption2).foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 12)
@@ -158,7 +158,7 @@ struct ThreadCardView: View {
             Text(card.side == .original
                  ? "Original text from \(card.ref.server)\(archived ? " (archive, read-only)" : "")"
                  : "Written by an LLM")
-                .font(.caption2)
+                .appFont(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)
                 .padding(.bottom, 8)
@@ -174,29 +174,29 @@ private struct SummaryView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let summary {
                 if !summary.text.isEmpty {
-                    Text(summary.text).font(.subheadline).copyable(summary.text)
+                    Text(summary.text).appFont(.subheadline).copyable(summary.text)
                 }
                 switch summary.state {
                 case .writing:
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
-                        Text("Summarising with \(summary.by)…").font(.caption).foregroundStyle(.secondary)
+                        Text("Summarising with \(summary.by)…").appFont(.caption).foregroundStyle(.secondary)
                     }
                 case .done:
                     HStack {
-                        Text("Summary by \(summary.by)").font(.caption).foregroundStyle(.secondary)
+                        Text("Summary by \(summary.by)").appFont(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        Button("Rewrite", action: onRewrite).font(.subheadline).buttonStyle(.borderless)
+                        Button("Rewrite", action: onRewrite).appFont(.subheadline).buttonStyle(.borderless)
                     }
                     if let notes = summary.notes, !notes.isEmpty {
-                        Text("With your notes: \(notes.joined(separator: ", "))").font(.caption).foregroundStyle(.secondary)
+                        Text("With your notes: \(notes.joined(separator: ", "))").appFont(.caption).foregroundStyle(.secondary)
                     }
                 case .failed(let reason):
                     WarningText(reason)
-                    Button("Try again", action: onRewrite).font(.subheadline).buttonStyle(.borderless)
+                    Button("Try again", action: onRewrite).appFont(.subheadline).buttonStyle(.borderless)
                 }
             } else {
-                Text("No summary yet.").font(.footnote).foregroundStyle(.secondary)
+                Text("No summary yet.").appFont(.footnote).foregroundStyle(.secondary)
             }
         }
         .padding(12)
@@ -212,10 +212,10 @@ private struct FoldedMessage: View {
     var body: some View {
         Button(action: onOpen) {
             HStack(spacing: 8) {
-                Text(message.from?.display ?? "(no sender)").font(.caption.weight(.semibold)).lineLimit(1)
-                Text(message.preview).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                Text(message.from?.display ?? "(no sender)").appFont(.caption, weight: .semibold).lineLimit(1)
+                Text(message.preview).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 Spacer(minLength: 4)
-                Text(CardDates.short(message.received)).font(.caption).foregroundStyle(.secondary)
+                Text(CardDates.short(message.received)).appFont(.caption).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -235,13 +235,13 @@ private struct MessageView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(message.from?.display ?? "(no sender)").font(.subheadline.weight(.semibold))
+                    Text(message.from?.display ?? "(no sender)").appFont(.subheadline, weight: .semibold)
                     if let from = message.from, from.name != nil {
-                        Text(from.email).font(.caption).foregroundStyle(.secondary)
+                        Text(from.email).appFont(.caption).foregroundStyle(.secondary)
                     }
                 }
                 Spacer(minLength: 8)
-                Text(CardDates.full(message.received)).font(.caption).foregroundStyle(.secondary)
+                Text(CardDates.full(message.received)).appFont(.caption).foregroundStyle(.secondary)
                 if canFold {
                     Button(action: onFold) { Image(systemName: "chevron.up") }
                         .buttonStyle(.borderless)
@@ -253,23 +253,23 @@ private struct MessageView: View {
                     if !message.to.isEmpty { Text("To: \(message.to.line)") }
                     if !message.cc.isEmpty { Text("Cc: \(message.cc.line)") }
                 }
-                .font(.caption)
+                .appFont(.caption)
                 .foregroundStyle(.secondary)
             }
             if !message.attachments.isEmpty {
                 Label(message.attachments.joined(separator: ", "), systemImage: "paperclip")
-                    .font(.caption)
+                    .appFont(.caption)
                     .foregroundStyle(.secondary)
             }
             if message.body.isEmpty {
-                Text(message.bodyNote ?? "(no text)").font(.footnote).foregroundStyle(.secondary)
+                Text(message.bodyNote ?? "(no text)").appFont(.footnote).foregroundStyle(.secondary)
             } else {
-                Text(message.body).font(.subheadline).copyable(message.body)
+                Text(message.body).appFont(.subheadline).copyable(message.body)
             }
             let notes = [message.bodyTruncated ? "Shortened" + (message.bodyTotalChars.map { " (\($0) characters in all)" } ?? "") : nil,
                          message.quotedRemoved ? "Quoted replies and signature hidden" : nil].compactMap { $0 }
             if !notes.isEmpty {
-                Text(notes.joined(separator: " · ")).font(.caption2).foregroundStyle(.secondary)
+                Text(notes.joined(separator: " · ")).appFont(.caption2).foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 12)
@@ -289,7 +289,7 @@ struct DraftListCardView: View {
             CardHeader(title: "Drafts", detail: card.items.isEmpty ? nil : "\(card.items.count)")
             Divider()
             if card.items.isEmpty {
-                Text("No drafts.").font(.footnote).foregroundStyle(.secondary).padding(12)
+                Text("No drafts.").appFont(.footnote).foregroundStyle(.secondary).padding(12)
             }
             ForEach(Array(card.items.enumerated()), id: \.element.id) { index, draft in
                 if index > 0 { Divider().padding(.leading, 44) }
@@ -301,15 +301,15 @@ struct DraftListCardView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(draft.subject.isEmpty ? "(no subject)" : draft.subject).lineLimit(1)
                             Text(draft.to.isEmpty ? "(no recipients)" : draft.to.map(\.display).joined(separator: ", "))
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                .appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                             if let snippet = draft.snippet, !snippet.isEmpty {
-                                Text(snippet).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                Text(snippet).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                             }
                             if let account = draft.account {
-                                Text(account).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+                                Text(account).appFont(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                             }
                         }
-                        .font(.subheadline)
+                        .appFont(.subheadline)
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 12)
@@ -342,9 +342,9 @@ struct DraftCardView: View {
                     if !card.cc.isEmpty { Text("Cc: \(card.cc.line)") }
                     if !card.bcc.isEmpty { Text("Bcc: \(card.bcc.line)") }
                 }
-                .font(.caption)
+                .appFont(.caption)
                 .foregroundStyle(.secondary)
-                Text(card.body.isEmpty ? "(empty)" : card.body).font(.subheadline).copyable(card.body)
+                Text(card.body.isEmpty ? "(empty)" : card.body).appFont(.subheadline).copyable(card.body)
                 if let warning = card.warning, card.gone != true {
                     WarningText(warning)
                 }
@@ -352,7 +352,7 @@ struct DraftCardView: View {
             .padding(12)
             if card.gone == true {
                 Text("This draft no longer exists (sent or deleted).")
-                    .font(.subheadline)
+                    .appFont(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(12)
             } else {
@@ -403,11 +403,11 @@ struct EventListCardView: View {
             CardHeader(title: card.title, detail: card.events.isEmpty ? nil : "\(card.events.count)")
             Divider()
             if card.events.isEmpty {
-                Text(card.emptyText).font(.footnote).foregroundStyle(.secondary).padding(12)
+                Text(card.emptyText).appFont(.footnote).foregroundStyle(.secondary).padding(12)
             }
             ForEach(days, id: \.0) { day, events in
                 Text(Self.title(day))
-                    .font(.caption.weight(.semibold))
+                    .appFont(.caption, weight: .semibold)
                     .foregroundStyle(.tint)
                     .padding(.horizontal, 12)
                     .padding(.top, 10)
@@ -451,27 +451,27 @@ private struct EventRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Text(time).font(.caption).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8).frame(width: 124, alignment: .leading)
+            Text(time).appFont(.caption).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8).frame(width: 124, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(event.title).font(.subheadline).strikethrough(event.myResponse == "declined")
-                    if let response { Text(response).font(.caption2).foregroundStyle(.purple) }
+                    Text(event.title).appFont(.subheadline).strikethrough(event.myResponse == "declined")
+                    if let response { Text(response).appFont(.caption2).foregroundStyle(.purple) }
                 }
                 let details = [event.location,
                                event.organizedByMe ? "you organise" : nil,
                                event.attendeeCount.flatMap { $0 > 1 ? "\($0) people" : nil },
                                event.recurring ? "repeats" : nil].compactMap { $0 }.filter { !$0.isEmpty }
                 if !details.isEmpty {
-                    Text(details.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+                    Text(details.joined(separator: " · ")).appFont(.caption).foregroundStyle(.secondary)
                 }
                 if let account = event.account {
                     Text([account, event.calendar].compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption2).foregroundStyle(.tertiary)
+                        .appFont(.caption2).foregroundStyle(.tertiary)
                 }
             }
             Spacer(minLength: 0)
             if let link = event.videoLink.flatMap(URL.init(string:)) {
-                Button("Join") { openURL(link) }.font(.subheadline).buttonStyle(.borderless)
+                Button("Join") { openURL(link) }.appFont(.subheadline).buttonStyle(.borderless)
             }
         }
         .padding(.horizontal, 12)

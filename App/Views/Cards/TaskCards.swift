@@ -18,8 +18,8 @@ struct TaskListCardView: View {
         CardBox {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(card.list.map { "Tasks · \($0)" } ?? "Tasks").font(.subheadline.weight(.semibold))
-                    Text("\(card.openCount) open").font(.caption2).foregroundStyle(.secondary)
+                    Text(card.list.map { "Tasks · \($0)" } ?? "Tasks").appFont(.subheadline, weight: .semibold)
+                    Text("\(card.openCount) open").appFont(.caption2).foregroundStyle(.secondary)
                 }
                 Spacer()
                 if scope.busy {
@@ -34,11 +34,11 @@ struct TaskListCardView: View {
             .padding(.vertical, 8)
             Divider()
             if card.tasks.isEmpty, card.problems.isEmpty {
-                Text("No open tasks.").font(.footnote).foregroundStyle(.secondary).padding(12)
+                Text("No open tasks.").appFont(.footnote).foregroundStyle(.secondary).padding(12)
             }
             ForEach(TaskDates.grouped(card.tasks, today: today()), id: \.0) { group, tasks in
                 Text(group.rawValue)
-                    .font(.caption.weight(.semibold))
+                    .appFont(.caption, weight: .semibold)
                     .foregroundStyle(group == .overdue ? AnyShapeStyle(StatusColors.failed) : AnyShapeStyle(.tint))
                     .padding(.horizontal, 12)
                     .padding(.top, 10)
@@ -74,7 +74,7 @@ private struct TaskRow: View {
                 scope.act(task.completed ? .taskReopen(taskID: task.id) : .taskComplete(taskID: task.id))
             } label: {
                 Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
+                    .appFont(.title3)
                     .foregroundStyle(task.completed ? StatusColors.connected : Color(.tertiaryLabel))
             }
             .buttonStyle(.borderless)
@@ -83,7 +83,7 @@ private struct TaskRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(task.title)
-                    .font(.subheadline)
+                    .appFont(.subheadline)
                     .strikethrough(task.completed)
                     .foregroundStyle(task.completed ? .secondary : .primary)
                 HStack(spacing: 0) {
@@ -94,10 +94,10 @@ private struct TaskRow: View {
                             .foregroundStyle(overdue && !task.completed ? AnyShapeStyle(StatusColors.failed) : AnyShapeStyle(.secondary))
                     }
                 }
-                .font(.caption)
+                .appFont(.caption)
                 .foregroundStyle(.secondary)
                 if let firstLine = task.notes.split(separator: "\n").first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) {
-                    Text(firstLine).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    Text(firstLine).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 FlowLayout(spacing: 16) {
                     if working {
@@ -123,7 +123,7 @@ private struct TaskRow: View {
                     }
                 }
                 .buttonStyle(.borderless)
-                .font(.subheadline)
+                .appFont(.subheadline)
                 .padding(.top, 2)
             }
             Spacer(minLength: 0)
@@ -201,29 +201,29 @@ struct TaskDraftCardView: View {
     var body: some View {
         CardBox {
             VStack(alignment: .leading, spacing: 6) {
-                Text("New task").font(.caption).foregroundStyle(.secondary)
+                Text("New task").appFont(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 8) {
-                    Text(card.title.isEmpty ? "(no title yet)" : card.title).font(.subheadline.weight(.semibold))
+                    Text(card.title.isEmpty ? "(no title yet)" : card.title).appFont(.subheadline, weight: .semibold)
                     if card.suggestingTitle { ProgressView().controlSize(.small) }
                 }
                 HStack(spacing: 14) {
                     Label(card.list, systemImage: "list.bullet")
                     Label(card.dueDate.map { TaskDates.label($0) } ?? "No due date", systemImage: "calendar")
                 }
-                .font(.caption)
+                .appFont(.caption)
                 .foregroundStyle(.secondary)
-                if !card.notes.isEmpty { Text(card.notes).font(.caption).foregroundStyle(.secondary) }
+                if !card.notes.isEmpty { Text(card.notes).appFont(.caption).foregroundStyle(.secondary) }
                 if card.stage == .editing, let by = card.titleBy {
-                    Text("Title suggested by \(by); change it with Edit…").font(.caption2).foregroundStyle(.secondary)
+                    Text("Title suggested by \(by); change it with Edit…").appFont(.caption2).foregroundStyle(.secondary)
                 }
                 if let problem = card.problem { WarningText(problem) }
                 switch card.stage {
                 case .created:
                     Label("Created in \(card.created?.list ?? card.list)", systemImage: "checkmark.circle")
-                        .font(.subheadline)
+                        .appFont(.subheadline)
                         .foregroundStyle(StatusColors.connected)
                 case .cancelled:
-                    Text("Cancelled. Nothing was created.").font(.caption).foregroundStyle(.secondary)
+                    Text("Cancelled. Nothing was created.").appFont(.caption).foregroundStyle(.secondary)
                 case .editing:
                     EmptyView()
                 }
@@ -317,18 +317,18 @@ struct TaskChangeCardView: View {
     var body: some View {
         CardBox {
             VStack(alignment: .leading, spacing: 6) {
-                Text(card.task.title).font(.subheadline.weight(.semibold))
+                Text(card.task.title).appFont(.subheadline, weight: .semibold)
                 if let due = card.task.dueDate {
-                    Text("Due \(TaskDates.label(due))").font(.caption).foregroundStyle(.secondary)
+                    Text("Due \(TaskDates.label(due))").appFont(.caption).foregroundStyle(.secondary)
                 }
                 if let problem = card.problem { WarningText(problem) }
                 switch card.stage {
                 case .confirming:
-                    Text(card.question()).font(.subheadline)
+                    Text(card.question()).appFont(.subheadline)
                 case .done:
-                    Label("Done.", systemImage: "checkmark.circle").font(.subheadline).foregroundStyle(StatusColors.connected)
+                    Label("Done.", systemImage: "checkmark.circle").appFont(.subheadline).foregroundStyle(StatusColors.connected)
                 case .cancelled:
-                    Text("Cancelled. Nothing changed.").font(.caption).foregroundStyle(.secondary)
+                    Text("Cancelled. Nothing changed.").appFont(.caption).foregroundStyle(.secondary)
                 }
             }
             .padding(12)

@@ -20,7 +20,7 @@ private struct DoneLine: View {
 
     var body: some View {
         Label(text, systemImage: "checkmark.circle")
-            .font(.subheadline)
+            .appFont(.subheadline)
             .foregroundStyle(StatusColors.connected)
     }
 }
@@ -30,7 +30,7 @@ private struct Secondary: View {
     init(_ text: String) { self.text = text }
 
     var body: some View {
-        Text(text).font(.caption).foregroundStyle(.secondary)
+        Text(text).appFont(.caption).foregroundStyle(.secondary)
     }
 }
 
@@ -41,9 +41,9 @@ private struct EntryBox: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            if let heading { Text(heading).font(.subheadline.weight(.semibold)) }
+            if let heading { Text(heading).appFont(.subheadline, weight: .semibold) }
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                Text(line.isEmpty ? " " : line).font(.subheadline)
+                Text(line.isEmpty ? " " : line).appFont(.subheadline)
             }
         }
         .copyable(([heading].compactMap { $0 } + lines).joined(separator: "\n"))
@@ -67,7 +67,7 @@ private struct CandidateRows: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(candidate.title)
-                            .font(.subheadline.weight(index == 0 ? .semibold : .regular))
+                            .appFont(.subheadline, weight: index == 0 ? .semibold : .regular)
                             .foregroundStyle(.tint)
                         if !candidate.reason.isEmpty { Secondary(candidate.reason) }
                     }
@@ -111,7 +111,7 @@ private struct TeamVisible: View {
 
     var body: some View {
         Label(text, systemImage: "person.3")
-            .font(.caption2)
+            .appFont(.caption2)
             .foregroundStyle(StatusColors.warning)
     }
 }
@@ -132,7 +132,7 @@ struct SuggestedNoteCardView: View {
             CardBody {
                 switch card.state {
                 case .suggested:
-                    Text(card.note).font(.subheadline)
+                    Text(card.note).appFont(.subheadline)
                     Secondary("Not added unless you choose to")
                     if !canAdd { Secondary("memory.path is \"none\" in the Mac's config, so there's no file to add it to.") }
                 case .added: DoneLine(text: "Added to \(card.addedTo ?? "memory.md")")
@@ -177,7 +177,7 @@ struct NotesCardView: View {
                                                       : "Which note? The first is the best match.")
                     CandidateRows(candidates: card.candidates) { scope.act(.chooseNote($0)) }
                 case .preview:
-                    if let chosen = card.chosen { Text(chosen.title).font(.subheadline.weight(.semibold)) }
+                    if let chosen = card.chosen { Text(chosen.title).appFont(.subheadline, weight: .semibold) }
                     Secondary("Goes under ## \(scope.info?.notesSection ?? "Correspondence")")
                     EntryBox(lines: card.entry.lines, heading: card.entry.heading)
                     if let duplicate = card.duplicate {
@@ -294,7 +294,7 @@ struct CRMCardView: View {
     var body: some View {
         CardBox {
             HStack {
-                Text("Send to CRM").font(.subheadline.weight(.semibold))
+                Text("Send to CRM").appFont(.subheadline, weight: .semibold)
                 Spacer()
                 TeamVisible(text: "Visible to your team in the CRM")
             }
@@ -304,13 +304,13 @@ struct CRMCardView: View {
             CardBody {
                 switch card.stage {
                 case .choosing:
-                    if card.text.isEmpty { Secondary("No update written yet.") } else { Text(card.text).font(.subheadline) }
+                    if card.text.isEmpty { Secondary("No update written yet.") } else { Text(card.text).appFont(.subheadline) }
                     rewriting
                     Secondary(card.candidates.isEmpty ? "Which project or organisation? Pick one:"
                                                       : "Which project or organisation? The first is the best match.")
                     CandidateRows(candidates: card.candidates) { scope.act(.crmChoose($0)) }
                 case .preview:
-                    if let chosen = card.chosen { Text(chosen.title).font(.subheadline.weight(.semibold)) }
+                    if let chosen = card.chosen { Text(chosen.title).appFont(.subheadline, weight: .semibold) }
                     Secondary(card.createsSection
                               ? "Creates ## \(crmSection) " + (card.createsBefore.map { "before ## \($0)" } ?? "at the end of the note")
                               : "Goes into ## \(crmSection), newest first")
@@ -528,10 +528,10 @@ private struct NotePicker: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(note.title)
-                                Text(note.path).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                Text(note.path).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                             }
                             Spacer()
-                            if showKind, let kind = note.kind { Text(kind).font(.caption).foregroundStyle(.secondary) }
+                            if showKind, let kind = note.kind { Text(kind).appFont(.caption).foregroundStyle(.secondary) }
                         }
                     }
                     .tint(.primary)
@@ -571,9 +571,9 @@ struct NoteViewCardView: View {
         CardBox {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(card.chosen?.title ?? card.query.map { "Notes matching “\($0)”" } ?? "Your notes")
-                    .font(.subheadline.weight(.semibold))
+                    .appFont(.subheadline, weight: .semibold)
                 if card.stage == .showing, let kind = card.kind {
-                    Text(kind).font(.caption2).foregroundStyle(kind == "project" ? StatusColors.connected : .accentColor)
+                    Text(kind).appFont(.caption2).foregroundStyle(kind == "project" ? StatusColors.connected : .accentColor)
                 }
                 Spacer()
                 if card.stage == .showing, let readAt = card.readAt {
@@ -624,7 +624,7 @@ struct NoteViewCardView: View {
                     scope.act(.noteViewChoose(candidate))
                 } label: {
                     HStack {
-                        Text(candidate.title).font(.subheadline).foregroundStyle(.tint)
+                        Text(candidate.title).appFont(.subheadline).foregroundStyle(.tint)
                         Spacer()
                         if !candidate.reason.isEmpty { Secondary(candidate.reason).lineLimit(1) }
                     }
@@ -643,7 +643,7 @@ struct NoteViewCardView: View {
             SectionTitle(title: "Summary")
             let expanded = card.expanded.contains(.summary)
             Text(card.summary.isEmpty ? "(no summary)" : card.summary)
-                .font(.subheadline)
+                .appFont(.subheadline)
                 .foregroundStyle(card.summary.isEmpty ? .secondary : .primary)
                 .lineLimit(expanded ? nil : 6)
                 .copyable(card.summary)
@@ -664,7 +664,7 @@ struct NoteViewCardView: View {
             case .failed(let reason):
                 WarningText("Couldn't write it: \(reason)")
             case .writing, .done:
-                if !catchUp.text.isEmpty { Text(catchUp.text).font(.subheadline).copyable(catchUp.text) }
+                if !catchUp.text.isEmpty { Text(catchUp.text).appFont(.subheadline).copyable(catchUp.text) }
                 if catchUp.state == .writing {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
@@ -682,7 +682,7 @@ private struct SectionTitle: View {
     var title: String
 
     var body: some View {
-        Text("## \(title)").font(.caption.weight(.semibold)).foregroundStyle(.tint).padding(.top, 2)
+        Text("## \(title)").appFont(.caption, weight: .semibold).foregroundStyle(.tint).padding(.top, 2)
     }
 }
 
@@ -691,7 +691,7 @@ private struct ShowMore: View {
     var action: () -> Void
 
     var body: some View {
-        Button(label, action: action).font(.caption.weight(.medium)).buttonStyle(.borderless)
+        Button(label, action: action).appFont(.caption, weight: .medium).buttonStyle(.borderless)
     }
 }
 
@@ -712,9 +712,9 @@ private struct Entries: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(card.shown(section, entries).enumerated()), id: \.offset) { _, entry in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.heading.drop { $0 == "#" || $0 == " " }).font(.subheadline.weight(.semibold))
+                        Text(entry.heading.drop { $0 == "#" || $0 == " " }).appFont(.subheadline, weight: .semibold)
                         ForEach(Array(entry.lines.enumerated()), id: \.offset) { _, line in
-                            Text(line).font(.caption)
+                            Text(line).appFont(.caption)
                         }
                     }
                 }

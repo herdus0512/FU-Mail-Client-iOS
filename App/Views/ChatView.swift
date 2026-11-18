@@ -56,7 +56,7 @@ struct ChatView: View {
                 ProgressView("Loading…").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if conversation.messages.isEmpty {
                 Text("Type a command such as /unread, /inbox, /search bob, /today or /help, or ask in plain words.")
-                    .font(.callout)
+                    .appFont(.callout)
                     .foregroundStyle(.secondary)
                     .padding(24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -132,7 +132,7 @@ private struct MessageList: View {
                             }
                         } label: {
                             Label("Show earlier messages (\(earlier))", systemImage: "chevron.up")
-                                .font(.subheadline.weight(.medium))
+                                .appFont(.subheadline, weight: .medium)
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -194,7 +194,7 @@ private struct MessageList: View {
                         following = true
                         withAnimation { proxy.scrollTo(bottom, anchor: .bottom) }
                     } label: {
-                        Label("Latest", systemImage: "chevron.down").font(.caption.weight(.medium))
+                        Label("Latest", systemImage: "chevron.down").appFont(.caption, weight: .medium)
                     }
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)
@@ -286,7 +286,7 @@ private struct MessageRow: View, Equatable {
                     Text(message.text).copyable(message.text)
                 case .system:
                     Text(message.text)
-                        .font(.footnote)
+                        .appFont(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
@@ -309,12 +309,12 @@ private struct ChatStatusLine: View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
             Text(status)
-                .font(.caption)
+                .appFont(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Button("Stop", action: onStop)
-                .font(.caption.weight(.medium))
+                .appFont(.caption, weight: .medium)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -331,6 +331,9 @@ private struct Composer: View {
 
     @State private var text = ""
     @FocusState private var focused: Bool
+    /// For the placeholder, which has to be plain text (see `TextSize`).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @AppStorage("textSize") private var textSize: TextSize = .standard
     /// Every command, shown when you tap into the empty box (typing "/" on a phone is awkward). Not
     /// after sending, when the box is empty and still has the cursor: that would cover the answer.
     @State private var showAll = false
@@ -361,9 +364,9 @@ private struct Composer: View {
             }
             HStack(alignment: .bottom, spacing: 8) {
                 // The standard iOS font here, for typing (the placeholder takes its font on its own).
-                TextField("", text: $text, prompt: Text("/unread, or ask…").font(.body).fontDesign(.default), axis: .vertical)
+                TextField("", text: $text, prompt: Text("/unread, or ask…").font(.system(size: AppFont.size(.body, dynamicTypeSize, textSize))).fontDesign(.default), axis: .vertical)
                     .lineLimit(1...5)
-                    .font(.body)
+                    .appFont(.body)
                     .fontDesign(.default)
                     .focused($focused)
                     // Tapping into the box, as it gets the cursor or again once it has it.
@@ -415,9 +418,9 @@ private struct CommandRow: View {
                     Text(command.args).foregroundStyle(.secondary)
                 }
             }
-            .font(.callout)
+            .appFont(.callout)
             if !command.summary.isEmpty {
-                Text(command.summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                Text(command.summary).appFont(.caption).foregroundStyle(.secondary).lineLimit(2)
             }
         }
         .padding(.horizontal, 14)
@@ -440,7 +443,7 @@ private struct ProviderLineRow: View {
                         shown = entry
                     } label: {
                         Label(entry.label, systemImage: entry.remote ? "globe" : "laptopcomputer")
-                            .font(.caption2)
+                            .appFont(.caption2)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Color(.tertiarySystemFill), in: Capsule())
@@ -450,7 +453,7 @@ private struct ProviderLineRow: View {
                     .popover(isPresented: Binding(get: { shown == entry }, set: { if !$0 { shown = nil } })) {
                         ScrollView {
                             Text(entry.details)
-                                .font(.caption)
+                                .appFont(.caption)
                                 .textSelection(.enabled)
                                 .padding()
                         }

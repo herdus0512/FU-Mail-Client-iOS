@@ -46,7 +46,7 @@ struct DraftEditorView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     // The title here too: the toolbar's buttons leave it little room on an iPhone.
                     Text(editor.title.isEmpty ? "Draft" : editor.title)
-                        .font(.headline)
+                        .appFont(.headline)
                         .lineLimit(2)
                         .padding(.top, 4)
                         .padding(.bottom, 6)
@@ -75,7 +75,7 @@ struct DraftEditorView: View {
                     bodyEditor
                     if let signature = editor.signature?.trimmingCharacters(in: .whitespacesAndNewlines), !signature.isEmpty {
                         Text("The Mac adds your signature: \(signature.components(separatedBy: "\n").first ?? "")…")
-                            .font(.caption)
+                            .appFont(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.top, 6)
                     }
@@ -83,7 +83,7 @@ struct DraftEditorView: View {
                     buttons
                     statusLine.padding(.top, 10)
                     Text("Nothing is ever sent: Save puts it in the account's Drafts.")
-                        .font(.caption2)
+                        .appFont(.caption2)
                         .foregroundStyle(.tertiary)
                         .padding(.top, 14)
                 }
@@ -144,7 +144,7 @@ struct DraftEditorView: View {
     private var instructionsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider().padding(.top, 10)
-            Text("Instructions").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text("Instructions").appFont(.caption, weight: .semibold).foregroundStyle(.secondary)
             TextField("e.g. decline politely and suggest next Tuesday", text: $instructions, axis: .vertical)
                 .lineLimit(1...4)
                 .disabled(busy)
@@ -182,19 +182,19 @@ struct DraftEditorView: View {
         case .writing(let by):
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
-                Text("Writing with \(by)…").font(.caption).foregroundStyle(.secondary)
+                Text("Writing with \(by)…").appFont(.caption).foregroundStyle(.secondary)
             }
         case .saving:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
-                Text("Saving to \(editor.server)…").font(.caption).foregroundStyle(.secondary)
+                Text("Saving to \(editor.server)…").appFont(.caption).foregroundStyle(.secondary)
             }
         case .failed(let reason):
             WarningText(reason)
         case .idle:
             if !editor.canSave {
                 Text("\(editor.server) can't save drafts, so copy the text into your mail app instead.")
-                    .font(.caption)
+                    .appFont(.caption)
                     .foregroundStyle(.secondary)
             }
         }

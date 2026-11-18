@@ -17,8 +17,10 @@ enum Appearance: String, CaseIterable, Identifiable {
     }
 }
 
-/// The text a step smaller or larger than iOS's own size (Settings → Text size; kept on this device).
-/// SF Mono is wider than the system font, so Smaller often reads best.
+/// Every text a little smaller or larger than iOS's own size (Settings → Text size; kept on this
+/// device): each size times one factor, the same as the Android app's, so chat text, cards, titles
+/// and labels all change together and keep their proportions. SF Mono is wide, so Smaller often
+/// reads best.
 enum TextSize: String, CaseIterable, Identifiable {
     case smaller, standard, larger
 
@@ -32,26 +34,63 @@ enum TextSize: String, CaseIterable, Identifiable {
         }
     }
 
-    /// iOS's size moved by this one step, within the sizes there are.
-    func applied(to size: DynamicTypeSize) -> DynamicTypeSize {
-        let all = DynamicTypeSize.allCases
-        guard let index = all.firstIndex(of: size) else { return size }
-        let step = switch self {
-        case .smaller: -1
-        case .standard: 0
-        case .larger: 1
+    /// As Android's (Theme.kt).
+    var factor: CGFloat {
+        switch self {
+        case .smaller: 0.88
+        case .standard: 1
+        case .larger: 1.15
         }
-        return all[min(max(index + step, 0), all.count - 1)]
+    }
+
+    /// The setting, for code outside views (the navigation bar's titles).
+    static var current: TextSize {
+        UserDefaults.standard.string(forKey: "textSize").flatMap(TextSize.init(rawValue:)) ?? .standard
     }
 }
 
-/// Applies the Text size setting to everything under it.
-struct TextSizing: ViewModifier {
+/// The app's sizes: iOS's size for a text style at the reader's own text size (Dynamic Type), times
+/// the Text size factor.
+enum AppFont {
+    static func size(_ style: UIFont.TextStyle, _ dynamicTypeSize: DynamicTypeSize, _ textSize: TextSize) -> CGFloat {
+        let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
+        return UIFont.preferredFont(forTextStyle: style, compatibleWith: traits).pointSize * textSize.factor
+    }
+
+    static func uiStyle(_ style: Font.TextStyle) -> UIFont.TextStyle {
+        switch style {
+        case .largeTitle: .largeTitle
+        case .title: .title1
+        case .title2: .title2
+        case .title3: .title3
+        case .headline: .headline
+        case .subheadline: .subheadline
+        case .callout: .callout
+        case .footnote: .footnote
+        case .caption: .caption1
+        case .caption2: .caption2
+        default: .body
+        }
+    }
+}
+
+extension View {
+    /// `.appFont(.subheadline)`, at the app's size (see `TextSize`). The design (SF Mono, or the system
+    /// font where a view asks for it) comes from around it, as with `.font`.
+    func appFont(_ style: Font.TextStyle, weight: Font.Weight? = nil) -> some View {
+        modifier(AppFontModifier(style: style, weight: weight))
+    }
+}
+
+private struct AppFontModifier: ViewModifier {
+    var style: Font.TextStyle
+    var weight: Font.Weight?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("textSize") private var textSize: TextSize = .standard
-    @Environment(\.dynamicTypeSize) private var systemSize
 
     func body(content: Content) -> some View {
-        content.dynamicTypeSize(textSize.applied(to: systemSize))
+        let size = AppFont.size(AppFont.uiStyle(style), dynamicTypeSize, textSize)
+        content.font(.system(size: size, weight: weight ?? (style == .headline ? .semibold : .regular)))
     }
 }
 
@@ -93,7 +132,7 @@ struct SegmentedChoice<Value: Hashable>: View {
                     selection = option.value
                 } label: {
                     Text(option.label)
-                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .appFont(.subheadline, weight: selected ? .semibold : .regular)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -127,7 +166,7 @@ struct WarningText: View {
         } icon: {
             Image(systemName: "exclamationmark.triangle")
         }
-        .font(.footnote)
+        .appFont(.footnote)
         .foregroundStyle(StatusColors.warning)
     }
 }
