@@ -59,6 +59,17 @@ struct ConversationListView: View {
         }
         .searchable(text: $query, prompt: "Search history")
         .task(id: query) { await search() }
+        #if DEBUG
+        // `make run-fake SEARCH=bob`: searches the history and opens the first result as a tap does,
+        // for checking it without typing into the Simulator. Debug only.
+        .task {
+            guard let words = ProcessInfo.processInfo.environment["FUMAIL_SEARCH"] else { return }
+            try? await Task.sleep(for: .seconds(2))
+            query = words
+            for _ in 0..<20 where hits?.first == nil { try? await Task.sleep(for: .milliseconds(250)) }
+            if let hit = hits?.first { open(hit) }
+        }
+        #endif
         .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Title", text: $newTitle)
             Button("Rename") {
@@ -119,14 +130,12 @@ struct ConversationListView: View {
             if hits.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
-                List(hits) { hit in
-                    Button {
-                        jumpTo = hit.messageID.map { MessageJump(conversationID: hit.conversationID, messageID: $0) }
-                        selection = hit.conversationID
-                    } label: {
-                        SearchHitRow(hit: hit)
-                    }
-                    .tint(.primary)
+                // Tied to the selection like the chat list: on the iPhone the split view opens the
+                // chat only for a selection made in a list (plain buttons setting it did nothing).
+                List(hits, selection: Binding(get: { selection }, set: { id in
+                    if let hit = hits.first(where: { $0.id == id }) { open(hit) } else { selection = id }
+                })) { hit in
+                    SearchHitRow(hit: hit)
                 }
                 .listStyle(.insetGrouped)
             }
@@ -134,6 +143,12 @@ struct ConversationListView: View {
             ProgressView().padding()
             Spacer()
         }
+    }
+
+    /// A history search result: its chat, scrolled to the message that matched.
+    private func open(_ hit: SearchHit) {
+        jumpTo = hit.messageID.map { MessageJump(conversationID: hit.conversationID, messageID: $0) }
+        selection = hit.conversationID
     }
 
     /// History search: after a short pause in typing, not per keystroke.

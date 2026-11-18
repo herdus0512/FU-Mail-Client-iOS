@@ -41,7 +41,8 @@ make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (le
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
                   #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages;
                   #   SEND=/unread sends it 2 s after the chat opens (the fake answers "Fetching…",
-                  #   then a thread card in its place a second later); FOCUS=1 puts the cursor
+                  #   then a thread card in its place a second later); SEARCH=bob searches the history
+                  #   and opens the first result as a tap does; FOCUS=1 puts the cursor
                   #   in the message box (turn off I/O → Keyboard → Connect Hardware Keyboard to
                   #   see the on-screen keyboard)
 make testflight   # test, archive, sign and upload to TestFlight
@@ -126,8 +127,8 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   note, Add task) is always shown when it arrives. **A new card lands at its top:** the Mac first
   sends a short placeholder ("Opening…") and then the card in its place, so the chat keeps the new
   message's top at the top of the screen while it turns into the card and grows, until you scroll
-  yourself. Tap the messages, or drag the chat down (the keyboard follows, as in Messages), to put the
-  keyboard away; in a new, empty chat, tap anywhere above the message box.
+  yourself. The keyboard goes away after sending, and when the chat is scrolled or the messages are
+  tapped; in a new, empty chat, tap anywhere above the message box.
 - **Copy and select:** touch and hold a message, an email, a summary, a draft or a note's text for
   **Copy** (all of it) or **Select Text…**, which opens it on its own with iOS's own selection
   (drag the handles, Select All, Copy, Share). It starts with everything selected.

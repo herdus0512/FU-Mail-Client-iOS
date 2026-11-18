@@ -160,9 +160,10 @@ private struct MessageList: View {
                 .padding(.vertical, 10)
             }
             .defaultScrollAnchor(.bottom)
-            // The keyboard goes away when the messages are tapped, or follows the chat down as it's
-            // dragged (as in Messages). No Done bar above it: iOS floats that over the message bar.
-            .scrollDismissesKeyboard(.interactively)
+            // The keyboard goes away as soon as the chat is scrolled (a card dragged included) or the
+            // messages are tapped, and after sending. No Done bar above it: iOS floats that over the
+            // message bar.
+            .scrollDismissesKeyboard(.immediately)
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
@@ -412,6 +413,8 @@ private struct Composer: View {
         onSend(trimmed)
         showAll = false
         text = ""
+        // The answer is to read (often a card): the keyboard makes way for it. Tap the box to type again.
+        focused = false
     }
 }
 
