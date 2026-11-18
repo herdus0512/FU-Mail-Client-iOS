@@ -174,7 +174,7 @@ private struct SummaryView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let summary {
                 if !summary.text.isEmpty {
-                    Text(summary.text).font(.subheadline).textSelection(.enabled)
+                    Text(summary.text).font(.subheadline).copyable(summary.text)
                 }
                 switch summary.state {
                 case .writing:
@@ -264,7 +264,7 @@ private struct MessageView: View {
             if message.body.isEmpty {
                 Text(message.bodyNote ?? "(no text)").font(.footnote).foregroundStyle(.secondary)
             } else {
-                Text(message.body).font(.subheadline).textSelection(.enabled)
+                Text(message.body).font(.subheadline).copyable(message.body)
             }
             let notes = [message.bodyTruncated ? "Shortened" + (message.bodyTotalChars.map { " (\($0) characters in all)" } ?? "") : nil,
                          message.quotedRemoved ? "Quoted replies and signature hidden" : nil].compactMap { $0 }
@@ -344,7 +344,7 @@ struct DraftCardView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                Text(card.body.isEmpty ? "(empty)" : card.body).font(.subheadline).textSelection(.enabled)
+                Text(card.body.isEmpty ? "(empty)" : card.body).font(.subheadline).copyable(card.body)
                 if let warning = card.warning, card.gone != true {
                     WarningText(warning)
                 }

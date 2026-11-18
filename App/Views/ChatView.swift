@@ -37,6 +37,15 @@ struct ChatView: View {
             }
         }
         .onAppear { client.loadMessages(id) }
+        #if DEBUG
+        // `make run-fake SEND=/unread`: sends it a moment after the chat opens, for checking how its
+        // answer lands without typing into the Simulator. Debug only.
+        .task {
+            guard let command = ProcessInfo.processInfo.environment["FUMAIL_SEND"] else { return }
+            try? await Task.sleep(for: .seconds(2))
+            client.send(command, in: id)
+        }
+        #endif
         .onChange(of: client.state.unloaded.contains(id)) { client.loadMessages(id) }
     }
 
@@ -74,6 +83,12 @@ private struct MessageList: View {
     @State private var atBottom = true
     /// Lit up briefly after a jump to it from history search.
     @State private var highlighted: ChatMessage.ID?
+    /// The newest message, kept with its top at the top of the screen while it changes: the Mac
+    /// answers with a small placeholder ("Opening…") that then becomes the card, which may then
+    /// grow. Ends as soon as you scroll yourself.
+    @State private var landing: ChatMessage.ID?
+    /// You just sent something: its answer is landed on even if the chat wasn't following.
+    @State private var answerAwaited = false
     /// Following the chat: true unless you scrolled up yourself. Decided when a scroll comes to rest,
     /// so new messages arriving (which grow the list) don't change it.
     @State private var following = true
@@ -109,6 +124,7 @@ private struct MessageList: View {
                     if earlier > 0 {
                         Button {
                             let firstShown = shown.first?.id
+                            landing = nil  // you're reading back now
                             limit += Self.page
                             // Stay where you were: the earlier messages appear above it.
                             if let firstShown {
@@ -150,19 +166,31 @@ private struct MessageList: View {
                 atBottom = isAtBottom
             }
             .onScrollPhaseChange { _, phase in
-                if phase == .idle { following = atBottom }
+                // Your own scrolling or dragging ends a landing (a scroll made here doesn't).
+                if phase == .tracking || phase == .interacting { landing = nil }
+                if phase == .idle, landing == nil { following = atBottom }
             }
             .onChange(of: messages.last?.id) { reveal(proxy) }
+            // The message being landed on changed (placeholder → card, a card growing): its top again.
+            .onChange(of: messages.last) {
+                if let landing, messages.last?.id == landing { proxy.scrollTo(landing, anchor: .top) }
+            }
             // A history search result: show back to its message, then scroll to it.
             .onAppear { jump(proxy) }
             .onChange(of: jumpTo) { jump(proxy) }
-            // A card growing (a summary streaming in) while following: stay at the bottom.
+            // Laid out taller (a card arriving, a summary streaming in): the landed message's top stays
+            // in view, or while following, the chat stays at the bottom.
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, _ in
-                if following { proxy.scrollTo(bottom, anchor: .bottom) }
+                if let landing {
+                    proxy.scrollTo(landing, anchor: .top)
+                } else if following {
+                    proxy.scrollTo(bottom, anchor: .bottom)
+                }
             }
             .overlay(alignment: .bottomTrailing) {
-                if !following && !atBottom {
+                if !following && !atBottom && landing == nil {
                     Button {
+                        landing = nil
                         following = true
                         withAnimation { proxy.scrollTo(bottom, anchor: .bottom) }
                     } label: {
@@ -187,6 +215,7 @@ extension MessageList {
         let target = jump.messageID
         guard let index = all.firstIndex(where: { $0.id == target }) else { return }
         limit = max(limit, all.count - index)
+        landing = nil
         following = false
         // After the bottom-scroll of opening, and after the messages shown back are laid out.
         Task {
@@ -198,32 +227,26 @@ extension MessageList {
         }
     }
 
-    /// Something new at the bottom. What you just sent goes into view. A card that answers something
-    /// asked for here (an email opened, a command, Add to note) is shown from its start, even when the
-    /// chat was scrolled up, so an opened email is read from the top. Anything else is shown only while
-    /// following the chat.
+    /// Something new at the bottom. What you just sent goes into view. The answer that follows (or a
+    /// new message while you're at the bottom, or one answering something asked for here: an email
+    /// opened, Add to note…) is landed on: its top at the top of the screen, kept there while the
+    /// placeholder becomes the card and the card grows, until you scroll yourself, as on the Mac.
+    /// Anything else leaves you where you are.
     fileprivate func reveal(_ proxy: ScrollViewProxy) {
         guard let last = messages.last else { return }
         if last.role == .user {
+            landing = nil
             following = true
+            answerAwaited = true
             proxy.scrollTo(bottom, anchor: .bottom)
             return
         }
         let asked = client.takeExpectedReply(in: conversationID)
-        guard following || asked else { return }
-        guard last.card != nil else {
-            following = true
-            proxy.scrollTo(bottom, anchor: .bottom)
-            return
-        }
-        // From its top. A long card (an email) then isn't pulled down to its end as the chat would be
-        // while following; a short one ends at the bottom anyway, and the chat follows again.
+        guard following || asked || answerAwaited || landing != nil else { return }
+        answerAwaited = false
+        landing = last.id
         following = false
         proxy.scrollTo(last.id, anchor: .top)
-        Task {
-            try? await Task.sleep(for: .milliseconds(400))
-            following = atBottom
-        }
     }
 }
 
@@ -257,17 +280,17 @@ private struct MessageRow: View, Equatable {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(Color.accentColor.opacity(0.18), in: RoundedRectangle(cornerRadius: 16))
-                            .textSelection(.enabled)
+                            .copyable(message.text)
                     }
                 case .assistant:
-                    Text(message.text).textSelection(.enabled)
+                    Text(message.text).copyable(message.text)
                 case .system:
                     Text(message.text)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
-                        .textSelection(.enabled)
+                        .copyable(message.text)
                 }
             }
             if let card = message.card {
@@ -299,21 +322,24 @@ private struct ChatStatusLine: View {
     }
 }
 
-/// What's typed stays here until Send: a slash command or a question, both sent as they are. While
-/// it's the start of a command ("/u"), the Mac's matching commands show above it; tapping one puts it
-/// in the box, ready for its number or words.
+/// What's typed stays here until Send: a slash command or a question, both sent as they are. Tapping
+/// into the empty box shows every command above it; while it's the start of a command ("/u"), the
+/// Mac's matching ones; tapping one puts it in the box, ready for its number or words.
 private struct Composer: View {
     var commands: [Command]
     var onSend: (String) -> Void
 
     @State private var text = ""
     @FocusState private var focused: Bool
+    /// Every command, shown when you tap into the empty box (typing "/" on a phone is awkward). Not
+    /// after sending, when the box is empty and still has the cursor: that would cover the answer.
+    @State private var showAll = false
 
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
         VStack(spacing: 0) {
-            let suggestions = Command.suggestions(text, from: commands)
+            let suggestions = text.isEmpty && showAll ? commands : Command.suggestions(text, from: commands)
             if !suggestions.isEmpty {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -340,6 +366,11 @@ private struct Composer: View {
                     .font(.body)
                     .fontDesign(.default)
                     .focused($focused)
+                    // Tapping into the box, as it gets the cursor or again once it has it.
+                    .simultaneousGesture(TapGesture().onEnded { if text.isEmpty { showAll = true } })
+                    .onChange(of: focused) { _, now in showAll = now && text.isEmpty }
+                    // Typing narrows the list as before; emptying the box again doesn't bring it all back.
+                    .onChange(of: text) { if !text.isEmpty { showAll = false } }
                     // Commands go as typed: no autocorrect turning "/unread" into something else.
                     .autocorrectionDisabled(text.hasPrefix("/"))
                     .textInputAutocapitalization(text.hasPrefix("/") ? .never : .sentences)
@@ -368,6 +399,7 @@ private struct Composer: View {
     private func send() {
         guard !trimmed.isEmpty else { return }
         onSend(trimmed)
+        showAll = false
         text = ""
     }
 }

@@ -46,7 +46,7 @@ private struct EntryBox: View {
                 Text(line.isEmpty ? " " : line).font(.subheadline)
             }
         }
-        .textSelection(.enabled)
+        .copyable(([heading].compactMap { $0 } + lines).joined(separator: "\n"))
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 8))
@@ -646,7 +646,7 @@ struct NoteViewCardView: View {
                 .font(.subheadline)
                 .foregroundStyle(card.summary.isEmpty ? .secondary : .primary)
                 .lineLimit(expanded ? nil : 6)
-                .textSelection(.enabled)
+                .copyable(card.summary)
             if card.summary.components(separatedBy: "\n").count > 6 || card.summary.count > 500 {
                 ShowMore(label: expanded ? "Show less" : "Show all") { scope.act(.noteViewExpand(.summary)) }
             }
@@ -664,7 +664,7 @@ struct NoteViewCardView: View {
             case .failed(let reason):
                 WarningText("Couldn't write it: \(reason)")
             case .writing, .done:
-                if !catchUp.text.isEmpty { Text(catchUp.text).font(.subheadline).textSelection(.enabled) }
+                if !catchUp.text.isEmpty { Text(catchUp.text).font(.subheadline).copyable(catchUp.text) }
                 if catchUp.state == .writing {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
@@ -719,7 +719,8 @@ private struct Entries: View {
                     }
                 }
             }
-            .textSelection(.enabled)
+            .copyable(card.shown(section, entries).map { ([String($0.heading.drop { $0 == "#" || $0 == " " })] + $0.lines).joined(separator: "\n") }
+                .joined(separator: "\n\n"))
             if entries.count > NoteViewCard.recent {
                 let all = card.expanded.contains(section)
                 ShowMore(label: all ? "Show the newest \(NoteViewCard.recent)" : "Show all \(entries.count)") {

@@ -132,6 +132,20 @@ def add_to_notes(conversation):
         push({"type": "message_updated", "conversationID": conversation, "message": dict(placeholder, text="", card=others[4])})
     threading.Thread(target=later, daemon=True).start()
 
+def now():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def answer_with_thread(conversation, placeholder_text):
+    """As the Mac answers (Session.respond(placeholder:)): a short placeholder first, then about a
+    second later the same message with the (tall) card in its place."""
+    placeholder = {"id": str(uuid.uuid4()).upper(), "role": "assistant", "text": placeholder_text, "createdAt": now()}
+    push({"type": "message_appended", "conversationID": conversation, "message": placeholder})
+    def later():
+        time.sleep(1)
+        card = json.loads(json.dumps(next(m for m in messages if "thread" in m.get("card", {}))["card"]))
+        push({"type": "message_updated", "conversationID": conversation, "message": dict(placeholder, text="", card=card)})
+    threading.Thread(target=later, daemon=True).start()
+
 def summarize(conversation, message_id):
     """Summary on a thread: the card turns to its Summary side, which streams in, as the Mac's does."""
     original = next((m for m in messages if m["id"] == message_id and "thread" in m.get("card", {})), None)
@@ -196,10 +210,15 @@ class H(BaseHTTPRequestHandler):
                     self.wfile.flush(); time.sleep(0.2)
             except Exception: return
         if method == "POST" and path.endswith("/open"):
-            # Opening a list row: the thread arrives as a new card, as on the Mac.
-            opened = json.loads(json.dumps(next(m for m in messages if "thread" in m.get("card", {}))))
-            opened["id"] = str(uuid.uuid4()).upper()
-            push({"type": "message_appended", "conversationID": path.split("/")[3], "message": opened})
+            # Opening a list row: "Opening…", then the thread in its place, as on the Mac.
+            answer_with_thread(path.split("/")[3], "Opening…")
+        if method == "POST" and path.endswith("/send"):
+            # Anything sent: it shows as sent, then "Fetching…" turns into a thread card.
+            conversation = path.split("/")[3]
+            text = json.loads(body or "{}").get("text", "")
+            push({"type": "message_appended", "conversationID": conversation,
+                  "message": {"id": str(uuid.uuid4()).upper(), "role": "user", "text": text, "createdAt": now()}})
+            answer_with_thread(conversation, "Fetching unread email…")
         if method == "POST" and path.endswith("/action") and '"set_side"' in body and '"summary"' in body:
             summarize(path.split("/")[3], path.split("/")[5])
         if method == "POST" and path.endswith("/action") and '"add_to_notes"' in body:

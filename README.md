@@ -39,7 +39,9 @@ make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (le
                   #   python3 tools/fake_mac.py --editor starts with a draft editor open, --long makes
                   #   the chat long; Summary and Add to note on a thread answer as the Mac does)
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
-                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages
+                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages;
+                  #   SEND=/unread sends it 2 s after the chat opens (the fake answers "Fetching…",
+                  #   then a thread card in its place a second later)
 make testflight   # test, archive, sign and upload to TestFlight
 ```
 
@@ -103,16 +105,22 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   to rename. **Search history** searches the Mac's history, by
   words and meaning.
 - **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the
-  Mac. **Type `/` and the commands appear** above the box, narrowing as you type; tap one to put it in
-  the box. While the chat model works, its status shows above the box, with **Stop**.
+  Mac. **Tap into the empty box, or type `/`, and the commands appear** above it, narrowing as you
+  type; tap one to put it in the box. (After sending, the box keeps the cursor but the list stays
+  closed, so it doesn't cover the answer; tap the box again for it.) While the chat model works, its status shows above the box, with **Stop**.
 - **Long chats** open with their newest 10 messages; **Show earlier messages** at the top adds 10
   more at a time.
 - **History search:** opening a result goes to the message that matched, showing earlier messages
   back to it, and lights it up for a moment (with FU Mail 3.3.0 or later on the Mac).
 - **The chat** follows new messages while you're at the bottom; scrolled up, it stays put and
   **Latest** jumps down. What you asked for yourself (an email opened from a list, a command, Add to
-  note, Add task) is always shown when it arrives, a card from its start. Tap or scroll the messages,
-  or tap **Done** above the keyboard, to put the keyboard away.
+  note, Add task) is always shown when it arrives. **A new card lands at its top:** the Mac first
+  sends a short placeholder ("Opening…") and then the card in its place, so the chat keeps the new
+  message's top at the top of the screen while it turns into the card and grows, until you scroll
+  yourself. Tap or scroll the messages, or tap **Done** above the keyboard, to put the keyboard away.
+- **Copy and select:** touch and hold a message, an email, a summary, a draft or a note's text for
+  **Copy** (all of it) or **Select Text…**, which opens it on its own with iOS's own selection
+  (drag the handles, Select All, Copy, Share). It starts with everything selected.
 - **Cards** have the Mac's buttons:
   - **Lists:** tap a row to open it. An archive list (`/archive`) has **Show more (N left)**.
   - **Threads:** newest first, folded by the Mac's rule (your own replies fold too): tap a folded
