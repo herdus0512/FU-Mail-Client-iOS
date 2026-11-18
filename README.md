@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.8.0, for FU Mail 3.8.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 3.8.1, for FU Mail 3.8.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -180,6 +180,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 3.8.1 | 2026-11-18 | Fixes, as in FU Mail for Android 3.8.1. **A new card lands at its top:** the chat keeps the newest message's top in view while the Mac's placeholder ("Opening…") turns into the card and grows, until you scroll yourself. **Commands show when you tap into the empty message box** (not right after sending). **Touch and hold** a message, email, summary, draft or note text for **Copy** or **Select Text…** (iOS's own selection, everything selected to start). |
 | 3.8.0 | 2026-11-17 | Version matched to FU Mail 3.8.0. **Cloudflare Tunnel:** the address can be a tunnel's `https://<hostname>` guarded by Cloudflare Access; Settings takes the service token's Client ID and Secret (both or neither, kept in the Keychain), sent with every request but only to `https://` addresses. When Access turns the app away (a 403 page, or a redirect to its login), it says whether the service token is missing or wasn't accepted. |
 | 3.7.0 | 2026-11-17 | Version matched to FU Mail 3.7.0 (3.5.0 and 3.6.0 needed nothing here). **Draft cards show the mail server's warning** about saving the draft, such as a new body replacing formatting or a signature added in Google Mail or Outlook, under the body (not on a draft that's gone). |
 | 3.4.0 | 2026-11-17 | Version matched to FU Mail 3.4.0. **Open in browser on a Google Mail draft** opens the draft as it is now: the Mac fetches it again first (`refresh_draft`), as its link changes whenever the draft is saved, autosave included; a spinner shows meanwhile (at most 5 s, or about 1.5 s with an older Mac). Other links open at once. A draft sent or deleted since (`gone`) says so instead of Edit and Open in browser. |
