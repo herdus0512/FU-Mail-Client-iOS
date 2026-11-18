@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 3.9.0, for FU Mail 4.4.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 4.0.0, for FU Mail 4.5.1 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -201,6 +201,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 4.0.0 | 2026-11-19 | For FU Mail 4.5.1 on the Mac. **Memos:** a note kept in Memos opens with **Open in Memos** (in the browser, at the Mac's Memos address); vault notes keep Open in Obsidian. After Add to note or Post CRM update, the line says where the entry went, "(Memos)" or "(vault)", with a warning when Memos couldn't be reached and the vault was used. `/memo` works like `/obsidian`. |
 | 3.9.0 | 2026-11-19 | For FU Mail 4.4.0 on the Mac (3.9.0–4.4.0 needed nothing else here). **`/now`:** what's left of today where you are. The phone's current time zone goes with every request (`X-FUMail-Time-Zone`, read each time, so it follows you after a flight), and the card is titled with it, e.g. "Now (Europe/London)", or says "Nothing more on today." Other events cards are unchanged. |
 | 3.8.5 | 2026-11-18 | Fixes. **History search results open their chat again** on the iPhone (at the message that matched); tapping one did nothing. **The keyboard goes away** after sending and as soon as the chat is scrolled, a card dragged included (3.8.3 had made it go only when dragged down into the keyboard). |
 | 3.8.4 | 2026-11-18 | **Commands without a slash:** start typing a command's name (`u`, `obs`) and the matching commands show above the box; tapping one makes it `/unread `, `/obsidian ` (a question goes on as typed). **SF Mono** in the message box and the search fields too, as in the Android app. |
