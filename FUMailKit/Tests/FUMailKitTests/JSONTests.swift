@@ -344,7 +344,9 @@ struct JSONTests {
 
     @Test func anEntrySaysWhetherItWentToMemosOrTheVault() throws {
         #expect(Notes.withPlace("Added to UOB", savedTo: "Memos") == "Added to UOB (Memos)")
-        #expect(Notes.withPlace("Posted to UOB (## CRM)", savedTo: "vault") == "Posted to UOB (## CRM) (vault)")
+        #expect(Notes.posted(to: "UOB", section: "CRM", savedTo: "Memos") == "Posted to UOB (## CRM, Memos)")
+        #expect(Notes.posted(to: "UOB", section: "CRM", savedTo: "vault") == "Posted to UOB (## CRM, vault)")
+        #expect(Notes.posted(to: "UOB", section: "CRM", savedTo: nil) == "Posted to UOB (## CRM)")
         #expect(Notes.withPlace("Added to UOB", savedTo: nil) == "Added to UOB")
         let notice = "Memos can't be reached (timed out), so it went into the vault."
 
@@ -368,5 +370,22 @@ struct JSONTests {
         guard case .notes(let saved) = try decode(Card.self, String(decoding: JSONSerialization.data(withJSONObject: cards[index]), as: UTF8.self))
         else { Issue.record("not a notes card"); return }
         #expect(saved.savedTo == "Memos" && saved.notice == nil)
+    }
+
+    @Test func aNoticeCanComeBeforeAnythingIsWritten() throws {
+        // Memos couldn't be reached while choosing: the notes listed came from the vault.
+        var cards = try #require(try JSONSerialization.jsonObject(with: Data(fixture("other-cards.json").utf8)) as? [[String: Any]])
+        let index = try #require(cards.firstIndex { $0["notes"] != nil })
+        var notes = try #require(cards[index]["notes"] as? [String: Any])
+        var inner = try #require(notes["_0"] as? [String: Any])
+        inner["stage"] = "choosing"
+        inner["notice"] = "Memos can't be reached: these notes are from the vault."
+        inner.removeValue(forKey: "savedTo")
+        notes["_0"] = inner
+        guard case .notes(let card) = try decode(Card.self, String(decoding: JSONSerialization.data(withJSONObject: ["notes": notes]), as: UTF8.self))
+        else { Issue.record("not a notes card"); return }
+        #expect(card.stage == .choosing)
+        #expect(card.notice == "Memos can't be reached: these notes are from the vault.")
+        #expect(card.savedTo == nil)
     }
 }

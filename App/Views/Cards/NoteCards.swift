@@ -211,13 +211,14 @@ struct NotesCardView: View {
                     let title = card.chosen?.title ?? "the note"
                     DoneLine(text: Notes.withPlace(card.replaced == nil ? "Added to \(title)" : "Replaced in \(title)",
                                                    savedTo: card.savedTo))
-                    if let notice = card.notice { NoticeLine(text: notice) }
                     if let written = card.written { EntryBox(lines: written.lines, heading: written.heading) }
                 case .skipped:
                     Secondary("Skipped. Nothing was written.")
                 case .undone:
                     Secondary("Undone: the entry was taken out of \(card.chosen?.title ?? "the note").")
                 }
+                // At any stage: before inserting it says the notes listed came from the vault.
+                if let notice = card.notice { NoticeLine(text: notice) }
                 if let problem = card.problem { WarningText(problem) }
             }
             switch card.stage {
@@ -343,14 +344,13 @@ struct CRMCardView: View {
                     rewriting
                     if card.postedToday { WarningText("You already posted to this note today.") }
                 case .posted:
-                    DoneLine(text: Notes.withPlace("Posted to \(card.chosen?.title ?? "the note") (## \(crmSection))",
-                                                   savedTo: card.savedTo))
-                    if let notice = card.notice { NoticeLine(text: notice) }
+                    DoneLine(text: Notes.posted(to: card.chosen?.title ?? "the note", section: crmSection, savedTo: card.savedTo))
                     EntryBox(lines: card.entry)
                     if let sync = card.syncStatus { Secondary(sync) }
                 case .skipped:
                     Secondary("Skipped. Nothing was posted.")
                 }
+                if let notice = card.notice { NoticeLine(text: notice) }
                 if let problem = card.problem { WarningText(problem) }
             }
             switch card.stage {

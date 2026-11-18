@@ -170,6 +170,13 @@ public enum Notes {
         return URL(string: base + "/" + path)
     }
 
+    /// A CRM card's done line, the place inside the section's brackets as in the Android app:
+    /// "Posted to UOB (## CRM, Memos)"; "Posted to UOB (## CRM)" without it.
+    public static func posted(to title: String, section: String, savedTo: String?) -> String {
+        let place = savedTo.flatMap { $0.isEmpty ? nil : ", \($0)" } ?? ""
+        return "Posted to \(title) (## \(section)\(place))"
+    }
+
     /// "Added to UOB" with where it went: "Added to UOB (Memos)", "… (vault)"; unchanged without it.
     public static func withPlace(_ line: String, savedTo: String?) -> String {
         guard let savedTo, !savedTo.isEmpty else { return line }
