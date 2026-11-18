@@ -283,7 +283,8 @@ private struct MessageRow: View, Equatable {
                             .copyable(message.text)
                     }
                 case .assistant:
-                    Text(message.text).copyable(message.text)
+                    // A step under what you typed, at the cards' size, as in the Android app.
+                    Text(message.text).appFont(.subheadline).copyable(message.text)
                 case .system:
                     Text(message.text)
                         .appFont(.footnote)
