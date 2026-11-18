@@ -113,17 +113,26 @@ public final class RemoteClient {
     }
 
     /// The details, the conversation list, every loaded conversation, and this device's draft editors.
+    /// Everything at once, not one after another: over Cloudflare or a slow link, each request is a
+    /// trip there and back, and "Connected" waits for all of them.
     private func resync() async {
         do {
-            try await refreshInfo()
+            async let info: Void = refreshInfo()
+            async let list: Void = refreshList()
+            async let editors = get([EditorState].self, "/v1/editors")
+            async let commands: Void = refreshCommands()
+            try await info
             state.connection.problem = nil
-            try await refreshList()
-            for id in state.conversations.map(\.id) where !state.unloaded.contains(id) {
-                try await fetchConversation(id)
+            try await list
+            // The chats already open here (the list says which are still there), all at once too.
+            let open = state.conversations.map(\.id).filter { !state.unloaded.contains($0) }
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for id in open { group.addTask { try await self.fetchConversation(id) } }
+                try await group.waitForAll()
             }
-            let editors = try await get([EditorState].self, "/v1/editors")
-            update { $0.setEditors(editors) }
-            try await refreshCommands()
+            let openEditors = try await editors
+            update { $0.setEditors(openEditors) }
+            try await commands
         } catch is CancellationError {
         } catch {
             update { $0.connection.problem = Problems.describe(error, url: display).message }

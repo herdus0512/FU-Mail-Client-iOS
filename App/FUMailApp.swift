@@ -23,9 +23,11 @@ struct FUMailApp: App {
                 .preferredColorScheme(appearance.colorScheme)
                 .onChange(of: textSize) { Self.styleTitles() }
         }
-        // The connection is open only while the app is on screen: nothing runs in the background.
+        // The connection is open while the app is on screen, Control Center or a notification pulled
+        // over it included (inactive), and closed only in the background, where iOS suspends the app
+        // anyway (as Android's onStop). Nothing runs in the background.
         .onChange(of: scenePhase, initial: true) { _, phase in
-            app.setOnScreen(phase == .active)
+            app.setOnScreen(phase != .background)
         }
     }
 

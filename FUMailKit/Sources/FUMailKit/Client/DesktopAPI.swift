@@ -24,32 +24,33 @@ public protocol DesktopTransport: Sendable {
 /// refused), and the token goes only in the Authorization header.
 public final class DesktopAPI: DesktopTransport {
     public let settings: ServerSettings
+    /// One session for the requests and the event stream, so they share one connection (HTTP/2
+    /// through Cloudflare or tailscale serve): set up once, not twice, as the Android app does.
     private let http: URLSession
-    private let stream: URLSession
+
+    /// Short, so a Mac that doesn't answer shows as a problem soon; the API answers at once
+    /// (anything slow, like a summary, arrives later as events).
+    static let requestTimeout: TimeInterval = 15
+    /// The event stream: the Mac pings every 25 seconds, so this long without a byte means the
+    /// connection is gone (and it's inside Cloudflare's ~100-second idle limit).
+    static let streamTimeout: TimeInterval = 75
 
     public var display: String { settings.display }
 
     /// `configuration` is for tests (a pretend server through `protocolClasses`).
     public init(settings: ServerSettings, configuration: URLSessionConfiguration = .ephemeral) {
         self.settings = settings
-        let requests = configuration.copy() as! URLSessionConfiguration
-        // Short, so a Mac that doesn't answer shows as a problem soon; the API answers at once
-        // (anything slow, like a summary, arrives later as events).
-        requests.timeoutIntervalForRequest = 15
-        requests.httpAdditionalHeaders = ["Accept": "application/json"]
-        requests.urlCache = nil
-        http = URLSession(configuration: requests, delegate: NoRedirects(), delegateQueue: nil)
-        let streaming = configuration.copy() as! URLSessionConfiguration
-        // The Mac pings every 25 seconds; this long without a byte means the connection is gone.
-        streaming.timeoutIntervalForRequest = 75
-        streaming.timeoutIntervalForResource = .infinity
-        streaming.urlCache = nil
-        stream = URLSession(configuration: streaming, delegate: NoRedirects(), delegateQueue: nil)
+        let shared = configuration.copy() as! URLSessionConfiguration
+        // Each request sets its own timeout (`request(…)`); the stream has no overall limit.
+        shared.timeoutIntervalForRequest = Self.streamTimeout
+        shared.timeoutIntervalForResource = .infinity
+        shared.httpAdditionalHeaders = ["Accept": "application/json"]
+        shared.urlCache = nil
+        http = URLSession(configuration: shared, delegate: NoRedirects(), delegateQueue: nil)
     }
 
     deinit {
         http.invalidateAndCancel()
-        stream.invalidateAndCancel()
     }
 
     func request(_ method: String, _ path: String, token: Bool = true) throws -> URLRequest {
@@ -59,7 +60,7 @@ public final class DesktopAPI: DesktopTransport {
         guard url.host()?.lowercased() == settings.host.lowercased() else {
             throw RemoteProblem(.cleartextBlocked, "Requests go only to the Mac in Settings (\(settings.host)), not \(url.host() ?? path).")
         }
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, timeoutInterval: Self.requestTimeout)
         request.httpMethod = method
         if token { request.setValue("Bearer \(settings.token)", forHTTPHeaderField: "Authorization") }
         // Cloudflare Access checks every request, /health included; never over plain HTTP.
@@ -110,7 +111,8 @@ public final class DesktopAPI: DesktopTransport {
                 do {
                     var request = try request("GET", "/v1/events")
                     request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-                    let (bytes, response) = try await stream.bytes(for: request)
+                    request.timeoutInterval = Self.streamTimeout
+                    let (bytes, response) = try await http.bytes(for: request)
                     try check(response, body: nil)
                     continuation.yield(.opened)
                     // Lines split here, not with `bytes.lines`, which drops the blank lines that end events.

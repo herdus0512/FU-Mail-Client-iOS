@@ -90,6 +90,10 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   accepted (check them, and that the token hasn't expired). The event stream's 75-second timeout
   sits well above the Mac's 25-second pings, inside Cloudflare's ~100-second idle limit, and a
   dropped stream reconnects (1 s, doubling, up to 30 s).
+- **Connecting** fetches everything it needs at once (the Mac's details, the chats, open editors,
+  commands), over one connection shared with the event stream, so "Connected" comes after about
+  one trip to the Mac and back. The connection stays open while Control Center or a notification is
+  pulled over the app, and closes only when the app goes to the background.
 - **No Local Network permission** is asked for. A home-network address (192.168.x) can't be reached,
   and the app says to use the Tailscale address.
 - **The token** is kept in the Keychain on this device only: not synced to iCloud and not backed up.

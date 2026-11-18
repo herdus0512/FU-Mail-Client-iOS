@@ -168,4 +168,14 @@ struct DesktopAPITests {
             }
         }
     }
+
+    @Test func requestsAndTheStreamShareOneSessionWithTheirOwnTimeouts() async throws {
+        let api = api { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        _ = try await api.send("GET", "/v1/info", body: nil)
+        for try await _ in api.events() { break }  // opened
+        let seen = StubProtocol.seen.withLock { $0 }
+        #expect(seen.first { $0.url?.path() == "/v1/info" }?.timeoutInterval == DesktopAPI.requestTimeout)
+        #expect(seen.first { $0.url?.path() == "/v1/events" }?.timeoutInterval == DesktopAPI.streamTimeout)
+        #expect(DesktopAPI.requestTimeout == 15 && DesktopAPI.streamTimeout == 75)
+    }
 }
