@@ -36,6 +36,7 @@ private final class StubProtocol: URLProtocol, @unchecked Sendable {
 @Suite(.serialized)
 struct DesktopAPITests {
     private func api(url: String = "http://192.168.107.138:8765/", access: ServiceToken? = nil,
+                     timeZone: @escaping @Sendable () -> String = { TimeZone.autoupdatingCurrent.identifier },
                      _ answer: @escaping @Sendable (URLRequest) -> StubProtocol.Answer?) -> DesktopAPI {
         StubProtocol.handler.withLock { $0 = answer }
         StubProtocol.seen.withLock { $0 = [] }
@@ -43,7 +44,7 @@ struct DesktopAPITests {
         configuration.protocolClasses = [StubProtocol.self]
         var settings = try! ServerSettings.parse(url: url, token: "fum_secret").get()
         settings.access = access
-        return DesktopAPI(settings: settings, configuration: configuration)
+        return DesktopAPI(settings: settings, configuration: configuration, timeZone: timeZone)
     }
 
     @Test func theTokenGoesInTheHeaderAndOnlyThere() async throws {
@@ -177,5 +178,26 @@ struct DesktopAPITests {
         #expect(seen.first { $0.url?.path() == "/v1/info" }?.timeoutInterval == DesktopAPI.requestTimeout)
         #expect(seen.first { $0.url?.path() == "/v1/events" }?.timeoutInterval == DesktopAPI.streamTimeout)
         #expect(DesktopAPI.requestTimeout == 15 && DesktopAPI.streamTimeout == 75)
+    }
+
+    @Test func everyRequestSaysTheDevicesTimeZoneAsItIsNow() async throws {
+        let zone = Mutex("Europe/London")
+        let api = api(timeZone: { zone.withLock { $0 } }) { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        _ = try await api.send("POST", "/v1/conversations/x/send", body: Data(#"{"text":"/now"}"#.utf8))
+        try await api.health()
+        for try await _ in api.events() { break }  // opened
+        let seen = StubProtocol.seen.withLock { $0 }
+        #expect(seen.count == 3)
+        for request in seen { #expect(request.value(forHTTPHeaderField: "X-FUMail-Time-Zone") == "Europe/London") }
+        zone.withLock { $0 = "Asia/Tokyo" }  // landed somewhere else
+        _ = try await api.send("GET", "/v1/info", body: nil)
+        #expect(StubProtocol.seen.withLock { $0 }.last?.value(forHTTPHeaderField: "X-FUMail-Time-Zone") == "Asia/Tokyo")
+    }
+
+    @Test func theDevicesOwnZoneByDefault() async throws {
+        let api = api { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        try await api.health()
+        #expect(StubProtocol.seen.withLock { $0 }.first?.value(forHTTPHeaderField: "X-FUMail-Time-Zone")
+                == TimeZone.autoupdatingCurrent.identifier)
     }
 }

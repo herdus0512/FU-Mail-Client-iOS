@@ -295,4 +295,25 @@ struct JSONTests {
         let warned = try decode(DraftCard.self, "{\(fields),\"warning\":\"The new body replaced the draft's formatting.\"}")
         #expect(warned.warning == "The new body replaced the draft's formatting.")
     }
+
+    @Test func aNowCardIsTitledWithItsTimeZone() throws {
+        func card(_ kind: String, _ extra: String = "") throws -> EventListCard {
+            try decode(EventListCard.self, #"{"kind":\#(kind),"events":[],"problems":[],"duplicatesRemoved":0\#(extra)}"#)
+        }
+        let today = #"{"days":{"_0":1}}"#
+        let now = try card(today, #","from":"2026-11-18T09:00:00Z","timeZone":"Europe/London""#)
+        #expect(now.title == "Now (Europe/London)")
+        #expect(now.emptyText == "Nothing more on today.")
+        #expect(now.from != nil)
+        let zoneless = try card(today, #","from":"2026-11-18T09:00:00Z""#)
+        #expect(zoneless.title == "Now")
+        #expect(zoneless.emptyText == "Nothing more on today.")
+        // Without "from": as before.
+        let plain = try card(today)
+        #expect(plain.title == "Today" && plain.emptyText == "Nothing on today." && plain.timeZone == nil)
+        let week = try card(#"{"days":{"_0":7}}"#)
+        #expect(week.title == "Next 7 days" && week.emptyText == "Nothing on.")
+        let search = try card(#"{"search":{"_0":"bob","days":30}}"#)
+        #expect(search.title == "Events: bob (next 30 days)" && search.emptyText == "No events matched.")
+    }
 }

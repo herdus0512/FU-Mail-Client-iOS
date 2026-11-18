@@ -36,9 +36,15 @@ public struct EventListCard: Codable, Sendable, Hashable {
     public var problems: [String]
     /// How many duplicates (the same event from two servers) were left out.
     public var duplicatesRemoved: Int
+    /// `/now` (FU Mail 4.3.0 and later): when it was asked; only what's left of today from then.
+    public var from: Date?
+    /// `/now`: the time zone its day was counted in, e.g. "Europe/London" (the device's, sent with
+    /// every request, else the Mac's).
+    public var timeZone: String?
 
     public var title: String {
-        switch kind {
+        if from != nil { return timeZone.map { "Now (\($0))" } ?? "Now" }
+        return switch kind {
         case .days(1): "Today"
         case .days(let days): "Next \(days) days"
         case .search(let words, let days): "Events: \(words) (next \(days) days)"
@@ -46,7 +52,8 @@ public struct EventListCard: Codable, Sendable, Hashable {
     }
 
     public var emptyText: String {
-        switch kind {
+        if from != nil { return "Nothing more on today." }
+        return switch kind {
         case .days(1): "Nothing on today."
         case .days: "Nothing on."
         case .search: "No events matched."

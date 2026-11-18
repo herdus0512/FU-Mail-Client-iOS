@@ -24,6 +24,9 @@ public protocol DesktopTransport: Sendable {
 /// refused), and the token goes only in the Authorization header.
 public final class DesktopAPI: DesktopTransport {
     public let settings: ServerSettings
+    /// The device's time zone right now ("Europe/London"), read for every request so it follows the
+    /// phone to a new zone; FU Mail counts `/now`'s day there. Replaceable for tests.
+    private let timeZone: @Sendable () -> String
     /// One session for the requests and the event stream, so they share one connection (HTTP/2
     /// through Cloudflare or tailscale serve): set up once, not twice, as the Android app does.
     private let http: URLSession
@@ -38,8 +41,10 @@ public final class DesktopAPI: DesktopTransport {
     public var display: String { settings.display }
 
     /// `configuration` is for tests (a pretend server through `protocolClasses`).
-    public init(settings: ServerSettings, configuration: URLSessionConfiguration = .ephemeral) {
+    public init(settings: ServerSettings, configuration: URLSessionConfiguration = .ephemeral,
+                timeZone: @escaping @Sendable () -> String = { TimeZone.autoupdatingCurrent.identifier }) {
         self.settings = settings
+        self.timeZone = timeZone
         let shared = configuration.copy() as! URLSessionConfiguration
         // Each request sets its own timeout (`request(…)`); the stream has no overall limit.
         shared.timeoutIntervalForRequest = Self.streamTimeout
@@ -63,6 +68,7 @@ public final class DesktopAPI: DesktopTransport {
         var request = URLRequest(url: url, timeoutInterval: Self.requestTimeout)
         request.httpMethod = method
         if token { request.setValue("Bearer \(settings.token)", forHTTPHeaderField: "Authorization") }
+        request.setValue(timeZone(), forHTTPHeaderField: "X-FUMail-Time-Zone")
         // Cloudflare Access checks every request, /health included; never over plain HTTP.
         if settings.isHTTPS, let access = settings.access {
             request.setValue(access.clientID, forHTTPHeaderField: "CF-Access-Client-Id")

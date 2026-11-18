@@ -145,7 +145,10 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     open at once. A draft that was sent or deleted says so instead of offering either button.
     When the mail server warned about saving the draft (say, a new body replaced a signature added
     in Google Mail or Outlook), the warning shows under the body.
-  - **Events:** by day, with Join for video calls.
+  - **Events:** by day, with Join for video calls. **`/now`** (FU Mail 4.3.0 and later) shows
+    what's left of today where you are: the app sends the phone's current time zone with every request
+    (`X-FUMail-Time-Zone`, read each time, so it follows you after a flight), and the card is titled
+    with it, e.g. "Now (Europe/London)". Event times show in the phone's own time.
   - **Add to note** (`/note [n]`, or the thread's button): the note (None of these… lists every note,
     filtered as you type), Edit…, Insert / Insert anyway / Replace, Change note, Skip, then Undo and
     Open in Obsidian.
