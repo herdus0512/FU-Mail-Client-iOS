@@ -169,6 +169,11 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   - What's typed in a card's sheet stays on this device until Done.
   - **Open in Obsidian** opens the note in Obsidian here, if the vault is synced to this device under
     the same name.
+  - **Memos** (FU Mail 4.5.0 and later): a note kept in Memos (its path starts with `memos/`) has
+    **Open in Memos** instead, which opens it in the browser at the Mac's Memos address (no button
+    when the Mac doesn't say where Memos is). After Add to note or Post CRM update, the line says
+    where the entry went, e.g. "Added to UOB (Memos)" or "… (vault)", with a warning line when Memos
+    couldn't be reached and the vault was used. `/memo` works like `/obsidian`.
 - **The draft editor** opens when the Mac opens one for this device (Reply, Reply all, Edit, or
   `/draft`), also if that happened while the app was in the background.
   - To, Cc, Bcc, Subject, the body and the instructions are edited here, and stay here until you

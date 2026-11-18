@@ -81,14 +81,37 @@ private struct CandidateRows: View {
     }
 }
 
-/// Opens a note in Obsidian on this device (its vault synced here under the same name).
-private struct ObsidianButton: View {
+/// Memos couldn't be reached, so the entry went to the vault: a small warning line, as on the Mac.
+private struct NoticeLine: View {
+    var text: String
+
+    var body: some View {
+        Label { Text(text) } icon: { Image(systemName: "icloud.slash") }
+            .appFont(.footnote)
+            .foregroundStyle(StatusColors.warning)
+    }
+}
+
+/// Opens a note where it's kept: a memo ("memos/…") in Memos, in the browser (not shown when the Mac
+/// doesn't say where Memos is); a vault file in Obsidian on this device (its vault synced here under
+/// the same name).
+private struct NoteButton: View {
     var path: String
     var scope: CardScope
     @Environment(\.openURL) private var openURL
     @State private var problem: String?
 
     var body: some View {
+        if Notes.isMemo(path) {
+            if let url = scope.client.memosURL(path) {
+                Button("Open in Memos") { openURL(url) }
+            }
+        } else {
+            obsidian
+        }
+    }
+
+    private var obsidian: some View {
         Button("Open in Obsidian") {
             guard let url = scope.client.obsidianURL(path) else {
                 problem = "The Mac didn't say which Obsidian vault this note is in."
@@ -186,7 +209,9 @@ struct NotesCardView: View {
                     }
                 case .inserted:
                     let title = card.chosen?.title ?? "the note"
-                    DoneLine(text: card.replaced == nil ? "Added to \(title)" : "Replaced in \(title)")
+                    DoneLine(text: Notes.withPlace(card.replaced == nil ? "Added to \(title)" : "Replaced in \(title)",
+                                                   savedTo: card.savedTo))
+                    if let notice = card.notice { NoticeLine(text: notice) }
                     if let written = card.written { EntryBox(lines: written.lines, heading: written.heading) }
                 case .skipped:
                     Secondary("Skipped. Nothing was written.")
@@ -215,7 +240,7 @@ struct NotesCardView: View {
                 }
             case .inserted:
                 CardActions {
-                    if let chosen = card.chosen { ObsidianButton(path: chosen.path, scope: scope) }
+                    if let chosen = card.chosen { NoteButton(path: chosen.path, scope: scope) }
                     Button("Undo") { scope.act(.undoNote) }
                 }
             default:
@@ -318,7 +343,9 @@ struct CRMCardView: View {
                     rewriting
                     if card.postedToday { WarningText("You already posted to this note today.") }
                 case .posted:
-                    DoneLine(text: "Posted to \(card.chosen?.title ?? "the note") (## \(crmSection))")
+                    DoneLine(text: Notes.withPlace("Posted to \(card.chosen?.title ?? "the note") (## \(crmSection))",
+                                                   savedTo: card.savedTo))
+                    if let notice = card.notice { NoticeLine(text: notice) }
                     EntryBox(lines: card.entry)
                     if let sync = card.syncStatus { Secondary(sync) }
                 case .skipped:
@@ -343,7 +370,7 @@ struct CRMCardView: View {
                 }
             case .posted:
                 if let chosen = card.chosen {
-                    CardActions { ObsidianButton(path: chosen.path, scope: scope) }
+                    CardActions { NoteButton(path: chosen.path, scope: scope) }
                 }
             case .skipped:
                 EmptyView()
@@ -597,7 +624,7 @@ struct NoteViewCardView: View {
                         Button("Post CRM update") { scope.act(.noteViewPostCRM) }
                     }
                     Button("Refresh") { scope.act(.noteViewRefresh) }
-                    if let chosen = card.chosen { ObsidianButton(path: chosen.path, scope: scope) }
+                    if let chosen = card.chosen { NoteButton(path: chosen.path, scope: scope) }
                 }
             }
         }

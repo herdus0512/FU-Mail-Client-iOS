@@ -375,6 +375,11 @@ public final class RemoteClient {
         state.info?.obsidianVault.flatMap { Notes.obsidianURL(path: path, vault: $0) }
     }
 
+    /// The web link for a memo ("memos/abc123"), when the Mac says where Memos is.
+    public func memosURL(_ path: String) -> URL? {
+        state.info?.memosURL.flatMap { Notes.memosURL(path: path, memosURL: $0) }
+    }
+
     /// `GET /health`, then `GET /v1/info`: what Settings' Test shows. Throws a `RemoteProblem` saying
     /// which one failed (the address, or the token).
     public static func check(_ transport: any DesktopTransport) async throws -> APIInfo {

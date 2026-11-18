@@ -96,6 +96,10 @@ public struct NotesCard: Codable, Sendable, Hashable {
     public var date: Date
     /// For remembering the note chosen ("domain:…", "thread:…").
     public var choiceKeys: [String]
+    /// After writing (FU Mail 4.5.0 and later): where the entry went, "Memos" or "vault".
+    public var savedTo: String?
+    /// After writing: why the vault was used, when Memos couldn't be reached.
+    public var notice: String?
 }
 
 /// The "Send to CRM" card: the update, the project note, a preview, and Post.
@@ -124,6 +128,10 @@ public struct CRMCard: Codable, Sendable, Hashable {
     public var problem: String?
     /// After posting: the sync command's outcome ("Synced", or its error).
     public var syncStatus: String?
+    /// After writing (FU Mail 4.5.0 and later): where the entry went, "Memos" or "vault".
+    public var savedTo: String?
+    /// After writing: why the vault was used, when Memos couldn't be reached.
+    public var notice: String?
 }
 
 /// A note for memory.md, suggested from your edits. Written only when you say so.
@@ -150,6 +158,24 @@ public struct SuggestedNoteCard: Codable, Sendable, Hashable {
 }
 
 public enum Notes {
+    /// A note kept in Memos rather than the vault: "memos/abc123" (a vault file ends in ".md").
+    public static func isMemo(_ path: String) -> Bool {
+        path.hasPrefix("memos/") && !path.hasSuffix(".md")
+    }
+
+    /// The web link that opens memo `path` ("memos/abc123") on the Memos server at `memosURL`.
+    public static func memosURL(path: String, memosURL: String) -> URL? {
+        let base = memosURL.hasSuffix("/") ? String(memosURL.dropLast()) : memosURL
+        guard !base.isEmpty, isMemo(path) else { return nil }
+        return URL(string: base + "/" + path)
+    }
+
+    /// "Added to UOB" with where it went: "Added to UOB (Memos)", "… (vault)"; unchanged without it.
+    public static func withPlace(_ line: String, savedTo: String?) -> String {
+        guard let savedTo, !savedTo.isEmpty else { return line }
+        return "\(line) (\(savedTo))"
+    }
+
     /// The obsidian:// link that opens note `path` in the vault named `vault`.
     public static func obsidianURL(path: String, vault: String) -> URL? {
         var components = URLComponents()

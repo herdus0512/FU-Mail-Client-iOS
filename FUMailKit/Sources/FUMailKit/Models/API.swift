@@ -115,6 +115,9 @@ public struct APIInfo: Codable, Sendable, Equatable {
     public var notesSection: String?
     /// The Obsidian vault's name, for obsidian:// links.
     public var obsidianVault: String?
+    /// The Memos server, e.g. "https://memo.cooltym.net", when notes are kept there (FU Mail 4.5.0 and
+    /// later): a note whose path starts with "memos/" opens at memosURL + "/" + path.
+    public var memosURL: String?
     /// `/crm` is set up there.
     public var crmConfigured: Bool?
     /// The CRM section's name ("CRM"), when `/crm` is set up.

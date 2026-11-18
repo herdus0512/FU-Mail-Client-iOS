@@ -316,4 +316,57 @@ struct JSONTests {
         let search = try card(#"{"search":{"_0":"bob","days":30}}"#)
         #expect(search.title == "Events: bob (next 30 days)" && search.emptyText == "No events matched.")
     }
+
+    // MARK: Memos (FU Mail 4.5.0)
+
+    @Test func aMemoOpensInMemosAndAVaultFileInObsidian() {
+        #expect(Notes.isMemo("memos/abc123"))
+        #expect(!Notes.isMemo("ignivo/project/UOB.md"))
+        #expect(!Notes.isMemo("memos/old.md"))  // a vault folder that happens to be called memos
+        #expect(Notes.memosURL(path: "memos/abc123", memosURL: "https://memo.cooltym.net")?.absoluteString
+                == "https://memo.cooltym.net/memos/abc123")
+        #expect(Notes.memosURL(path: "memos/abc123", memosURL: "https://memo.cooltym.net/")?.absoluteString
+                == "https://memo.cooltym.net/memos/abc123")
+        #expect(Notes.memosURL(path: "memos/abc123", memosURL: "") == nil)
+        #expect(Notes.memosURL(path: "ignivo/project/UOB.md", memosURL: "https://memo.cooltym.net") == nil)
+        // Vault files: the obsidian:// link as before.
+        #expect(Notes.obsidianURL(path: "ignivo/project/UOB.md", vault: "Work")?.absoluteString
+                == "obsidian://open?vault=Work&file=ignivo/project/UOB")
+    }
+
+    @Test func theMacSaysWhereMemosIs() throws {
+        let info = try fixture("info.json")
+        #expect(try decode(APIInfo.self, info).memosURL == nil)  // a Mac before 4.5.0, or no Memos
+        let withMemos = info.replacingOccurrences(of: "{", with: #"{"memosURL":"https://memo.cooltym.net","#,
+                                                  options: [], range: info.range(of: "{"))
+        #expect(try decode(APIInfo.self, withMemos).memosURL == "https://memo.cooltym.net")
+    }
+
+    @Test func anEntrySaysWhetherItWentToMemosOrTheVault() throws {
+        #expect(Notes.withPlace("Added to UOB", savedTo: "Memos") == "Added to UOB (Memos)")
+        #expect(Notes.withPlace("Posted to UOB (## CRM)", savedTo: "vault") == "Posted to UOB (## CRM) (vault)")
+        #expect(Notes.withPlace("Added to UOB", savedTo: nil) == "Added to UOB")
+        let notice = "Memos can't be reached (timed out), so it went into the vault."
+
+        let crm = try fixture("crm-card.json")
+        guard case .crm(let plain) = try decode(Card.self, crm) else { Issue.record("not a CRM card"); return }
+        #expect(plain.savedTo == nil && plain.notice == nil)
+        let fallback = crm.replacingOccurrences(of: #"{"crm":{"_0":{"#, with: #"{"crm":{"_0":{"savedTo":"vault","notice":"\#(notice)","#)
+        guard case .crm(let card) = try decode(Card.self, fallback) else { Issue.record("not a CRM card"); return }
+        #expect(card.savedTo == "vault" && card.notice == notice)
+
+        var cards = try #require(try JSONSerialization.jsonObject(with: Data(fixture("other-cards.json").utf8)) as? [[String: Any]])
+        let index = try #require(cards.firstIndex { $0["notes"] != nil })
+        guard case .notes(let before) = try decode(Card.self, String(decoding: JSONSerialization.data(withJSONObject: cards[index]), as: UTF8.self))
+        else { Issue.record("not a notes card"); return }
+        #expect(before.savedTo == nil && before.notice == nil)
+        var notes = try #require(cards[index]["notes"] as? [String: Any])
+        var inner = try #require(notes["_0"] as? [String: Any])
+        inner["savedTo"] = "Memos"
+        notes["_0"] = inner
+        cards[index] = ["notes": notes]
+        guard case .notes(let saved) = try decode(Card.self, String(decoding: JSONSerialization.data(withJSONObject: cards[index]), as: UTF8.self))
+        else { Issue.record("not a notes card"); return }
+        #expect(saved.savedTo == "Memos" && saved.notice == nil)
+    }
 }
