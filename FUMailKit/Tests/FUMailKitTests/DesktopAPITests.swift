@@ -200,4 +200,72 @@ struct DesktopAPITests {
         #expect(StubProtocol.seen.withLock { $0 }.first?.value(forHTTPHeaderField: "X-FUMail-Time-Zone")
                 == TimeZone.autoupdatingCurrent.identifier)
     }
+
+    // MARK: Rest of Today (GET /v1/calendar/now)
+
+    private static let utc = TimeZone(identifier: "UTC")!
+    private static let british = Locale(identifier: "en_GB")  // 24-hour
+
+    private func event(_ title: String, _ start: String?, _ end: String?, allDay: Bool = false,
+                       location: String? = nil, video: Bool = false) -> String {
+        let fields: [String] = [#""server":"google","eventID":"\#(title)","title":"\#(title)""#,
+                                start.map { #""start":"\#($0)""# }, end.map { #""end":"\#($0)""# },
+                                #""allDay":\#(allDay)"#, location.map { #""location":"\#($0)""# },
+                                video ? #""videoLink":"https://meet.example/x""# : nil,
+                                #""organizedByMe":false,"recurring":false"#].compactMap { $0 }
+        return "{" + fields.joined(separator: ",") + "}"
+    }
+
+    private func nowCard(_ events: [String], problems: [String] = []) -> Data {
+        let problemList = problems.map { #""\#($0)""# }.joined(separator: ",")
+        return Data(#"{"kind":{"days":{"_0":1}},"events":[\#(events.joined(separator: ","))],"problems":[\#(problemList)],"duplicatesRemoved":0,"from":"2026-11-19T09:00:00Z","timeZone":"Australia/Sydney"}"#.utf8)
+    }
+
+    @Test func restOfTodayAsksWithTheAppsOwnConnection() async {
+        let body = nowCard([event("Board meeting", "2026-11-19T14:00:00Z", "2026-11-19T15:00:00Z", location: "Level 3")])
+        let api = api(url: tunnel, access: serviceToken, timeZone: { "Australia/Sydney" }) { _ in .init(status: 200, body: body) }
+        let text = await RestOfToday.fetch(api, timeZone: Self.utc, locale: Self.british)
+        #expect(text == "14:00–15:00 Board meeting (Level 3)")
+        let request = StubProtocol.seen.withLock { $0 }.last
+        #expect(request?.url?.absoluteString == "https://fumail.example.com/v1/calendar/now")
+        #expect(request?.httpMethod == "GET")
+        #expect(request?.value(forHTTPHeaderField: "Authorization") == "Bearer fum_secret")
+        #expect(request?.value(forHTTPHeaderField: "CF-Access-Client-Id") == "abc.access")
+        #expect(request?.value(forHTTPHeaderField: "CF-Access-Client-Secret") == "s3cret")
+        #expect(request?.value(forHTTPHeaderField: "X-FUMail-Time-Zone") == "Australia/Sydney")
+    }
+
+    @Test func restOfTodayLinesForTimedAllDayAndEmpty() throws {
+        func text(_ data: Data) throws -> String {
+            RestOfToday.text(try APICoding.decoder.decode(EventListCard.self, from: data), timeZone: Self.utc, locale: Self.british)
+        }
+        let day = nowCard([event("Board meeting", "2026-11-19T14:00:00Z", "2026-11-19T15:00:00Z", location: "Level 3"),
+                           event("Call with Bob", "2026-11-19T16:30:00Z", "2026-11-19T17:00:00Z", video: true),
+                           event("Public holiday", "2026-11-19T00:00:00Z", "2026-11-20T00:00:00Z", allDay: true)],
+                          problems: ["Couldn't read the Outlook calendar."])
+        #expect(try text(day) == """
+            14:00–15:00 Board meeting (Level 3)
+            16:30–17:00 Call with Bob (video call)
+            All day: Public holiday
+            Couldn't read the Outlook calendar.
+            """)
+        #expect(try text(nowCard([])) == "Nothing more on today.")
+        // The phone's own clock style: 12-hour where that's the setting.
+        let us = RestOfToday.text(try APICoding.decoder.decode(EventListCard.self, from: nowCard([event("Lunch", "2026-11-19T13:00:00Z", nil)])),
+                                  timeZone: Self.utc, locale: Locale(identifier: "en_US"))
+        #expect(us.hasPrefix("1:00") && us.hasSuffix("Lunch"))
+    }
+
+    @Test func restOfTodaySaysWhatWentWrongInPlainWords() async {
+        let page = accessPage
+        let refused = api(url: tunnel) { _ in .init(status: 401, body: Data(#"{"error":"Unauthorized"}"#.utf8)) }
+        #expect(await RestOfToday.fetch(refused) == Problems.unauthorized.message)
+        let access = api(url: tunnel, access: serviceToken) { _ in .init(status: 403, body: page) }
+        #expect(await RestOfToday.fetch(access) == Problems.accessRefused(tokenSaved: true).message)
+        let nobody = api(url: tunnel) { _ in nil }  // nothing answers
+        #expect(await RestOfToday.fetch(nobody).hasPrefix("Can't reach https://fumail.example.com"))
+        let older = api(url: tunnel) { _ in .init(status: 200, body: Data("[]".utf8)) }
+        #expect(await RestOfToday.fetch(older).contains("4.6.0"))
+        #expect(RestOfToday.notSetUp.contains("Open the app"))
+    }
 }

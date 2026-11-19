@@ -26,6 +26,7 @@ final class AppModel {
         let defaults = UserDefaults.standard
         Self.oldKeys.forEach(defaults.removeObject(forKey:))
         tailscaleURL = defaults.string(forKey: Self.tailscaleKey) ?? ""
+        TokenStore.upgradeAccessibility()
         var token = TokenStore.load()
         #if DEBUG
         // `make run-fake`: the simulator against tools/fake_mac.py, without typing into Settings.
