@@ -21,6 +21,19 @@ struct RestOfTodayIntent: AppIntent {
     }
 }
 
+/// "Pending Drafts": the unsent drafts across accounts, from FU Mail, the same way as Rest of Today.
+struct PendingDraftsIntent: AppIntent {
+    static let title: LocalizedStringResource = "Pending Drafts"
+    static let description = IntentDescription("Your unsent drafts across accounts, from FU Mail")
+    static let openAppWhenRun = false
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+        var text = RestOfToday.notSetUp
+        if let settings = StoredConnection.settings() { text = await PendingDrafts.fetch(DesktopAPI(settings: settings)) }
+        return .result(value: text, dialog: IntentDialog(stringLiteral: text))
+    }
+}
+
 /// In Shortcuts and Siri without any setup.
 struct FUMailShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -28,6 +41,10 @@ struct FUMailShortcuts: AppShortcutsProvider {
                     phrases: ["What's left today in \(.applicationName)", "Rest of today in \(.applicationName)"],
                     shortTitle: "Rest of Today",
                     systemImageName: "calendar")
+        AppShortcut(intent: PendingDraftsIntent(),
+                    phrases: ["Pending drafts in \(.applicationName)", "Drafts waiting in \(.applicationName)"],
+                    shortTitle: "Pending Drafts",
+                    systemImageName: "envelope.badge")
     }
 }
 

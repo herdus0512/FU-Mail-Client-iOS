@@ -268,4 +268,28 @@ struct DesktopAPITests {
         #expect(await RestOfToday.fetch(older).contains("4.6.0"))
         #expect(RestOfToday.notSetUp.contains("Open the app"))
     }
+
+    // MARK: Pending Drafts (GET /v1/drafts?limit=10)
+
+    @Test func pendingDraftsLinesAndErrors() async throws {
+        let body = Data(#"{"items":[{"server":"gmail","account":"work","draftID":"r1","to":[{"name":"Bob Smith","email":"bob@x.com"}],"subject":"Re: Q4 invoice"},{"server":"m365","draftID":"r2","to":[{"email":"a@x.com"},{"email":"b@x.com"}],"subject":""},{"server":"gmail","account":"home","draftID":"r3","to":[],"subject":"Notes"}],"problems":["Couldn't read Outlook drafts."]}"#.utf8)
+        let drafts = api(url: tunnel, access: serviceToken) { _ in .init(status: 200, body: body) }
+        #expect(await PendingDrafts.fetch(drafts) == """
+            To Bob Smith: Re: Q4 invoice (work)
+            To a@x.com +1: (no subject)
+            To (no recipient): Notes (home)
+            Couldn't read Outlook drafts.
+            """)
+        let request = StubProtocol.seen.withLock { $0 }.last
+        #expect(request?.url?.absoluteString == "https://fumail.example.com/v1/drafts?limit=10")
+        #expect(request?.value(forHTTPHeaderField: "Authorization") == "Bearer fum_secret")
+        #expect(PendingDrafts.text(DraftListCard(items: [], problems: [])) == "No drafts waiting.")
+        let refused = api(url: tunnel) { _ in .init(status: 401, body: Data(#"{"error":"Unauthorized"}"#.utf8)) }
+        #expect(await PendingDrafts.fetch(refused) == Problems.unauthorized.message)
+        let page = accessPage
+        let access = api(url: tunnel) { _ in .init(status: 403, body: page) }
+        #expect(await PendingDrafts.fetch(access) == Problems.accessRefused(tokenSaved: false).message)
+        let nobody = api(url: tunnel) { _ in nil }
+        #expect(await PendingDrafts.fetch(nobody).hasPrefix("Can't reach"))
+    }
 }

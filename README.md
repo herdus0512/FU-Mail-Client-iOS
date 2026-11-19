@@ -100,7 +100,9 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   connection, so no token goes into a shortcut, and without opening the app. It returns one line per
   event in the phone's time ("14:00–15:00 Board meeting (Level 3)", "All day: Public holiday"), or
   "Nothing more on today.", as text a shortcut can pass on (e.g. to Use Model); problems come back as
-  a plain sentence. The tokens are readable after the phone's first unlock, so it works from a locked
+  a plain sentence. **Pending Drafts** ("Pending drafts in FU Mail") does the same for unsent
+  drafts across accounts (`GET /v1/drafts?limit=10`): "To Bob Smith: Re: Q4 invoice (work)", or "No
+  drafts waiting.". The tokens are readable after the phone's first unlock, so it works from a locked
   phone too.
 - **No Local Network permission** is asked for. A home-network address (192.168.x) can't be reached,
   and the app says to use the Tailscale address.
