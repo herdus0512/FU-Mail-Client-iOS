@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 4.1.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 4.2.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -211,6 +211,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 4.2.0 | 2026-11-19 | **Pending Drafts** for Siri and Shortcuts: your unsent drafts across accounts (`GET /v1/drafts?limit=10`), one line each ("To Bob Smith: Re: Q4 invoice (work)"), with the app's own saved connection and without opening the app. |
 | 4.1.0 | 2026-11-19 | For FU Mail 4.6.0 on the Mac. **Rest of Today** for Siri and Shortcuts: what's left of today's calendar (`GET /v1/calendar/now`), with the app's own saved connection and without opening the app, as plain lines a shortcut can pass on. The tokens are now readable after the phone's first unlock, so it works on a locked phone; existing ones are moved over on the next launch. |
 | 4.0.1 | 2026-11-19 | Fixes to the Memos change. The warning that Memos couldn't be reached shows at every stage, also while choosing a note (the notes listed then come from the vault), not only after writing. The CRM line puts the place in its brackets, as on Android: "Posted to UOB (## CRM, Memos)". |
 | 4.0.0 | 2026-11-19 | For FU Mail 4.5.1 on the Mac. **Memos:** a note kept in Memos opens with **Open in Memos** (in the browser, at the Mac's Memos address); vault notes keep Open in Obsidian. After Add to note or Post CRM update, the line says where the entry went, "(Memos)" or "(vault)", with a warning when Memos couldn't be reached and the vault was used. `/memo` works like `/obsidian`. |
