@@ -591,6 +591,10 @@ struct NoteViewCardView: View {
     var card: NoteViewCard
     var scope: CardScope
     @State private var filter = ""
+    /// Note | Summary, as email cards' Original | Summary; kept here only, not sent to the Mac.
+    @State private var side: Side = .note
+
+    enum Side: Hashable { case note, summary }
 
     var body: some View {
         CardBox {
@@ -612,14 +616,20 @@ struct NoteViewCardView: View {
                 if let problem = card.problem { WarningText(problem) }
                 switch card.stage {
                 case .choosing: choices
-                case .showing: sections
+                case .showing:
+                    SegmentedChoice(options: [(Side.note, "Note"), (.summary, "Summary")], selection: $side)
+                    if side == .note { sections } else { summarySide }
                 }
             }
             if card.stage == .showing {
+                // The first look at Summary asks the Mac to write it.
+                Color.clear.frame(height: 0).onChange(of: side) {
+                    if side == .summary, card.catchUp == nil { scope.act(.noteViewCatchUp) }
+                }
                 CardActions {
-                    let writing = card.catchUp?.state == .writing
-                    Button(card.catchUp == nil ? "Catch me up" : "Catch me up again") { scope.act(.noteViewCatchUp) }
-                        .disabled(writing)
+                    if side == .summary {
+                        Button("Rewrite") { scope.act(.noteViewCatchUp) }.disabled(card.catchUp?.state == .writing)
+                    }
                     if card.canPostCRM, scope.info?.crmConfigured == true {
                         Button("Post CRM update") { scope.act(.noteViewPostCRM) }
                     }
@@ -683,21 +693,30 @@ struct NoteViewCardView: View {
             Entries(card: card, section: .correspondence, title: card.correspondenceSection, entries: card.correspondence,
                     empty: "No correspondence yet.", scope: scope)
         }
+    }
+
+    /// The card's catch-up, written by the Mac from this note.
+    @ViewBuilder
+    private var summarySide: some View {
         if let catchUp = card.catchUp {
-            SectionTitle(title: "Catch-up")
             switch catchUp.state {
             case .failed(let reason):
                 WarningText("Couldn't write it: \(reason)")
             case .writing, .done:
                 if !catchUp.text.isEmpty { Text(catchUp.text).appFont(.subheadline).copyable(catchUp.text) }
-                if catchUp.state == .writing {
+                if catchUp.state == .writing, catchUp.text.isEmpty {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
-                        Secondary("Catching up with \(catchUp.by)…")
+                        Secondary("Writing…")
                     }
                 } else if !catchUp.by.isEmpty {
-                    Secondary("By \(catchUp.by)")
+                    Secondary("Written by \(catchUp.by) from this note")
                 }
+            }
+        } else {
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Secondary("Writing…")
             }
         }
     }

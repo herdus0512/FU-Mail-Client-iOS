@@ -162,8 +162,10 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     filtered as you type), Edit…, Insert / Insert anyway / Replace, Change note, Skip, then Undo and
     Open in Obsidian.
   - **Note cards** (`/obsidian [name] [summary|crm|correspondence]`): pick the note, then its
-    Summary, CRM and Correspondence, read-only (the newest 5 entries, with Show all). **Catch me
-    up**, **Post CRM update**, **Refresh** and Open in Obsidian.
+    Summary, CRM and Correspondence, read-only (the newest 5 entries, with Show all).
+    **Post CRM update**, **Refresh** and Open in Obsidian. A **Note | Summary** switch at the top, as
+    on email cards: Summary is the Mac's catch-up of the note, written the first time you choose it
+    (**Rewrite** asks again).
   - **Send to CRM:** Write… / Edit… with Rewrite professionally, None of these…, Change note, Post /
     Post anyway, and the sync status. It's visible to your team.
   - **Suggested notes:** Edit…, Add to my memory.md, Dismiss.
