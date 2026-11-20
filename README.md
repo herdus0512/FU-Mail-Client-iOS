@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 4.2.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 4.3.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -213,6 +213,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 4.3.0 | 2026-11-20 | **Note \| Summary** switch on note cards, as on email cards and the Mac, in place of Catch me up: Summary is the Mac's catch-up of the note, written the first time you choose it; **Rewrite** asks again. |
 | 4.2.0 | 2026-11-19 | **Pending Drafts** for Siri and Shortcuts: your unsent drafts across accounts (`GET /v1/drafts?limit=10`), one line each ("To Bob Smith: Re: Q4 invoice (work)"), with the app's own saved connection and without opening the app. |
 | 4.1.0 | 2026-11-19 | For FU Mail 4.6.0 on the Mac. **Rest of Today** for Siri and Shortcuts: what's left of today's calendar (`GET /v1/calendar/now`), with the app's own saved connection and without opening the app, as plain lines a shortcut can pass on. The tokens are now readable after the phone's first unlock, so it works on a locked phone; existing ones are moved over on the next launch. |
 | 4.0.1 | 2026-11-19 | Fixes to the Memos change. The warning that Memos couldn't be reached shows at every stage, also while choosing a note (the notes listed then come from the vault), not only after writing. The CRM line puts the place in its brackets, as on Android: "Posted to UOB (## CRM, Memos)". |
