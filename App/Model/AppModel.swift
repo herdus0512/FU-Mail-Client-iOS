@@ -2,9 +2,9 @@ import FUMailKit
 import Foundation
 import Observation
 
-/// The app: one connection to the Mac, over Tailscale, at a time. Its event stream is open while the
-/// app is on screen and closed in the background (nothing runs there); coming back reconnects and
-/// fetches again.
+/// The app: one connection to the Mac, over Tailscale or a Cloudflare Worker, at a time. Its event
+/// stream is open while the app is on screen and closed in the background (nothing runs there);
+/// coming back reconnects and fetches again.
 @MainActor
 @Observable
 final class AppModel {
@@ -12,8 +12,11 @@ final class AppModel {
     private(set) var client: RemoteClient?
     private(set) var tailscaleURL: String
     private(set) var hasToken: Bool
+    private(set) var workerSession: WorkerSession?
+    var needsGoogleSignIn = false
 
     @ObservationIgnored private var onScreen = false
+    @ObservationIgnored private let workerAuth: WorkerAuthStore
 
     private static let tailscaleKey = "tailscaleURL"
     /// Left over from before 3.1 (the home address, and the one address of 0.7 and earlier).
@@ -27,6 +30,8 @@ final class AppModel {
         Self.oldKeys.forEach(defaults.removeObject(forKey:))
         tailscaleURL = defaults.string(forKey: Self.tailscaleKey) ?? ""
         TokenStore.upgradeAccessibility()
+        let savedSession = TokenStore.loadWorkerSession()
+        workerSession = savedSession
         var token = TokenStore.load()
         #if DEBUG
         // `make run-fake`: the simulator against tools/fake_mac.py, without typing into Settings.
@@ -38,6 +43,20 @@ final class AppModel {
         }
         #endif
         hasToken = token != nil
+
+        workerAuth = WorkerAuthStore(session: savedSession) { newSession, _ in
+            try? TokenStore.saveWorkerSession(newSession)
+        }
+        Task { [weak self] in
+            await self?.workerAuth.setOnChange { [weak self] newSession, expired in
+                try? TokenStore.saveWorkerSession(newSession)
+                Task { @MainActor [weak self] in
+                    self?.workerSession = newSession
+                    if expired { self?.needsGoogleSignIn = true }
+                }
+            }
+        }
+
         if let token { connect(token: token) }
     }
 
@@ -49,7 +68,7 @@ final class AppModel {
 
     /// `GET /health`, then `GET /v1/info`, at one address with settings not saved yet.
     func check(_ settings: ServerSettings) async throws -> APIInfo {
-        try await RemoteClient.check(DesktopAPI(settings: settings))
+        try await RemoteClient.check(DesktopAPI(settings: settings, auth: workerAuth))
     }
 
     /// Saves the address (a nil token keeps the saved one) and the service token (nil: none), and
@@ -70,6 +89,41 @@ final class AppModel {
         client = nil
     }
 
+    func authBaseURL(for urlText: String? = nil) -> URL {
+        let raw = (urlText ?? tailscaleURL).trimmingCharacters(in: .whitespacesAndNewlines)
+        let parsed = URL(string: raw.contains("://") ? raw : "https://\(raw)")
+        return WorkerAuth.baseURL(for: raw.isEmpty ? nil : parsed)
+    }
+
+    func signInWithGoogle(serverURL: String? = nil) async throws -> WorkerSession {
+        let baseURL = authBaseURL(for: serverURL)
+        let callbackURL = try await GoogleWebAuth.signIn(url: WorkerAuth.loginURL(baseURL: baseURL))
+        let code = try WorkerAuth.authorizationCode(from: callbackURL)
+        let session = try await WorkerAuth.exchangeCode(code, baseURL: baseURL)
+        try TokenStore.saveWorkerSession(session)
+        await workerAuth.replaceSession(session)
+        workerSession = session
+        needsGoogleSignIn = false
+        if let token = TokenStore.load(), isConfigured {
+            connect(token: token)
+        }
+        return session
+    }
+
+    func signOutGoogle(serverURL: String? = nil) async {
+        let baseURL = authBaseURL(for: serverURL)
+        if let refreshToken = workerSession?.refreshToken {
+            await WorkerAuth.logout(refreshToken: refreshToken, baseURL: baseURL)
+        }
+        try? TokenStore.saveWorkerSession(nil)
+        await workerAuth.replaceSession(nil)
+        workerSession = nil
+        needsGoogleSignIn = false
+        if let token = TokenStore.load(), isConfigured {
+            connect(token: token)
+        }
+    }
+
     /// The app came on screen or went away. Coming back while not connected tries again at once.
     func setOnScreen(_ visible: Bool) {
         onScreen = visible
@@ -88,7 +142,7 @@ final class AppModel {
         guard !tailscaleURL.isEmpty, case .success(var settings) = ServerSettings.parse(url: tailscaleURL, token: token)
         else { return }
         settings.access = TokenStore.loadAccess()
-        let fresh = RemoteClient(transport: DesktopAPI(settings: settings))
+        let fresh = RemoteClient(transport: DesktopAPI(settings: settings, auth: workerAuth))
         client = fresh
         if onScreen { fresh.start() }
     }

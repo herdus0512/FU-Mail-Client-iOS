@@ -1,3 +1,4 @@
+import AuthenticationServices
 import FUMailKit
 import SwiftUI
 
@@ -18,6 +19,8 @@ struct SettingsView: View {
     @State private var accessSecret = ""
     @State private var hasAccessSecret = false
     @State private var checking = false
+    @State private var signingIn = false
+    @State private var showAdvancedAccess = false
     @State private var result: String?
     @State private var problem: String?
     @State private var canSaveAnyway = false
@@ -26,7 +29,7 @@ struct SettingsView: View {
     private func trimmed(_ text: String) -> String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private var canSave: Bool {
-        !checking && !trimmed(tailscaleURL).isEmpty
+        !checking && !signingIn && !trimmed(tailscaleURL).isEmpty
             && (!trimmed(token).isEmpty || app.hasToken)
     }
 
@@ -34,13 +37,49 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    AddressRow(label: "Address", placeholder: "http://mac:8765", text: $tailscaleURL)
+                    AddressRow(label: "Address", placeholder: "https://h3rdmc-auth.cooltym.net", text: $tailscaleURL)
                 } header: {
                     Text("Mac")
                 } footer: {
-                    Text("Over Tailscale (which needs to be on): http://<mac>:8765, http://100.x.y.z:8765, or "
-                         + "https://<mac>.<tailnet>.ts.net with tailscale serve. Or a Cloudflare Tunnel: "
-                         + "https://<hostname>, with its service token below.")
+                    Text("Remote Worker (https://h3rdmc-auth.cooltym.net) with Sign in with Google below, or over "
+                         + "Tailscale: http://<mac>:8765, http://100.x.y.z:8765, or https://<mac>.<tailnet>.ts.net.")
+                }
+
+                Section {
+                    if let session = app.workerSession {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Signed in with Google").appFont(.subheadline)
+                                if let email = session.email, !email.isEmpty {
+                                    Text(email).appFont(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            if signingIn {
+                                ProgressView()
+                            } else {
+                                Button("Sign out", role: .destructive) { signOutGoogle() }
+                            }
+                        }
+                    } else {
+                        Button {
+                            signInWithGoogle()
+                        } label: {
+                            HStack {
+                                Text("Sign in with Google")
+                                if signingIn {
+                                    Spacer()
+                                    ProgressView()
+                                }
+                            }
+                        }
+                        .disabled(signingIn || checking)
+                    }
+                } header: {
+                    Text("Google Sign-In")
+                } footer: {
+                    Text("Signs in via \(app.authBaseURL(for: tailscaleURL).absoluteString) and sends X-Edge-Token "
+                         + "only on https:// requests alongside your device token.")
                 }
 
                 Section {
@@ -71,23 +110,22 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    TextField("Client ID (….access)", text: $accessID)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    SecureField(hasAccessSecret ? "Client Secret: saved, paste to replace" : "Client Secret", text: $accessSecret)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .textContentType(.password)
-                    if let hint = ServiceToken.clientIDHint(accessID) { WarningText(hint) }
-                    if !trimmed(accessID).isEmpty, !trimmed(tailscaleURL).lowercased().hasPrefix("https://") {
-                        WarningText("The service token is only sent to https:// addresses, not this one.")
+                    DisclosureGroup("Advanced: Cloudflare Access (optional)", isExpanded: $showAdvancedAccess) {
+                        TextField("Client ID (….access)", text: $accessID)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        SecureField(hasAccessSecret ? "Client Secret: saved, paste to replace" : "Client Secret", text: $accessSecret)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .textContentType(.password)
+                        if let hint = ServiceToken.clientIDHint(accessID) { WarningText(hint) }
+                        if !trimmed(accessID).isEmpty, !trimmed(tailscaleURL).lowercased().hasPrefix("https://") {
+                            WarningText("The service token is only sent to https:// addresses, not this one.")
+                        }
                     }
-                } header: {
-                    Text("Cloudflare Access (optional)")
                 } footer: {
-                    Text("Only for a Mac reached through a Cloudflare Tunnel guarded by Cloudflare Access: the "
-                         + "service token's Client ID and Secret. Fill in both, or leave both empty. Kept in this "
-                         + "device's Keychain, and sent only to https:// addresses.")
+                    Text("Optional direct Service Auth for a Cloudflare Tunnel: Client ID and Secret, kept in this "
+                         + "device's Keychain and sent only to https:// addresses.")
                 }
 
                 Section {
@@ -164,6 +202,7 @@ struct SettingsView: View {
                 if accessID.isEmpty, let saved = app.savedAccess() {
                     accessID = saved.clientID
                     hasAccessSecret = true
+                    showAdvancedAccess = true
                 }
             }
             .onChange(of: tailscaleURL) { canSaveAnyway = false }
@@ -219,6 +258,34 @@ struct SettingsView: View {
             accessSecret = ""
             hasAccessSecret = settings.access != nil
             result = connected.map { "\($0) Saved." } ?? "Saved. Connecting to \(settings.display)…"
+        }
+    }
+
+    private func signInWithGoogle() {
+        result = nil
+        problem = nil
+        signingIn = true
+        Task {
+            defer { signingIn = false }
+            do {
+                let session = try await app.signInWithGoogle(serverURL: tailscaleURL)
+                result = "Signed in with Google" + (session.email.map { " as \($0)" } ?? "") + "."
+            } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
+                return
+            } catch {
+                problem = (error as? RemoteProblem)?.message ?? error.localizedDescription
+            }
+        }
+    }
+
+    private func signOutGoogle() {
+        result = nil
+        problem = nil
+        signingIn = true
+        Task {
+            defer { signingIn = false }
+            await app.signOutGoogle(serverURL: tailscaleURL)
+            result = "Signed out of Google."
         }
     }
 }

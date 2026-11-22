@@ -43,6 +43,10 @@ public enum Problems {
         .unauthorized,
         "The Mac didn't accept this device's token. Make a new one there (API → New Device Token…) and paste it in Settings.")
 
+    public static let googleSignInRequired = RemoteProblem(
+        .unauthorized,
+        "Your Google sign-in expired. Sign in with Google again in Settings.")
+
     public static let lockedOut = RemoteProblem(
         .lockedOut, "The Mac has locked this device out for a few minutes after wrong tokens. Wait, then try again.")
 

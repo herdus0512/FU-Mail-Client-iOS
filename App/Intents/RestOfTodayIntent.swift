@@ -13,7 +13,7 @@ struct RestOfTodayIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let text: String
         if let settings = StoredConnection.settings() {
-            text = await RestOfToday.fetch(DesktopAPI(settings: settings))
+            text = await RestOfToday.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
         } else {
             text = RestOfToday.notSetUp
         }
@@ -29,7 +29,9 @@ struct PendingDraftsIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         var text = RestOfToday.notSetUp
-        if let settings = StoredConnection.settings() { text = await PendingDrafts.fetch(DesktopAPI(settings: settings)) }
+        if let settings = StoredConnection.settings() {
+            text = await PendingDrafts.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
+        }
         return .result(value: text, dialog: IntentDialog(stringLiteral: text))
     }
 }
@@ -57,5 +59,12 @@ enum StoredConnection {
               case .success(var settings) = ServerSettings.parse(url: address, token: token) else { return nil }
         settings.access = TokenStore.loadAccess()
         return settings
+    }
+
+    static func workerAuth() -> WorkerAuthStore? {
+        guard let session = TokenStore.loadWorkerSession() else { return nil }
+        return WorkerAuthStore(session: session) { updated, _ in
+            try? TokenStore.saveWorkerSession(updated)
+        }
     }
 }

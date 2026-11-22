@@ -34,6 +34,12 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
+        .alert("Sign in with Google again", isPresented: Binding(get: { app.needsGoogleSignIn }, set: { app.needsGoogleSignIn = $0 })) {
+            Button("Open Settings") { showSettings = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your Google sign-in expired. Open Settings to sign in with Google again.")
+        }
         // A draft editor the Mac opened for this device opens over whatever is showing, and closes
         // on editor_closed (saved, closed here, or closed on the Mac).
         .sheet(item: Binding(get: { app.client?.state.editors.values.first }, set: { _ in })) { editor in

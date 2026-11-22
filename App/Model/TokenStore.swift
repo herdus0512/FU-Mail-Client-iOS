@@ -11,6 +11,7 @@ enum TokenStore {
     private static let deviceToken = "device-token"
     private static let accessClientID = "cf-access-client-id"
     private static let accessClientSecret = "cf-access-client-secret"
+    private static let workerSession = "worker-session"
 
     static func load() -> String? { read(deviceToken) }
     static func save(_ token: String) throws { try write(token, deviceToken) }
@@ -33,11 +34,25 @@ enum TokenStore {
         try write(access.clientSecret, accessClientSecret)
     }
 
+    static func loadWorkerSession() -> WorkerSession? {
+        guard let raw = read(workerSession), let data = raw.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(WorkerSession.self, from: data)
+    }
+
+    static func saveWorkerSession(_ session: WorkerSession?) throws {
+        guard let session else {
+            remove(workerSession)
+            return
+        }
+        let data = try JSONEncoder().encode(session)
+        try write(String(decoding: data, as: UTF8.self), workerSession)
+    }
+
     private static var accessible: CFString { kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly }
 
     /// Items saved before 4.1 were readable only while unlocked: moves them over, once, in place.
     static func upgradeAccessibility() {
-        for account in [deviceToken, accessClientID, accessClientSecret] {
+        for account in [deviceToken, accessClientID, accessClientSecret, workerSession] {
             SecItemUpdate(query(account) as CFDictionary, [kSecAttrAccessible as String: accessible] as CFDictionary)
         }
     }

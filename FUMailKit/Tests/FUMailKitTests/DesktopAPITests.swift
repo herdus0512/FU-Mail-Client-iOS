@@ -36,6 +36,7 @@ private final class StubProtocol: URLProtocol, @unchecked Sendable {
 @Suite(.serialized)
 struct DesktopAPITests {
     private func api(url: String = "http://192.168.107.138:8765/", access: ServiceToken? = nil,
+                     auth: WorkerAuthStore? = nil,
                      timeZone: @escaping @Sendable () -> String = { TimeZone.autoupdatingCurrent.identifier },
                      _ answer: @escaping @Sendable (URLRequest) -> StubProtocol.Answer?) -> DesktopAPI {
         StubProtocol.handler.withLock { $0 = answer }
@@ -44,7 +45,7 @@ struct DesktopAPITests {
         configuration.protocolClasses = [StubProtocol.self]
         var settings = try! ServerSettings.parse(url: url, token: "fum_secret").get()
         settings.access = access
-        return DesktopAPI(settings: settings, configuration: configuration, timeZone: timeZone)
+        return DesktopAPI(settings: settings, configuration: configuration, auth: auth, timeZone: timeZone)
     }
 
     @Test func theTokenGoesInTheHeaderAndOnlyThere() async throws {
@@ -291,5 +292,105 @@ struct DesktopAPITests {
         #expect(await PendingDrafts.fetch(access) == Problems.accessRefused(tokenSaved: false).message)
         let nobody = api(url: tunnel) { _ in nil }
         #expect(await PendingDrafts.fetch(nobody).hasPrefix("Can't reach"))
+    }
+
+    // MARK: Cloudflare Worker Google Sign-In
+
+    @Test func workerEdgeTokenGoesToHTTPSOnlyAndNeverPlainHTTP() async throws {
+        let session = WorkerSession(accessToken: "edge_1", refreshToken: "ref_1", expiresAt: Date.now.addingTimeInterval(3600),
+                                    sub: "u1", email: "me@example.com")
+        let store = WorkerAuthStore(session: session)
+
+        let plain = api(url: "http://192.168.107.138:8765/", auth: store) { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        _ = try await plain.send("GET", "/v1/info", body: nil)
+        let plainReq = StubProtocol.seen.withLock { $0 }.last
+        #expect(plainReq?.value(forHTTPHeaderField: "Authorization") == "Bearer fum_secret")
+        #expect(plainReq?.value(forHTTPHeaderField: "X-Edge-Token") == nil)
+
+        let https = api(url: tunnel, auth: store) { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
+        _ = try await https.send("GET", "/v1/info", body: nil)
+        let httpsReq = StubProtocol.seen.withLock { $0 }.last
+        #expect(httpsReq?.value(forHTTPHeaderField: "Authorization") == "Bearer fum_secret")
+        #expect(httpsReq?.value(forHTTPHeaderField: "X-Edge-Token") == "edge_1")
+    }
+
+    @Test func workerProactiveRefreshCoalescesConcurrentRequests() async throws {
+        let soon = WorkerSession(accessToken: "old_edge", refreshToken: "old_ref", expiresAt: Date.now.addingTimeInterval(30),
+                                 sub: "u1", email: "me@example.com")
+        let saved = Mutex<WorkerSession?>(nil)
+        let store = WorkerAuthStore(session: soon) { updated, _ in saved.withLock { $0 = updated } }
+        let refreshCount = Mutex(0)
+
+        let client = api(url: tunnel, auth: store) { request in
+            if request.url?.path() == "/auth/refresh" {
+                let count = refreshCount.withLock { $0 += 1; return $0 }
+                #expect(count == 1)
+                return .init(status: 200, body: Data(#"{"access_token":"new_edge","refresh_token":"new_ref","expires_in":3600,"sub":"u1","email":"me@example.com"}"#.utf8))
+            }
+            return .init(status: 200, body: Data(#"{"ok":true}"#.utf8))
+        }
+
+        async let a = client.send("GET", "/v1/info", body: nil)
+        async let b = client.send("GET", "/v1/commands", body: nil)
+        _ = (try await a, try await b)
+
+        #expect(refreshCount.withLock { $0 } == 1)
+        #expect(saved.withLock { $0?.accessToken } == "new_edge")
+        #expect(saved.withLock { $0?.refreshToken } == "new_ref")
+        let apiRequests = StubProtocol.seen.withLock { $0 }.filter { $0.url?.path() != "/auth/refresh" }
+        #expect(apiRequests.count == 2)
+        #expect(apiRequests.allSatisfy { $0.value(forHTTPHeaderField: "X-Edge-Token") == "new_edge" })
+    }
+
+    @Test func worker401RefreshesAndRetriesOnceAndClearsOnRefresh401() async throws {
+        let initial = WorkerSession(accessToken: "stale_edge", refreshToken: "ref_1", expiresAt: Date.now.addingTimeInterval(3600),
+                                    sub: "u1", email: "me@example.com")
+        let expiredFlag = Mutex(false)
+        let saved = Mutex<WorkerSession?>(initial)
+        let store = WorkerAuthStore(session: initial) { updated, expired in
+            saved.withLock { $0 = updated }
+            if expired { expiredFlag.withLock { $0 = true } }
+        }
+
+        let client = api(url: tunnel, auth: store) { request in
+            if request.url?.path() == "/auth/refresh" {
+                return .init(status: 200, body: Data(#"{"access_token":"fresh_edge","refresh_token":"ref_2","expires_in":3600}"#.utf8))
+            }
+            if request.value(forHTTPHeaderField: "X-Edge-Token") == "stale_edge" {
+                return .init(status: 401, body: Data(#"{"error":"edge expired"}"#.utf8))
+            }
+            return .init(status: 200, body: Data(#"{"ok":true}"#.utf8))
+        }
+
+        let ok = try await client.send("GET", "/v1/info", body: nil)
+        #expect(String(decoding: ok, as: UTF8.self) == #"{"ok":true}"#)
+        #expect(saved.withLock { $0?.refreshToken } == "ref_2")
+        #expect(saved.withLock { $0?.email } == "me@example.com")
+        #expect(!expiredFlag.withLock { $0 })
+
+        // Now /auth/refresh returns 401 -> clears session and throws googleSignInRequired.
+        let failing = api(url: tunnel, auth: store) { request in
+            if request.url?.path() == "/auth/refresh" {
+                return .init(status: 401, body: Data(#"{"error":"revoked"}"#.utf8))
+            }
+            return .init(status: 401, body: Data(#"{"error":"edge expired"}"#.utf8))
+        }
+        do {
+            _ = try await failing.send("GET", "/v1/info", body: nil)
+            Issue.record("expected googleSignInRequired")
+        } catch {
+            #expect(error as? RemoteProblem == Problems.googleSignInRequired)
+        }
+        #expect(saved.withLock { $0 } == nil)
+        #expect(expiredFlag.withLock { $0 })
+    }
+
+    @Test func workerAuthURLHelpers() throws {
+        let base = WorkerAuth.baseURL(for: URL(string: "https://h3rdmc-auth.cooltym.net/v1/info"))
+        #expect(base.absoluteString == "https://h3rdmc-auth.cooltym.net")
+        #expect(WorkerAuth.baseURL(for: URL(string: "http://100.64.0.1:8765")) == WorkerAuth.defaultAuthURL)
+        #expect(WorkerAuth.loginURL(baseURL: base).absoluteString == "https://h3rdmc-auth.cooltym.net/auth/login?redirect_uri=fumail://auth/callback")
+        let code = try WorkerAuth.authorizationCode(from: URL(string: "fumail://auth/callback?code=abc123")!)
+        #expect(code == "abc123")
     }
 }
