@@ -13,6 +13,7 @@ struct HTMLMessageView: View {
             openURL(url)
         }
         .frame(height: contentHeight)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -34,9 +35,9 @@ private struct HTMLWebView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
+        webView.isOpaque = true
+        webView.backgroundColor = .white
+        webView.scrollView.backgroundColor = .white
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
         context.coordinator.observe(webView)
@@ -150,16 +151,17 @@ private struct HTMLWebView: UIViewRepresentable {
             <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0">
             <style>
-            :root { color-scheme: light dark; }
+            :root { color-scheme: light; }
             html, body {
                 margin: 0;
-                padding: 0;
+                padding: 8px 10px;
                 font-family: -apple-system, BlinkMacSystemFont, sans-serif;
                 font-size: 15px;
                 line-height: 1.45;
                 overflow-wrap: break-word;
                 word-wrap: break-word;
-                background: transparent;
+                color: #111111;
+                background: #ffffff;
             }
             img { max-width: 100%; height: auto; }
             pre, code { white-space: pre-wrap; }
