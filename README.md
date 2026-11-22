@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 4.5.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 4.5.1, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -216,6 +216,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 4.5.1 | 2026-11-22 | Fixes to HTML email display: renders on a solid white canvas (for light-authored emails in Dark Mode) and measures body height dynamically, clamped to 40–560 pt so short emails stay compact and long ones don't fill the screen. |
 | 4.5.0 | 2026-11-22 | **Original \| HTML \| Summary** tabs on thread cards, when the server supports HTML: shows sanitized HTML in a sandboxed web view with JavaScript off and external network requests blocked (tapped links open in the browser). |
 | 4.4.0 | 2026-11-22 | **Delete** on thread cards, when the email's server can (e.g. Thunderbird-MCP): moves the opened email to Trash after a confirmation; the card then says "Moved to Trash." |
 | 4.3.0 | 2026-11-20 | **Note \| Summary** switch on note cards, as on email cards and the Mac, in place of Catch me up: Summary is the Mac's catch-up of the note, written the first time you choose it; **Rewrite** asks again. |
