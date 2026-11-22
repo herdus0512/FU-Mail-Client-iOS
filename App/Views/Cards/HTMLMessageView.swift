@@ -5,19 +5,16 @@ import WebKit
 /// requests blocked, and tapped http(s) links handed to the system browser.
 struct HTMLMessageView: View {
     private static let minHeight: CGFloat = 40
-    private static let maxHeight: CGFloat = 560
 
     var html: String
     @Environment(\.openURL) private var openURL
     @State private var contentHeight: CGFloat = 40
 
     var body: some View {
-        HTMLWebView(html: html,
-                    contentHeight: $contentHeight,
-                    scrollable: contentHeight > Self.maxHeight) { url in
+        HTMLWebView(html: html, contentHeight: $contentHeight) { url in
             openURL(url)
         }
-        .frame(height: min(max(contentHeight, Self.minHeight), Self.maxHeight))
+        .frame(height: max(contentHeight, Self.minHeight))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
@@ -25,7 +22,6 @@ struct HTMLMessageView: View {
 private struct HTMLWebView: UIViewRepresentable {
     var html: String
     @Binding var contentHeight: CGFloat
-    var scrollable: Bool
     var openURL: (URL) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -44,7 +40,7 @@ private struct HTMLWebView: UIViewRepresentable {
         webView.isOpaque = true
         webView.backgroundColor = .white
         webView.scrollView.backgroundColor = .white
-        webView.scrollView.isScrollEnabled = scrollable
+        webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
         context.coordinator.load(html, in: webView)
         return webView
@@ -52,9 +48,6 @@ private struct HTMLWebView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.openURL = openURL
-        if webView.scrollView.isScrollEnabled != scrollable {
-            webView.scrollView.isScrollEnabled = scrollable
-        }
         if context.coordinator.loadedHTML != html {
             context.coordinator.load(html, in: webView)
         }
