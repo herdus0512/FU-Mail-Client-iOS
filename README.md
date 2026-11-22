@@ -216,7 +216,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
-| 4.5.0 | 2026-11-22 | **View HTML** / **Plain text** on thread cards, when the server supports it: shows sanitized HTML in a sandboxed web view with JavaScript off and external network requests blocked (tapped links open in the browser), or switches back to plain text. |
+| 4.5.0 | 2026-11-22 | **Original \| HTML \| Summary** tabs on thread cards, when the server supports HTML: shows sanitized HTML in a sandboxed web view with JavaScript off and external network requests blocked (tapped links open in the browser). |
 | 4.4.0 | 2026-11-22 | **Delete** on thread cards, when the email's server can (e.g. Thunderbird-MCP): moves the opened email to Trash after a confirmation; the card then says "Moved to Trash." |
 | 4.3.0 | 2026-11-20 | **Note \| Summary** switch on note cards, as on email cards and the Mac, in place of Catch me up: Summary is the Mac's catch-up of the note, written the first time you choose it; **Rewrite** asks again. |
 | 4.2.0 | 2026-11-19 | **Pending Drafts** for Siri and Shortcuts: your unsent drafts across accounts (`GET /v1/drafts?limit=10`), one line each ("To Bob Smith: Re: Q4 invoice (work)"), with the app's own saved connection and without opening the app. |

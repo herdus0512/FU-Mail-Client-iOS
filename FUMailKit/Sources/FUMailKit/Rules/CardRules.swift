@@ -26,9 +26,34 @@ extension ThreadCard {
         archived != true && Drafts.canReplyAll(ReplyContext(thread: self))
     }
 
-    /// Whether "View HTML" / "Plain text" is offered: Original side of live mail when the server supports HTML.
-    public var offersHTMLToggle: Bool {
-        side == .original && canShowHTML == true && archived != true && deleted != true
+    /// The header tabs on a thread card: Original | HTML | Summary on live mail when the server
+    /// supports HTML, else Original | Summary.
+    public enum HeaderTab: String, Sendable, Hashable {
+        case original
+        case html
+        case summary
+
+        public var label: String {
+            switch self {
+            case .original: "Original"
+            case .html: "HTML"
+            case .summary: "Summary"
+            }
+        }
+    }
+
+    public var offersHTMLTab: Bool {
+        canShowHTML == true && archived != true && deleted != true
+    }
+
+    public var headerTabs: [HeaderTab] {
+        offersHTMLTab ? [.original, .html, .summary] : [.original, .summary]
+    }
+
+    public var activeHeaderTab: HeaderTab {
+        if side == .summary { return .summary }
+        if offersHTMLTab, showingHTML == true { return .html }
+        return .original
     }
 }
 

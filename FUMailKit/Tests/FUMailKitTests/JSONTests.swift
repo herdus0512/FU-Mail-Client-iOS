@@ -408,7 +408,8 @@ struct JSONTests {
         guard case .thread(let plain) = try decode(ChatMessage.self, base).card else { Issue.record("not a thread"); return }
         #expect(plain.canShowHTML == nil && plain.showingHTML == nil)
         #expect(plain.messages.first?.bodyHTML == nil)
-        #expect(!plain.offersHTMLToggle)
+        #expect(plain.headerTabs == [.original, .summary])
+        #expect(plain.activeHeaderTab == .original)
 
         let htmlMessage = base
             .replacingOccurrences(of: #""card":{"thread":{"_0":{"#, with: #""card":{"thread":{"_0":{"canShowHTML":true,"showingHTML":true,"#)
@@ -417,16 +418,24 @@ struct JSONTests {
         #expect(htmlCard.canShowHTML == true)
         #expect(htmlCard.showingHTML == true)
         #expect(htmlCard.messages.first?.bodyHTML == #"<p>Hi <a href="https://example.com">link</a></p>"#)
-        #expect(htmlCard.offersHTMLToggle)
+        #expect(htmlCard.headerTabs == [.original, .html, .summary])
+        #expect(htmlCard.activeHeaderTab == .html)
 
+        htmlCard.showingHTML = false
+        #expect(htmlCard.activeHeaderTab == .original)
         htmlCard.side = .summary
-        #expect(!htmlCard.offersHTMLToggle)
+        #expect(htmlCard.headerTabs == [.original, .html, .summary])
+        #expect(htmlCard.activeHeaderTab == .summary)
+
         htmlCard.side = .original
+        htmlCard.showingHTML = true
         htmlCard.archived = true
-        #expect(!htmlCard.offersHTMLToggle)
+        #expect(htmlCard.headerTabs == [.original, .summary])
+        #expect(htmlCard.activeHeaderTab == .original)
         htmlCard.archived = nil
         htmlCard.deleted = true
-        #expect(!htmlCard.offersHTMLToggle)
+        #expect(htmlCard.headerTabs == [.original, .summary])
+        #expect(htmlCard.activeHeaderTab == .original)
 
         #expect(CardAction.showHTML(on: true).json.serialized() == #"{"action":"show_html","on":true}"#)
         #expect(CardAction.showHTML(on: false).json.serialized() == #"{"action":"show_html","on":false}"#)

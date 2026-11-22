@@ -103,9 +103,18 @@ struct ThreadCardView: View {
             .padding(.top, 10)
             .padding(.bottom, 6)
 
-            SegmentedChoice(options: [(.original, "Original"), (.summary, "Summary")],
-                            selection: Binding(get: { card.side }, set: { side in
-                                if side != card.side { scope.act(.setSide(side)) }
+            SegmentedChoice(options: card.headerTabs.map { ($0, $0.label) },
+                            selection: Binding(get: { card.activeHeaderTab }, set: { tab in
+                                switch tab {
+                                case .original:
+                                    if card.side != .original { scope.act(.setSide(.original)) }
+                                    if card.showingHTML == true { scope.act(.showHTML(on: false)) }
+                                case .html:
+                                    if card.side != .original { scope.act(.setSide(.original)) }
+                                    if card.showingHTML != true { scope.act(.showHTML(on: true)) }
+                                case .summary:
+                                    if card.side != .summary { scope.act(.setSide(.summary)) }
+                                }
                             }))
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
@@ -153,12 +162,6 @@ struct ThreadCardView: View {
                 case .expandAll: Button("Expand all") { scope.act(.setAllUnfolded(true)) }
                 case .foldOlder: Button("Fold older") { scope.act(.setAllUnfolded(false)) }
                 case nil: EmptyView()
-                }
-                if card.offersHTMLToggle {
-                    Button(card.showingHTML == true ? "Plain text" : "View HTML") {
-                        scope.act(.showHTML(on: !(card.showingHTML == true)))
-                    }
-                    .disabled(scope.busy)
                 }
                 if card.side == .original, card.canShowMore {
                     if scope.busy {
