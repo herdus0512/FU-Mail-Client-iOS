@@ -88,6 +88,7 @@ struct ThreadCardView: View {
     @Environment(\.openURL) private var openURL
 
     private var archived: Bool { card.archived == true }
+    @State private var confirmDelete = false
 
     var body: some View {
         CardBox {
@@ -126,7 +127,14 @@ struct ThreadCardView: View {
                 SummaryView(summary: card.summary) { scope.act(.summarize(again: true)) }
             }
 
+            if card.deleted == true {
+                Text("Moved to Trash.").appFont(.footnote).foregroundStyle(.secondary)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+            } else {
             CardActions {
+                if card.canDelete == true, !archived {
+                    Button("Delete", role: .destructive) { confirmDelete = true }.disabled(scope.busy)
+                }
                 if !archived {
                     Button("Reply") { scope.act(.reply(instructions: "", blank: false, replyAll: false)) }
                 }
@@ -154,6 +162,11 @@ struct ThreadCardView: View {
                 if let link = card.link.flatMap(URL.init(string:)) {
                     Button("Open in browser") { openURL(link) }
                 }
+            }
+            .confirmationDialog("Move this email to Trash?", isPresented: $confirmDelete, titleVisibility: .visible) {
+                Button("Move to Trash", role: .destructive) { scope.act(.deleteEmail) }
+                Button("Cancel", role: .cancel) {}
+            }
             }
             Text(card.side == .original
                  ? "Original text from \(card.ref.server)\(archived ? " (archive, read-only)" : "")"

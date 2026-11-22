@@ -63,6 +63,7 @@ struct JSONTests {
         #expect(thread.archived == true)
         #expect(!thread.offersReplyAll)
         #expect(CardAction.archiveMore.json.serialized() == #"{"action":"archive_more"}"#)
+        #expect(CardAction.deleteEmail.json.serialized() == #"{"action":"delete_email"}"#)
         #expect(CardAction.refreshDraft.json.serialized() == #"{"action":"refresh_draft"}"#)
     }
 
@@ -387,5 +388,18 @@ struct JSONTests {
         #expect(card.stage == .choosing)
         #expect(card.notice == "Memos can't be reached: these notes are from the vault.")
         #expect(card.savedTo == nil)
+    }
+
+    @Test func aThreadCardSaysWhetherItCanBeDeleted() throws {
+        let message = try fixture("thread-message.json")
+        let plain = try decode(ChatMessage.self, message)
+        guard case .thread(let before) = plain.card else { Issue.record("not a thread"); return }
+        #expect(before.canDelete == nil && before.deleted == nil)
+        let deletable = message.replacingOccurrences(of: #""card":{"thread":{"_0":{"#, with: #""card":{"thread":{"_0":{"canDelete":true,"#)
+        guard case .thread(let card) = try decode(ChatMessage.self, deletable).card else { Issue.record("not a thread"); return }
+        #expect(card.canDelete == true && card.deleted == nil)
+        let gone = message.replacingOccurrences(of: #""card":{"thread":{"_0":{"#, with: #""card":{"thread":{"_0":{"deleted":true,"#)
+        guard case .thread(let trashed) = try decode(ChatMessage.self, gone).card else { Issue.record("not a thread"); return }
+        #expect(trashed.deleted == true && trashed.canDelete == nil)
     }
 }

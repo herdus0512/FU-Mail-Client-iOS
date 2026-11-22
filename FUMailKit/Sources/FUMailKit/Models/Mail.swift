@@ -168,6 +168,10 @@ public struct ThreadCard: Codable, Sendable, Hashable {
     public var unfolded: Set<String>?
     /// From an archive (BCC-MCP): read-only, so no Reply or Reply all. nil for live mail.
     public var archived: Bool?
+    /// The email's server can move it to Trash (`delete_email`) and it isn't archived; left out otherwise.
+    public var canDelete: Bool?
+    /// Moved to Trash (Delete); left out otherwise.
+    public var deleted: Bool?
 
     /// Whether a message is shown in full: the one the card was opened from, the newest from someone
     /// else, and any the reader unfolded. Your own messages fold, even when they're the newest.

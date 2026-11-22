@@ -148,6 +148,9 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     older, Show full text, Reply, Reply all (only when it reaches someone more), Add to note, Add
     task (with Google Tasks) and Open in browser.
     A thread from the archive is read-only: no Reply or Reply all.
+    **Delete** (when the email's server can, e.g. Thunderbird-MCP) moves the opened email to Trash
+    after a "Move this email to Trash?" confirmation; the card then says "Moved to Trash." instead of
+    its buttons.
   - **Drafts:** tap a row to open it; Edit and Open in browser on a draft. A Google Mail draft's
     link changes whenever the draft is saved, so Open in browser first has the Mac fetch the draft
     again (a spinner on the button, a few seconds at most) and opens its current link; other links

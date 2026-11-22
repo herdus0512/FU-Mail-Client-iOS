@@ -61,6 +61,8 @@ public enum CardAction: Sendable, Equatable {
     case taskChangeCancel
     /// "Show more" on an archive list: the next page, added to the card.
     case archiveMore
+    /// Thread card: moves the opened email to Trash (asked for only after a confirmation here).
+    case deleteEmail
 
     /// As an API request body.
     public var json: JSONValue {
@@ -118,6 +120,7 @@ public enum CardAction: Sendable, Equatable {
         case .taskChangeConfirm: ["action": "task_change_confirm"]
         case .taskChangeCancel: ["action": "task_change_cancel"]
         case .archiveMore: ["action": "archive_more"]
+        case .deleteEmail: ["action": "delete_email"]
         }
     }
 }
