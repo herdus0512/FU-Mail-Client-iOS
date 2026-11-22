@@ -25,6 +25,11 @@ extension ThreadCard {
     public var offersReplyAll: Bool {
         archived != true && Drafts.canReplyAll(ReplyContext(thread: self))
     }
+
+    /// Whether "View HTML" / "Plain text" is offered: Original side of live mail when the server supports HTML.
+    public var offersHTMLToggle: Bool {
+        side == .original && canShowHTML == true && archived != true && deleted != true
+    }
 }
 
 extension TaskListCard {

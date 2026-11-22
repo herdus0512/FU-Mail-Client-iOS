@@ -26,6 +26,7 @@ def msg(i, role, text="", card=None, at="2026-11-13T08:00:00Z"):
 
 thread = json.loads(fx("thread-message.json"))["card"]
 t = thread["thread"]["_0"]
+t["canShowHTML"] = True
 base = t["messages"][0]
 older = dict(base, id="18c29", received="2026-11-05T10:00:00Z", body="Can you approve the Q4 numbers by Friday?", unread=False, attachments=[])
 mine = dict(base, id="18c2b", received="2026-11-07T09:00:00Z", body="Looking at it today.", unread=False, attachments=[],
@@ -122,6 +123,16 @@ EVENTS_LOCK = threading.Lock()
 
 def push(event):
     with EVENTS_LOCK: EVENTS.append(json.dumps(event))
+
+def toggle_html(conversation, message_id, on):
+    original = next((m for m in messages if m["id"] == message_id and "thread" in m.get("card", {})), None)
+    if original is None: return
+    message = json.loads(json.dumps(original))
+    card = message["card"]["thread"]["_0"]
+    card["showingHTML"] = on
+    if on and len(card["messages"]) > 1:
+        card["messages"][1]["bodyHTML"] = "<p>Hi,</p><p>Please review the <a href=\"https://example.com\">Q4 numbers</a> by Friday.</p>"
+    push({"type": "message_updated", "conversationID": conversation, "message": message})
 
 def add_to_notes(conversation):
     placeholder = {"id": str(uuid.uuid4()).upper(), "role": "assistant", "text": "Preparing an entry for your notes…",
@@ -223,6 +234,8 @@ class H(BaseHTTPRequestHandler):
             summarize(path.split("/")[3], path.split("/")[5])
         if method == "POST" and path.endswith("/action") and '"add_to_notes"' in body:
             add_to_notes(path.split("/")[3])
+        if method == "POST" and path.endswith("/action") and '"show_html"' in body:
+            toggle_html(path.split("/")[3], path.split("/")[5], bool(json.loads(body or "{}").get("on")))
         return self.send_json(202, {"ok": True})
     def do_GET(self): self.handle_any("GET")
     def do_POST(self): self.handle_any("POST")

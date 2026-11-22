@@ -113,6 +113,8 @@ public struct EmailMessage: Codable, Sendable, Hashable, Identifiable {
     public var quotedRemoved: Bool
     /// The server's note when there's no readable text (e.g. images only).
     public var bodyNote: String?
+    /// Sanitized HTML body from the server, when available.
+    public var bodyHTML: String? = nil
 
     /// The start of the text on one line, for a folded message.
     public var preview: String {
@@ -172,6 +174,10 @@ public struct ThreadCard: Codable, Sendable, Hashable {
     public var canDelete: Bool?
     /// Moved to Trash (Delete); left out otherwise.
     public var deleted: Bool?
+    /// The server can return sanitized HTML for this thread; left out otherwise.
+    public var canShowHTML: Bool?
+    /// HTML view is active on this thread; left out otherwise.
+    public var showingHTML: Bool?
 
     /// Whether a message is shown in full: the one the card was opened from, the newest from someone
     /// else, and any the reader unfolded. Your own messages fold, even when they're the newest.

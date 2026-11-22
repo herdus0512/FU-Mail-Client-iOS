@@ -115,7 +115,9 @@ struct ThreadCardView: View {
                 ForEach(card.newestFirst) { message in
                     Divider()
                     if card.isOpen(message) {
-                        MessageView(message: message, canFold: card.canFoldAgain(message)) {
+                        MessageView(message: message,
+                                    showingHTML: card.showingHTML == true,
+                                    canFold: card.canFoldAgain(message)) {
                             scope.act(.toggleFold(emailID: message.id))
                         }
                     } else {
@@ -151,6 +153,12 @@ struct ThreadCardView: View {
                 case .expandAll: Button("Expand all") { scope.act(.setAllUnfolded(true)) }
                 case .foldOlder: Button("Fold older") { scope.act(.setAllUnfolded(false)) }
                 case nil: EmptyView()
+                }
+                if card.offersHTMLToggle {
+                    Button(card.showingHTML == true ? "Plain text" : "View HTML") {
+                        scope.act(.showHTML(on: !(card.showingHTML == true)))
+                    }
+                    .disabled(scope.busy)
                 }
                 if card.side == .original, card.canShowMore {
                     if scope.busy {
@@ -241,6 +249,7 @@ private struct FoldedMessage: View {
 
 private struct MessageView: View {
     var message: EmailMessage
+    var showingHTML: Bool
     var canFold: Bool
     var onFold: () -> Void
 
@@ -274,7 +283,9 @@ private struct MessageView: View {
                     .appFont(.caption)
                     .foregroundStyle(.secondary)
             }
-            if message.body.isEmpty {
+            if showingHTML, let html = message.bodyHTML, !html.isEmpty {
+                HTMLMessageView(html: html)
+            } else if message.body.isEmpty {
                 Text(message.bodyNote ?? "(no text)").appFont(.footnote).foregroundStyle(.secondary)
             } else {
                 Text(message.body).appFont(.subheadline).copyable(message.body)

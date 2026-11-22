@@ -63,6 +63,8 @@ public enum CardAction: Sendable, Equatable {
     case archiveMore
     /// Thread card: moves the opened email to Trash (asked for only after a confirmation here).
     case deleteEmail
+    /// Thread card: switch between plain text and sanitized HTML.
+    case showHTML(on: Bool)
 
     /// As an API request body.
     public var json: JSONValue {
@@ -121,6 +123,7 @@ public enum CardAction: Sendable, Equatable {
         case .taskChangeCancel: ["action": "task_change_cancel"]
         case .archiveMore: ["action": "archive_more"]
         case .deleteEmail: ["action": "delete_email"]
+        case .showHTML(let on): ["action": "show_html", "on": .bool(on)]
         }
     }
 }

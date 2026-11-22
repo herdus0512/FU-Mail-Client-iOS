@@ -402,4 +402,33 @@ struct JSONTests {
         guard case .thread(let trashed) = try decode(ChatMessage.self, gone).card else { Issue.record("not a thread"); return }
         #expect(trashed.deleted == true && trashed.canDelete == nil)
     }
+
+    @Test func aThreadCardSupportsSanitizedHTML() throws {
+        let base = try fixture("thread-message.json")
+        guard case .thread(let plain) = try decode(ChatMessage.self, base).card else { Issue.record("not a thread"); return }
+        #expect(plain.canShowHTML == nil && plain.showingHTML == nil)
+        #expect(plain.messages.first?.bodyHTML == nil)
+        #expect(!plain.offersHTMLToggle)
+
+        let htmlMessage = base
+            .replacingOccurrences(of: #""card":{"thread":{"_0":{"#, with: #""card":{"thread":{"_0":{"canShowHTML":true,"showingHTML":true,"#)
+            .replacingOccurrences(of: #""body":"Hi""#, with: #""body":"Hi","bodyHTML":"<p>Hi <a href=\"https://example.com\">link</a></p>""#)
+        guard case .thread(var htmlCard) = try decode(ChatMessage.self, htmlMessage).card else { Issue.record("not a thread"); return }
+        #expect(htmlCard.canShowHTML == true)
+        #expect(htmlCard.showingHTML == true)
+        #expect(htmlCard.messages.first?.bodyHTML == #"<p>Hi <a href="https://example.com">link</a></p>"#)
+        #expect(htmlCard.offersHTMLToggle)
+
+        htmlCard.side = .summary
+        #expect(!htmlCard.offersHTMLToggle)
+        htmlCard.side = .original
+        htmlCard.archived = true
+        #expect(!htmlCard.offersHTMLToggle)
+        htmlCard.archived = nil
+        htmlCard.deleted = true
+        #expect(!htmlCard.offersHTMLToggle)
+
+        #expect(CardAction.showHTML(on: true).json.serialized() == #"{"action":"show_html","on":true}"#)
+        #expect(CardAction.showHTML(on: false).json.serialized() == #"{"action":"show_html","on":false}"#)
+    }
 }
