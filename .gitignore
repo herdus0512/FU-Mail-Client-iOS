@@ -15,3 +15,6 @@ local.mk
 *.mobileprovision
 
 .DS_Store
+
+# Local notes for coding agents (not committed)
+AGENT.md
