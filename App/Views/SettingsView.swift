@@ -2,9 +2,7 @@ import AuthenticationServices
 import FUMailKit
 import SwiftUI
 
-/// The Mac's address, this device's token and an optional Cloudflare Access service token. Save and connect checks them (`/health`, then
-/// `/v1/info` with the token) and saves when that works; Save anyway keeps settings that can't be
-/// checked right now.
+/// The Mac's address, this device's token, and Google Sign-In for remote Worker connections.
 struct SettingsView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -14,13 +12,8 @@ struct SettingsView: View {
     @State private var tailscaleURL = ""
     @State private var token = ""
     @State private var showToken = false
-    /// Cloudflare Access: the Client ID as saved (it isn't secret); the secret only when typed.
-    @State private var accessID = ""
-    @State private var accessSecret = ""
-    @State private var hasAccessSecret = false
     @State private var checking = false
     @State private var signingIn = false
-    @State private var showAdvancedAccess = false
     @State private var result: String?
     @State private var problem: String?
     @State private var canSaveAnyway = false
@@ -115,25 +108,6 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    DisclosureGroup("Advanced: Cloudflare Access (optional)", isExpanded: $showAdvancedAccess) {
-                        TextField("Client ID (….access)", text: $accessID)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        SecureField(hasAccessSecret ? "Client Secret: saved, paste to replace" : "Client Secret", text: $accessSecret)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .textContentType(.password)
-                        if let hint = ServiceToken.clientIDHint(accessID) { WarningText(hint) }
-                        if !trimmed(accessID).isEmpty, !trimmed(tailscaleURL).lowercased().hasPrefix("https://") {
-                            WarningText("The service token is only sent to https:// addresses, not this one.")
-                        }
-                    }
-                } footer: {
-                    Text("Optional direct Service Auth for a Cloudflare Tunnel: Client ID and Secret, kept in this "
-                         + "device's Keychain and sent only to https:// addresses.")
-                }
-
-                Section {
                     Button {
                         save(check: true)
                     } label: {
@@ -204,16 +178,9 @@ struct SettingsView: View {
             }
             .onAppear {
                 if tailscaleURL.isEmpty { tailscaleURL = app.tailscaleURL }
-                if accessID.isEmpty, let saved = app.savedAccess() {
-                    accessID = saved.clientID
-                    hasAccessSecret = true
-                    showAdvancedAccess = true
-                }
             }
             .onChange(of: tailscaleURL) { canSaveAnyway = false }
             .onChange(of: token) { canSaveAnyway = false }
-            .onChange(of: accessID) { canSaveAnyway = false }
-            .onChange(of: accessSecret) { canSaveAnyway = false }
         }
     }
 
@@ -222,18 +189,9 @@ struct SettingsView: View {
         problem = nil
         canSaveAnyway = false
         let typed = trimmed(token).isEmpty ? nil : trimmed(token)
-        var settings: ServerSettings
+        let settings: ServerSettings
         switch ServerSettings.parse(url: trimmed(tailscaleURL), token: typed ?? app.savedToken() ?? "") {
         case .success(let parsed): settings = parsed
-        case .failure(let invalid):
-            problem = invalid.message
-            return
-        }
-        // An empty Secret field keeps the saved secret while the Client ID stays filled in; emptying
-        // the Client ID removes the service token.
-        let keptSecret = trimmed(accessID).isEmpty ? "" : (app.savedAccess()?.clientSecret ?? "")
-        switch ServiceToken.parse(clientID: accessID, clientSecret: trimmed(accessSecret).isEmpty ? keptSecret : accessSecret) {
-        case .success(let access): settings.access = access
         case .failure(let invalid):
             problem = invalid.message
             return
@@ -253,15 +211,13 @@ struct SettingsView: View {
                 }
             }
             do {
-                try app.save(tailscale: settings.display, newToken: typed, access: settings.access)
+                try app.save(tailscale: settings.display, newToken: typed)
             } catch {
                 problem = error.localizedDescription
                 return
             }
             token = ""
             showToken = false
-            accessSecret = ""
-            hasAccessSecret = settings.access != nil
             result = connected.map { "\($0) Saved." } ?? "Saved. Connecting to \(settings.display)…"
         }
     }

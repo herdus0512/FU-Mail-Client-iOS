@@ -96,6 +96,9 @@ public enum WorkerAuth {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             let reason = (try? JSONValue.parse(data))?["error"]?.stringValue
+            if status == 403 {
+                throw RemoteProblem(.unauthorized, reason ?? "This Google account isn't on the Worker's allowlist.")
+            }
             throw Problems.forStatus(status, reason: reason, url: baseURL.absoluteString)
         }
         let decoded = try JSONDecoder().decode(WorkerTokenResponse.self, from: data)

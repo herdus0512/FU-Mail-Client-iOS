@@ -56,8 +56,7 @@ enum StoredConnection {
     static func settings() -> ServerSettings? {
         guard let address = UserDefaults.standard.string(forKey: "tailscaleURL"), !address.isEmpty,
               let token = TokenStore.load(),
-              case .success(var settings) = ServerSettings.parse(url: address, token: token) else { return nil }
-        settings.access = TokenStore.loadAccess()
+              case .success(let settings) = ServerSettings.parse(url: address, token: token) else { return nil }
         return settings
     }
 

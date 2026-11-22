@@ -2,36 +2,23 @@ import FUMailKit
 import Foundation
 import Security
 
-/// The device token and the Cloudflare Access service token, in the Keychain: readable once this
-/// device has been unlocked after starting up, so "Rest of Today" works from Siri on a locked phone;
-/// never synced to iCloud Keychain and never in a backup ("ThisDeviceOnly"). They're never logged, and
-/// the secrets are never shown again.
+/// The device token and the Cloudflare Worker Google OAuth session, in the Keychain: readable once
+/// this device has been unlocked after starting up, so "Rest of Today" works from Siri on a locked
+/// phone; never synced to iCloud Keychain and never in a backup ("ThisDeviceOnly"). They're never
+/// logged, and the secrets are never shown again.
 enum TokenStore {
     private static let service = "com.h3rdus.fumail"
     private static let deviceToken = "device-token"
-    private static let accessClientID = "cf-access-client-id"
-    private static let accessClientSecret = "cf-access-client-secret"
     private static let workerSession = "worker-session"
+    private static let legacyAccessKeys = ["cf-access-client-id", "cf-access-client-secret"]
 
     static func load() -> String? { read(deviceToken) }
     static func save(_ token: String) throws { try write(token, deviceToken) }
     static func delete() { remove(deviceToken) }
 
-    /// The service token, when both halves are saved.
-    static func loadAccess() -> ServiceToken? {
-        guard let id = read(accessClientID), let secret = read(accessClientSecret) else { return nil }
-        return ServiceToken(clientID: id, clientSecret: secret)
-    }
-
-    /// Saves both halves, or removes both (nil).
-    static func saveAccess(_ access: ServiceToken?) throws {
-        guard let access else {
-            remove(accessClientID)
-            remove(accessClientSecret)
-            return
-        }
-        try write(access.clientID, accessClientID)
-        try write(access.clientSecret, accessClientSecret)
+    /// Removes any leftover Cloudflare Access Service Token entries from older versions.
+    static func removeLegacyAccess() {
+        legacyAccessKeys.forEach(remove)
     }
 
     static func loadWorkerSession() -> WorkerSession? {
@@ -52,7 +39,7 @@ enum TokenStore {
 
     /// Items saved before 4.1 were readable only while unlocked: moves them over, once, in place.
     static func upgradeAccessibility() {
-        for account in [deviceToken, accessClientID, accessClientSecret, workerSession] {
+        for account in [deviceToken, workerSession] {
             SecItemUpdate(query(account) as CFDictionary, [kSecAttrAccessible as String: accessible] as CFDictionary)
         }
     }

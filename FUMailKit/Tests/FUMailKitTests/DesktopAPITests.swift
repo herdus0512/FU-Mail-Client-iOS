@@ -35,7 +35,7 @@ private final class StubProtocol: URLProtocol, @unchecked Sendable {
 /// The real HTTP client, through a pretend server. One suite, run in order: the stub is shared.
 @Suite(.serialized)
 struct DesktopAPITests {
-    private func api(url: String = "http://192.168.107.138:8765/", access: ServiceToken? = nil,
+    private func api(url: String = "http://192.168.107.138:8765/",
                      auth: WorkerAuthStore? = nil,
                      timeZone: @escaping @Sendable () -> String = { TimeZone.autoupdatingCurrent.identifier },
                      _ answer: @escaping @Sendable (URLRequest) -> StubProtocol.Answer?) -> DesktopAPI {
@@ -43,8 +43,7 @@ struct DesktopAPITests {
         StubProtocol.seen.withLock { $0 = [] }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubProtocol.self]
-        var settings = try! ServerSettings.parse(url: url, token: "fum_secret").get()
-        settings.access = access
+        let settings = try! ServerSettings.parse(url: url, token: "fum_secret").get()
         return DesktopAPI(settings: settings, configuration: configuration, auth: auth, timeZone: timeZone)
     }
 
@@ -98,69 +97,16 @@ struct DesktopAPITests {
         }
     }
 
-    // MARK: Cloudflare Access
-
-    private let serviceToken = ServiceToken(clientID: "abc.access", clientSecret: "s3cret")
     private let tunnel = "https://fumail.example.com"
     private let accessPage = Data("<!DOCTYPE html><html><title>Forbidden</title></html>".utf8)
 
-    @Test func theServiceTokenGoesToHTTPSOnlyEvenToHealth() async throws {
-        let ok: @Sendable (URLRequest) -> StubProtocol.Answer? = { _ in .init(status: 200, body: Data(#"{"ok":true}"#.utf8)) }
-        let overTunnel = api(url: tunnel, access: serviceToken, ok)
-        _ = try await overTunnel.send("GET", "/v1/info", body: nil)
-        try await overTunnel.health()
-        for request in StubProtocol.seen.withLock({ $0 }) {
-            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Id") == "abc.access")
-            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Secret") == "s3cret")
-        }
-        let plain = api(access: serviceToken, ok)  // http://: the secret would travel in the clear
-        _ = try await plain.send("GET", "/v1/info", body: nil)
-        try await plain.health()
-        for request in StubProtocol.seen.withLock({ $0 }) {
-            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Id") == nil)
-            #expect(request.value(forHTTPHeaderField: "CF-Access-Client-Secret") == nil)
-        }
-        withExtendedLifetime(plain) {}
-        withExtendedLifetime(overTunnel) {}
-    }
-
-    @Test func aHalfFilledServiceTokenIsRefusedAndAnEmptyOneIsNone() throws {
-        #expect(try ServiceToken.parse(clientID: "", clientSecret: " ").get() == nil)
-        #expect(try ServiceToken.parse(clientID: " abc.access ", clientSecret: "s").get() == ServiceToken(clientID: "abc.access", clientSecret: "s"))
-        for (id, secret) in [("abc.access", ""), ("", "s3cret")] {
-            guard case .failure(let invalid) = ServiceToken.parse(clientID: id, clientSecret: secret) else {
-                Issue.record("half-filled accepted"); continue
-            }
-            #expect(invalid.message.contains("or neither"))
-        }
-        #expect(ServiceToken.clientIDHint("abc.access") == nil)
-        #expect(ServiceToken.clientIDHint("s3cret") != nil)
-        let settings = ServerSettings(url: URL(string: tunnel)!, token: "fum_secret", access: serviceToken)
-        #expect(!settings.description.contains("s3cret") && !settings.description.contains("fum_secret"))
-    }
-
-    @Test func aForbiddenPageIsCloudflareAccessTurningUsAway() async {
-        let page = accessPage
-        let without = api(url: tunnel) { _ in .init(status: 403, body: page) }
-        await #expect(throws: Problems.accessRefused(tokenSaved: false)) { _ = try await without.send("GET", "/v1/info", body: nil) }
-        await #expect(throws: Problems.accessRefused(tokenSaved: false)) { try await without.health() }
-        let wrong = api(url: tunnel, access: serviceToken) { _ in .init(status: 403, body: page) }
-        await #expect(throws: Problems.accessRefused(tokenSaved: true)) { _ = try await wrong.send("GET", "/v1/info", body: nil) }
-        #expect(Problems.accessRefused(tokenSaved: true).message.contains("hasn't expired"))
-        #expect(Problems.accessRefused(tokenSaved: false).message.contains("needs a service token"))
-        let login = api(url: tunnel, access: serviceToken) { _ in
-            .init(status: 302, headers: ["Location": "https://team.cloudflareaccess.com/cdn-cgi/access/login"], body: Data())
-        }
-        await #expect(throws: Problems.accessRefused(tokenSaved: true)) { _ = try await login.send("GET", "/v1/info", body: nil) }
-    }
-
     @Test func otherAnswersKeepTheirMessages() async {
         let page = accessPage
-        let wrongToken = api(url: tunnel, access: serviceToken) { _ in .init(status: 401, body: page) }
+        let wrongToken = api(url: tunnel) { _ in .init(status: 401, body: page) }
         await #expect(throws: Problems.unauthorized) { _ = try await wrongToken.send("GET", "/v1/info", body: nil) }
-        let lockedOut = api(url: tunnel, access: serviceToken) { _ in .init(status: 429, body: page) }
+        let lockedOut = api(url: tunnel) { _ in .init(status: 429, body: page) }
         await #expect(throws: Problems.lockedOut) { _ = try await lockedOut.send("GET", "/v1/info", body: nil) }
-        let fuMail = api(url: tunnel, access: serviceToken) { _ in .init(status: 403, body: Data(#"{"error":"Not here."}"#.utf8)) }
+        let fuMail = api(url: tunnel) { _ in .init(status: 403, body: Data(#"{"error":"Not here."}"#.utf8)) }
         await #expect(throws: RemoteProblem(.server, "Not here.")) { _ = try await fuMail.send("GET", "/v1/info", body: nil) }
         let elsewhere = api(url: tunnel) { _ in .init(status: 302, headers: ["Location": "https://example.com/"], body: Data()) }
         await #expect(throws: RemoteProblem.self) {
@@ -224,15 +170,13 @@ struct DesktopAPITests {
 
     @Test func restOfTodayAsksWithTheAppsOwnConnection() async {
         let body = nowCard([event("Board meeting", "2026-11-19T14:00:00Z", "2026-11-19T15:00:00Z", location: "Level 3")])
-        let api = api(url: tunnel, access: serviceToken, timeZone: { "Australia/Sydney" }) { _ in .init(status: 200, body: body) }
+        let api = api(url: tunnel, timeZone: { "Australia/Sydney" }) { _ in .init(status: 200, body: body) }
         let text = await RestOfToday.fetch(api, timeZone: Self.utc, locale: Self.british)
         #expect(text == "14:00–15:00 Board meeting (Level 3)")
         let request = StubProtocol.seen.withLock { $0 }.last
         #expect(request?.url?.absoluteString == "https://fumail.example.com/v1/calendar/now")
         #expect(request?.httpMethod == "GET")
         #expect(request?.value(forHTTPHeaderField: "Authorization") == "Bearer fum_secret")
-        #expect(request?.value(forHTTPHeaderField: "CF-Access-Client-Id") == "abc.access")
-        #expect(request?.value(forHTTPHeaderField: "CF-Access-Client-Secret") == "s3cret")
         #expect(request?.value(forHTTPHeaderField: "X-FUMail-Time-Zone") == "Australia/Sydney")
     }
 
@@ -261,8 +205,6 @@ struct DesktopAPITests {
         let page = accessPage
         let refused = api(url: tunnel) { _ in .init(status: 401, body: Data(#"{"error":"Unauthorized"}"#.utf8)) }
         #expect(await RestOfToday.fetch(refused) == Problems.unauthorized.message)
-        let access = api(url: tunnel, access: serviceToken) { _ in .init(status: 403, body: page) }
-        #expect(await RestOfToday.fetch(access) == Problems.accessRefused(tokenSaved: true).message)
         let nobody = api(url: tunnel) { _ in nil }  // nothing answers
         #expect(await RestOfToday.fetch(nobody).hasPrefix("Can't reach https://fumail.example.com"))
         let older = api(url: tunnel) { _ in .init(status: 200, body: Data("[]".utf8)) }
@@ -274,7 +216,7 @@ struct DesktopAPITests {
 
     @Test func pendingDraftsLinesAndErrors() async throws {
         let body = Data(#"{"items":[{"server":"gmail","account":"work","draftID":"r1","to":[{"name":"Bob Smith","email":"bob@x.com"}],"subject":"Re: Q4 invoice"},{"server":"m365","draftID":"r2","to":[{"email":"a@x.com"},{"email":"b@x.com"}],"subject":""},{"server":"gmail","account":"home","draftID":"r3","to":[],"subject":"Notes"}],"problems":["Couldn't read Outlook drafts."]}"#.utf8)
-        let drafts = api(url: tunnel, access: serviceToken) { _ in .init(status: 200, body: body) }
+        let drafts = api(url: tunnel) { _ in .init(status: 200, body: body) }
         #expect(await PendingDrafts.fetch(drafts) == """
             To Bob Smith: Re: Q4 invoice (work)
             To a@x.com +1: (no subject)
@@ -287,9 +229,6 @@ struct DesktopAPITests {
         #expect(PendingDrafts.text(DraftListCard(items: [], problems: [])) == "No drafts waiting.")
         let refused = api(url: tunnel) { _ in .init(status: 401, body: Data(#"{"error":"Unauthorized"}"#.utf8)) }
         #expect(await PendingDrafts.fetch(refused) == Problems.unauthorized.message)
-        let page = accessPage
-        let access = api(url: tunnel) { _ in .init(status: 403, body: page) }
-        #expect(await PendingDrafts.fetch(access) == Problems.accessRefused(tokenSaved: false).message)
         let nobody = api(url: tunnel) { _ in nil }
         #expect(await PendingDrafts.fetch(nobody).hasPrefix("Can't reach"))
     }

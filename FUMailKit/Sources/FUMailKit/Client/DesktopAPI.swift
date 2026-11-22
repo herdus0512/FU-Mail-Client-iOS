@@ -73,15 +73,9 @@ public final class DesktopAPI: DesktopTransport {
         request.httpMethod = method
         if token { request.setValue("Bearer \(settings.token)", forHTTPHeaderField: "Authorization") }
         request.setValue(timeZone(), forHTTPHeaderField: "X-FUMail-Time-Zone")
-        // Cloudflare Worker edge token and Access headers: never over plain HTTP.
-        if settings.isHTTPS {
-            if let edgeToken {
-                request.setValue(edgeToken, forHTTPHeaderField: "X-Edge-Token")
-            }
-            if let access = settings.access {
-                request.setValue(access.clientID, forHTTPHeaderField: "CF-Access-Client-Id")
-                request.setValue(access.clientSecret, forHTTPHeaderField: "CF-Access-Client-Secret")
-            }
+        // Cloudflare Worker edge token: never over plain HTTP.
+        if settings.isHTTPS, let edgeToken {
+            request.setValue(edgeToken, forHTTPHeaderField: "X-Edge-Token")
         }
         return request
     }
@@ -177,15 +171,6 @@ public final class DesktopAPI: DesktopTransport {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard !(200..<300).contains(status) else { return }
         let reason = body.flatMap { try? JSONValue.parse($0) }?["error"]?.stringValue
-        // FU Mail never answers 403, so one without its own {"error": …} is Cloudflare Access (its HTML
-        // page, or the event stream, whose body isn't read). A redirect to *.cloudflareaccess.com is
-        // Access too: a policy that sends people to log in rather than checking a service token.
-        let location = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Location")
-            .flatMap { URL(string: $0)?.host()?.lowercased() }
-        if (status == 403 && reason == nil)
-            || ((300..<400).contains(status) && (location == "cloudflareaccess.com" || location?.hasSuffix(".cloudflareaccess.com") == true)) {
-            throw Problems.accessRefused(tokenSaved: settings.access != nil && settings.isHTTPS)
-        }
         throw Problems.forStatus(status, reason: reason, url: display)
     }
 }

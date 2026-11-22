@@ -29,6 +29,7 @@ final class AppModel {
         let defaults = UserDefaults.standard
         Self.oldKeys.forEach(defaults.removeObject(forKey:))
         tailscaleURL = defaults.string(forKey: Self.tailscaleKey) ?? ""
+        TokenStore.removeLegacyAccess()
         TokenStore.upgradeAccessibility()
         let savedSession = TokenStore.loadWorkerSession()
         workerSession = savedSession
@@ -63,19 +64,14 @@ final class AppModel {
     /// The token saved on this device, for checking new settings that leave the token field empty.
     func savedToken() -> String? { TokenStore.load() }
 
-    /// The Cloudflare Access service token saved on this device, if any.
-    func savedAccess() -> ServiceToken? { TokenStore.loadAccess() }
-
     /// `GET /health`, then `GET /v1/info`, at one address with settings not saved yet.
     func check(_ settings: ServerSettings) async throws -> APIInfo {
         try await RemoteClient.check(DesktopAPI(settings: settings, auth: workerAuth))
     }
 
-    /// Saves the address (a nil token keeps the saved one) and the service token (nil: none), and
-    /// connects with them.
-    func save(tailscale: String, newToken: String?, access: ServiceToken?) throws {
+    /// Saves the address (a nil token keeps the saved one) and connects with them.
+    func save(tailscale: String, newToken: String?) throws {
         if let newToken { try TokenStore.save(newToken) }
-        try TokenStore.saveAccess(access)
         UserDefaults.standard.set(tailscale, forKey: Self.tailscaleKey)
         tailscaleURL = tailscale
         hasToken = true
@@ -140,9 +136,8 @@ final class AppModel {
     private func connect(token: String) {
         client?.close()
         client = nil
-        guard !tailscaleURL.isEmpty, case .success(var settings) = ServerSettings.parse(url: tailscaleURL, token: token)
+        guard !tailscaleURL.isEmpty, case .success(let settings) = ServerSettings.parse(url: tailscaleURL, token: token)
         else { return }
-        settings.access = TokenStore.loadAccess()
         let fresh = RemoteClient(transport: DesktopAPI(settings: settings, auth: workerAuth))
         client = fresh
         if onScreen { fresh.start() }

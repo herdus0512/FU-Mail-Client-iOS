@@ -1,55 +1,13 @@
 import Foundation
 
-/// A Cloudflare Access service token, for a Mac reached through a Cloudflare Tunnel guarded by an
-/// Access application with a Service Auth policy. Sent only to https:// addresses.
-public struct ServiceToken: Equatable, Sendable, CustomStringConvertible {
-    /// Ends in ".access".
-    public let clientID: String
-    public let clientSecret: String
-
-    public init(clientID: String, clientSecret: String) {
-        self.clientID = clientID
-        self.clientSecret = clientSecret
-    }
-
-    /// For logs and the screen: never the secret.
-    public var description: String { "ServiceToken(clientID: \(clientID), clientSecret: …)" }
-
-    /// What was typed in Settings: nil when both are empty (no Access), the token when both are
-    /// filled, or why not when only one is.
-    public static func parse(clientID idText: String, clientSecret secretText: String) -> Result<ServiceToken?, ServerSettings.Invalid> {
-        let id = idText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let secret = secretText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if id.isEmpty, secret.isEmpty { return .success(nil) }
-        guard !id.isEmpty, !secret.isEmpty else {
-            return .failure(.init(message: "Fill in both the Cloudflare Access Client ID and Client Secret, or neither."))
-        }
-        guard (id + secret).unicodeScalars.allSatisfy({ (0x21...0x7e).contains($0.value) }) else {
-            return .failure(.init(message: "The Cloudflare Access Client ID or Secret has spaces or unusual characters in it. "
-                                  + "Copy them again from Cloudflare."))
-        }
-        return .success(ServiceToken(clientID: id, clientSecret: secret))
-    }
-
-    /// A gentle hint when the Client ID doesn't look like one (they end in ".access"); nil when it does.
-    public static func clientIDHint(_ text: String) -> String? {
-        let id = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !id.isEmpty, !id.hasSuffix(".access") else { return nil }
-        return "Cloudflare's Client IDs end in “.access”. Check it's the Client ID, not the Secret."
-    }
-}
-
-/// Where the Mac is, this device's token, and the Cloudflare Access service token if there is one.
+/// Where the Mac is and this device's token.
 public struct ServerSettings: Equatable, Sendable, CustomStringConvertible {
     public let url: URL
     public let token: String
-    /// Sent (as CF-Access-Client-Id / CF-Access-Client-Secret) only when the address is https://.
-    public var access: ServiceToken?
 
-    public init(url: URL, token: String, access: ServiceToken? = nil) {
+    public init(url: URL, token: String) {
         self.url = url
         self.token = token
-        self.access = access
     }
 
     /// The address without a trailing slash, for requests and messages ("http://192.168.1.5:8765").
@@ -63,13 +21,7 @@ public struct ServerSettings: Equatable, Sendable, CustomStringConvertible {
 
     /// For logs and the screen: never the token itself.
     public var description: String {
-        "ServerSettings(url: \(display), token: …\(access.map { ", access: \($0)" } ?? ""))"
-    }
-
-    /// A service token is saved but the address is plain http://, where it isn't sent (it would travel
-    /// unencrypted). nil otherwise.
-    public var accessNotSentWarning: String? {
-        access != nil && !isHTTPS ? "The Cloudflare Access service token is only sent to https:// addresses, not this one." : nil
+        "ServerSettings(url: \(display), token: …)"
     }
 
     public struct Invalid: Error, Equatable, LocalizedError {
