@@ -89,14 +89,16 @@ final class AppModel {
         client = nil
     }
 
-    func authBaseURL(for urlText: String? = nil) -> URL {
+    func authBaseURL(for urlText: String? = nil) -> URL? {
         let raw = (urlText ?? tailscaleURL).trimmingCharacters(in: .whitespacesAndNewlines)
-        let parsed = URL(string: raw.contains("://") ? raw : "https://\(raw)")
-        return WorkerAuth.baseURL(for: raw.isEmpty ? nil : parsed)
+        guard !raw.isEmpty, let parsed = URL(string: raw) else { return nil }
+        return WorkerAuth.baseURL(for: parsed)
     }
 
     func signInWithGoogle(serverURL: String? = nil) async throws -> WorkerSession {
-        let baseURL = authBaseURL(for: serverURL)
+        guard let baseURL = authBaseURL(for: serverURL) else {
+            throw RemoteProblem(.server, "Enter an https:// address in Settings first.")
+        }
         let callbackURL = try await GoogleWebAuth.signIn(url: WorkerAuth.loginURL(baseURL: baseURL))
         let code = try WorkerAuth.authorizationCode(from: callbackURL)
         let session = try await WorkerAuth.exchangeCode(code, baseURL: baseURL)
@@ -111,8 +113,7 @@ final class AppModel {
     }
 
     func signOutGoogle(serverURL: String? = nil) async {
-        let baseURL = authBaseURL(for: serverURL)
-        if let refreshToken = workerSession?.refreshToken {
+        if let baseURL = authBaseURL(for: serverURL), let refreshToken = workerSession?.refreshToken {
             await WorkerAuth.logout(refreshToken: refreshToken, baseURL: baseURL)
         }
         try? TokenStore.saveWorkerSession(nil)

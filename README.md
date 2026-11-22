@@ -216,7 +216,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
-| 4.6.0 | 2026-11-22 | **Sign in with Google** via Cloudflare Worker (`https://h3rdmc-auth.cooltym.net`) in Settings, sending `X-Edge-Token` on `https://` requests and `/v1/events` alongside the `fum_…` device token, with automatic coalesced token refresh and sign-out. Optional Cloudflare Access Service Auth fields moved under **Advanced**. |
+| 4.6.0 | 2026-11-22 | **Sign in with Google** via Cloudflare Worker in Settings, sending `X-Edge-Token` on `https://` requests and `/v1/events` alongside the `fum_…` device token, with automatic coalesced token refresh and sign-out. Optional Cloudflare Access Service Auth fields moved under **Advanced**. |
 | 4.5.2 | 2026-11-22 | Removed the 560 pt max height cap on HTML emails so long HTML emails expand inline and scroll smoothly with the chat, matching Android (minimum 40 pt). |
 | 4.5.1 | 2026-11-22 | Fixes to HTML email display: renders on a solid white canvas (for light-authored emails in Dark Mode) and sizes dynamically to the email's body height (minimum 40 pt, no max height cap). |
 | 4.5.0 | 2026-11-22 | **Original \| HTML \| Summary** tabs on thread cards, when the server supports HTML: shows sanitized HTML in a sandboxed web view with JavaScript off and external network requests blocked (tapped links open in the browser). |

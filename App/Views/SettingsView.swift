@@ -37,14 +37,15 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    AddressRow(label: "Address", placeholder: "https://h3rdmc-auth.cooltym.net", text: $tailscaleURL)
+                    AddressRow(label: "Address", placeholder: "https://fumail.example.com", text: $tailscaleURL)
                 } header: {
                     Text("Mac")
                 } footer: {
-                    Text("Remote Worker (https://h3rdmc-auth.cooltym.net) with Sign in with Google below, or over "
-                         + "Tailscale: http://<mac>:8765, http://100.x.y.z:8765, or https://<mac>.<tailnet>.ts.net.")
+                    Text("Remote Worker (https://<hostname>) with Sign in with Google below, or over Tailscale: "
+                         + "http://<mac>:8765, http://100.x.y.z:8765, or https://<mac>.<tailnet>.ts.net.")
                 }
 
+                let authURL = app.authBaseURL(for: tailscaleURL)
                 Section {
                     if let session = app.workerSession {
                         HStack {
@@ -73,13 +74,17 @@ struct SettingsView: View {
                                 }
                             }
                         }
-                        .disabled(signingIn || checking)
+                        .disabled(signingIn || checking || authURL == nil)
                     }
                 } header: {
                     Text("Google Sign-In")
                 } footer: {
-                    Text("Signs in via \(app.authBaseURL(for: tailscaleURL).absoluteString) and sends X-Edge-Token "
-                         + "only on https:// requests alongside your device token.")
+                    if let authURL {
+                        Text("Signs in via \(authURL.absoluteString) and sends X-Edge-Token only on https:// "
+                             + "requests alongside your device token.")
+                    } else {
+                        Text("Enter an https:// address above to sign in with Google.")
+                    }
                 }
 
                 Section {

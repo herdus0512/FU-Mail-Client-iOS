@@ -49,22 +49,21 @@ public struct WorkerTokenResponse: Codable, Equatable, Sendable {
 
 /// Endpoints and helpers for the Cloudflare Worker's Google OAuth flow.
 public enum WorkerAuth {
-    public static let defaultAuthURL = URL(string: "https://h3rdmc-auth.cooltym.net")!
     public static let callbackScheme = "fumail"
     public static let redirectURI = "fumail://auth/callback"
 
-    /// Uses the configured `https://` server origin when available, else the default Worker host.
-    public static func baseURL(for serverURL: URL?) -> URL {
+    /// Returns the `https://` origin of `serverURL`, or `nil` when not `https://`.
+    public static func baseURL(for serverURL: URL?) -> URL? {
         guard let serverURL,
               serverURL.scheme?.lowercased() == "https",
               let host = serverURL.host, !host.isEmpty else {
-            return defaultAuthURL
+            return nil
         }
         var components = URLComponents()
         components.scheme = "https"
         components.host = host
         components.port = serverURL.port
-        return components.url ?? defaultAuthURL
+        return components.url
     }
 
     public static func loginURL(baseURL: URL) -> URL {

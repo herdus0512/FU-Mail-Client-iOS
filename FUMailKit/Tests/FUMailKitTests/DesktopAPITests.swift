@@ -386,10 +386,11 @@ struct DesktopAPITests {
     }
 
     @Test func workerAuthURLHelpers() throws {
-        let base = WorkerAuth.baseURL(for: URL(string: "https://h3rdmc-auth.cooltym.net/v1/info"))
-        #expect(base.absoluteString == "https://h3rdmc-auth.cooltym.net")
-        #expect(WorkerAuth.baseURL(for: URL(string: "http://100.64.0.1:8765")) == WorkerAuth.defaultAuthURL)
-        #expect(WorkerAuth.loginURL(baseURL: base).absoluteString == "https://h3rdmc-auth.cooltym.net/auth/login?redirect_uri=fumail://auth/callback")
+        let base = try #require(WorkerAuth.baseURL(for: URL(string: "https://fumail.example.com/v1/info")))
+        #expect(base.absoluteString == "https://fumail.example.com")
+        #expect(WorkerAuth.baseURL(for: URL(string: "http://100.64.0.1:8765")) == nil)
+        #expect(WorkerAuth.baseURL(for: nil) == nil)
+        #expect(WorkerAuth.loginURL(baseURL: base).absoluteString == "https://fumail.example.com/auth/login?redirect_uri=fumail://auth/callback")
         let code = try WorkerAuth.authorizationCode(from: URL(string: "fumail://auth/callback?code=abc123")!)
         #expect(code == "abc123")
     }

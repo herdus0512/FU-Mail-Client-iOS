@@ -40,7 +40,7 @@ public final class DesktopAPI: DesktopTransport {
     static let streamTimeout: TimeInterval = 75
 
     public var display: String { settings.display }
-    private var authBaseURL: URL { WorkerAuth.baseURL(for: settings.url) }
+    private var authBaseURL: URL { WorkerAuth.baseURL(for: settings.url) ?? settings.url }
 
     /// `configuration` is for tests (a pretend server through `protocolClasses`).
     public init(settings: ServerSettings, configuration: URLSessionConfiguration = .ephemeral,
