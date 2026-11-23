@@ -20,6 +20,84 @@ public enum EditorStatus: Equatable, Sendable, Codable {
     }
 }
 
+/// An account available in `/compose` mode.
+public struct ComposeAccount: Codable, Hashable, Identifiable, Sendable {
+    public var server: String
+    public var account: String?
+    public var email: String?
+
+    public var id: String { "\(server)/\(account ?? "")" }
+
+    public var display: String {
+        switch (account, email) {
+        case let (a?, e?) where !a.isEmpty && !e.isEmpty && a.lowercased() != e.lowercased():
+            "\(a) (\(e))"
+        default:
+            email ?? account ?? server
+        }
+    }
+
+    public init(server: String, account: String? = nil, email: String? = nil) {
+        self.server = server
+        self.account = account
+        self.email = email
+    }
+}
+
+/// A recipient suggestion from `GET /v1/contacts`.
+public struct ContactEntry: Codable, Hashable, Identifiable, Sendable {
+    public var name: String?
+    public var email: String
+
+    public var id: String { email.lowercased() }
+
+    public init(name: String? = nil, email: String) {
+        self.name = name
+        self.email = email
+    }
+
+    /// Formatted for a recipient field: `"Name <email>, "` or `"email, "`.
+    public var recipientToken: String {
+        if let name, !name.trimmingCharacters(in: .whitespaces).isEmpty {
+            return "\(name) <\(email)>, "
+        }
+        return "\(email), "
+    }
+
+    /// Trailing comma-separated token (text after the last `,`, trimmed).
+    public static func trailingToken(in field: String) -> String {
+        let afterComma = field.lastIndex(of: ",").map { field[field.index(after: $0)...] } ?? field[...]
+        return afterComma.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Filters `contacts` for `field`'s trailing token: prefix matches on name or email first,
+    /// then substring matches, capped at `limit`.
+    public static func suggestions(for field: String, from contacts: [ContactEntry], limit: Int = 6) -> [ContactEntry] {
+        let query = trailingToken(in: field).lowercased()
+        guard !query.isEmpty else { return [] }
+        var prefix: [ContactEntry] = []
+        var substring: [ContactEntry] = []
+        for contact in contacts {
+            let name = contact.name?.lowercased() ?? ""
+            let email = contact.email.lowercased()
+            if name.hasPrefix(query) || email.hasPrefix(query) {
+                prefix.append(contact)
+            } else if name.contains(query) || email.contains(query) {
+                substring.append(contact)
+            }
+        }
+        return Array((prefix + substring).prefix(limit))
+    }
+
+    /// Replaces the trailing comma-separated token in `field` with `"Name <email>, "` (or `"email, "`).
+    public static func applying(_ contact: ContactEntry, to field: String) -> String {
+        let replacement = contact.recipientToken
+        guard let comma = field.lastIndex(of: ",") else { return replacement }
+        let head = field[...comma]
+        return "\(head) \(replacement)"
+    }
+}
+
 /// A draft editor as the API sends it. Editors belong to the device that opened them.
 public struct EditorState: Codable, Sendable, Equatable, Identifiable {
     public var id: UUID
@@ -38,7 +116,15 @@ public struct EditorState: Codable, Sendable, Equatable, Identifiable {
     public enum Mode: Codable, Sendable, Equatable {
         case reply(ReplyContext, ThreadCard)
         case existing(DraftCard, messageID: ChatMessage.ID)
+        case compose(accounts: [ComposeAccount], selected: ComposeAccount?)
     }
+
+    public var isCompose: Bool {
+        if case .compose = mode { true } else { false }
+    }
+
+    /// Reply and compose editors both support Instructions + Write/Rewrite and "Save to Drafts".
+    public var supportsWrite: Bool { isReply || isCompose }
 }
 
 /// One change, as the event stream sends it (`data: {…}` lines).

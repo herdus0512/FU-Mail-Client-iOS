@@ -412,6 +412,25 @@ public final class RemoteClient {
         }
     }
 
+    /// Known contacts for recipient autocomplete (`GET /v1/contacts`).
+    public func contacts() async throws -> [ContactEntry] {
+        try await get([ContactEntry].self, "/v1/contacts")
+    }
+
+    /// Switches the From account in a `/compose` draft editor.
+    public func selectAccount(_ editorID: UUID, account: ComposeAccount) {
+        run(onFailure: { self.failed(editorID, $0) }) {
+            let body: JSONValue = [
+                "server": .string(account.server),
+                "account": account.account.map(JSONValue.string) ?? .null,
+                "email": account.email.map(JSONValue.string) ?? .null
+            ]
+            let answer = try await self.post("POST", "/v1/editors/\(editorID.uuidString)/account", body)
+            let fresh = try APICoding.decoder.decode(EditorState.self, from: answer)
+            self.update { $0.editors[editorID] = fresh }
+        }
+    }
+
     /// Reply all on or off; the Mac fills in Cc.
     public func setReplyAll(_ editorID: UUID, _ on: Bool) {
         update { $0.editor(editorID) { $0.form.replyAll = on } }

@@ -21,6 +21,10 @@ struct DraftEditorView: View {
     @State private var wasWriting: Bool
     @State private var copied = false
     @State private var confirmCancel = false
+    @State private var contacts: [ContactEntry] = []
+    @FocusState private var focusedField: RecipientField?
+
+    private enum RecipientField: Hashable { case to, cc, bcc }
 
     init(editor: EditorState, client: RemoteClient) {
         self.editor = editor
@@ -51,11 +55,36 @@ struct DraftEditorView: View {
                         .padding(.top, 4)
                         .padding(.bottom, 6)
                     Divider()
-                    AddressField(label: "To", text: $to, enabled: !busy)
+                    if case .compose(let accounts, let selected) = editor.mode, !accounts.isEmpty {
+                        HStack(spacing: 8) {
+                            Text("From:").foregroundStyle(.secondary)
+                            Picker("From", selection: Binding(
+                                get: { selected?.id ?? accounts.first?.id ?? "" },
+                                set: { newID in
+                                    guard let chosen = accounts.first(where: { $0.id == newID }),
+                                          chosen.id != selected?.id else { return }
+                                    client.selectAccount(editor.id, account: chosen)
+                                }
+                            )) {
+                                ForEach(accounts) { account in
+                                    Text(account.display).tag(account.id)
+                                }
+                            }
+                            .labelsHidden()
+                            .disabled(busy)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 6)
+                        Divider()
+                    }
+                    AddressField(label: "To", text: $to, enabled: !busy, contacts: contacts, isFocused: focusedField == .to)
+                        .focused($focusedField, equals: .to)
                     Divider()
-                    AddressField(label: "Cc", text: $cc, enabled: !busy)
+                    AddressField(label: "Cc", text: $cc, enabled: !busy, contacts: contacts, isFocused: focusedField == .cc)
+                        .focused($focusedField, equals: .cc)
                     Divider()
-                    AddressField(label: "Bcc", text: $bcc, enabled: !busy)
+                    AddressField(label: "Bcc", text: $bcc, enabled: !busy, contacts: contacts, isFocused: focusedField == .bcc)
+                        .focused($focusedField, equals: .bcc)
                     Divider()
                     HStack(spacing: 8) {
                         Text("Subject:").foregroundStyle(.secondary)
@@ -79,7 +108,7 @@ struct DraftEditorView: View {
                             .foregroundStyle(.secondary)
                             .padding(.top, 6)
                     }
-                    if editor.isReply { instructionsSection }
+                    if editor.supportsWrite { instructionsSection }
                     buttons
                     statusLine.padding(.top, 10)
                     Text("Nothing is ever sent: Save puts it in the account's Drafts.")
@@ -101,7 +130,7 @@ struct DraftEditorView: View {
                 }
                 if editor.canSave {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(editor.isReply ? "Save to Drafts" : "Update draft") {
+                        Button(editor.supportsWrite ? "Save to Drafts" : "Update draft") {
                             client.save(editor.id, form: form, instructions: instructions)
                         }
                         .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -121,12 +150,13 @@ struct DraftEditorView: View {
         // Reply all: the Mac fills in Cc (and only then does the copy here change).
         .onChange(of: editor.form.cc) { cc = editor.form.cc }
         .onChange(of: editor.form.replyAll) { replyAll = editor.form.replyAll }
+        .task { contacts = (try? await client.contacts()) ?? [] }
     }
 
     private var bodyEditor: some View {
         ZStack(alignment: .topLeading) {
             if text.isEmpty {
-                Text(editor.isReply ? "Write it here, or give instructions below and Write." : "The draft's text")
+                Text(editor.supportsWrite ? "Write it here, or give instructions below and Write." : "The draft's text")
                     .foregroundStyle(.tertiary)
                     .padding(.top, 8)
                     .padding(.leading, 5)
@@ -156,7 +186,7 @@ struct DraftEditorView: View {
     /// Write / Rewrite (replies) and Copy text.
     private var buttons: some View {
         HStack(spacing: 10) {
-            if editor.isReply {
+            if editor.supportsWrite {
                 Button(text.isEmpty ? "Write" : "Rewrite") {
                     client.write(editor.id, form: form, instructions: instructions)
                 }
@@ -211,21 +241,45 @@ struct DraftEditorView: View {
     }
 }
 
-/// "To:", "Cc:", "Bcc:" with the addresses as comma-separated text.
+/// "To:", "Cc:", "Bcc:" with the addresses as comma-separated text and contact autocomplete chips.
 private struct AddressField: View {
     var label: String
     @Binding var text: String
     var enabled: Bool
+    var contacts: [ContactEntry]
+    var isFocused: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text("\(label):").foregroundStyle(.secondary)
-            TextField("", text: $text, axis: .vertical)
-                .keyboardType(.emailAddress)
-                .textContentType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .disabled(!enabled)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text("\(label):").foregroundStyle(.secondary)
+                TextField("", text: $text, axis: .vertical)
+                    .keyboardType(.emailAddress)
+                    .textContentType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .disabled(!enabled)
+            }
+            let suggestions = isFocused && enabled ? ContactEntry.suggestions(for: text, from: contacts) : []
+            if !suggestions.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(suggestions) { contact in
+                            Button {
+                                text = ContactEntry.applying(contact, to: text)
+                            } label: {
+                                Text(contact.name.map { "\($0) <\(contact.email)>" } ?? contact.email)
+                                    .appFont(.caption)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color(.tertiarySystemFill), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
         }
         .padding(.vertical, 10)
     }

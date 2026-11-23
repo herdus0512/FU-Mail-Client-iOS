@@ -469,4 +469,38 @@ struct JSONTests {
         #expect(CardAction.downloadAttachment(emailID: "18c2a", attachmentID: nil, filename: "a.pdf").json.serialized()
                 == #"{"action":"download_attachment","attachment_id":null,"email_id":"18c2a","filename":"a.pdf"}"#)
     }
+
+    @Test func composeModeAndContactsAutocomplete() throws {
+        let composeJSON = """
+        {
+          "id":"9F1C2B3A-0000-4000-8000-000000000003",
+          "conversationID":"5A277C52-1D0B-4A43-9C9E-2D5B8F1E0A00",
+          "title":"New email",
+          "isReply":false,
+          "server":"gmail-mcp",
+          "canSave":true,
+          "form":{"to":"","cc":"","bcc":"","subject":"","body":"","replyAll":false},
+          "instructions":"",
+          "status":{"idle":{}},
+          "mode":{"compose":{
+            "accounts":[{"server":"gmail-mcp","account":"work","email":"me@work.com"},{"server":"macia","account":null,"email":"home@me.com"}],
+            "selected":{"server":"gmail-mcp","account":"work","email":"me@work.com"}
+          }}
+        }
+        """
+        let editor = try decode(EditorState.self, composeJSON)
+        #expect(editor.isCompose)
+        #expect(editor.supportsWrite)
+        guard case .compose(let accounts, let selected) = editor.mode else { Issue.record("not compose"); return }
+        #expect(accounts.count == 2)
+        #expect(accounts[0].display == "work (me@work.com)")
+        #expect(accounts[1].display == "home@me.com")
+        #expect(selected == accounts[0])
+
+        let contacts = try decode([ContactEntry].self, #"[{"name":"Alice Smith","email":"alice@example.com"},{"name":"Bob Jones","email":"bob@alice.org"},{"name":null,"email":"carol@example.com"}]"#)
+        #expect(ContactEntry.suggestions(for: "al", from: contacts).map(\.email) == ["alice@example.com", "bob@alice.org"])
+        #expect(ContactEntry.suggestions(for: "Alice <alice@example.com>, ca", from: contacts).map(\.email) == ["carol@example.com"])
+        #expect(ContactEntry.applying(contacts[0], to: "al") == "Alice Smith <alice@example.com>, ")
+        #expect(ContactEntry.applying(contacts[2], to: "Alice Smith <alice@example.com>, ca") == "Alice Smith <alice@example.com>, carol@example.com, ")
+    }
 }
