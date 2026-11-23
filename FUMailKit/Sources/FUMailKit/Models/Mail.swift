@@ -193,6 +193,10 @@ public struct ThreadCard: Codable, Sendable, Hashable {
     public var canDelete: Bool?
     /// Moved to Trash (Delete); left out otherwise.
     public var deleted: Bool?
+    /// The email's server can archive it (`archive_email`) and it isn't archived; left out otherwise.
+    public var canArchive: Bool?
+    /// Moved to Archive (`archive_email`); left out otherwise.
+    public var movedToArchive: Bool?
     /// The server can return sanitized HTML for this thread; left out otherwise.
     public var canShowHTML: Bool?
     /// HTML view is active on this thread; left out otherwise.

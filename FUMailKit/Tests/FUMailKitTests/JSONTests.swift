@@ -503,4 +503,32 @@ struct JSONTests {
         #expect(ContactEntry.applying(contacts[0], to: "al") == "Alice Smith <alice@example.com>, ")
         #expect(ContactEntry.applying(contacts[2], to: "Alice Smith <alice@example.com>, ca") == "Alice Smith <alice@example.com>, carol@example.com, ")
     }
+
+    @Test func aThreadCardSaysWhetherItCanBeArchived() throws {
+        let base = try fixture("thread-message.json")
+        guard case .thread(let plain) = try decode(ChatMessage.self, base).card else { Issue.record("not a thread"); return }
+        #expect(plain.canArchive == nil && plain.movedToArchive == nil)
+        #expect(!plain.offersArchive)
+
+        let archivable = base.replacingOccurrences(of: #""card":{"thread":{"_0":{"#, with: #""card":{"thread":{"_0":{"canArchive":true,"#)
+        guard case .thread(var card) = try decode(ChatMessage.self, archivable).card else { Issue.record("not a thread"); return }
+        #expect(card.canArchive == true && card.movedToArchive == nil)
+        #expect(card.offersArchive)
+
+        card.archived = true
+        #expect(!card.offersArchive)
+        card.archived = nil
+        card.deleted = true
+        #expect(!card.offersArchive)
+        card.deleted = nil
+        card.movedToArchive = true
+        #expect(!card.offersArchive)
+
+        let moved = base.replacingOccurrences(of: #""card":{"thread":{"_0":{"#, with: #""card":{"thread":{"_0":{"movedToArchive":true,"#)
+        guard case .thread(let done) = try decode(ChatMessage.self, moved).card else { Issue.record("not a thread"); return }
+        #expect(done.movedToArchive == true && done.canArchive == nil)
+        #expect(!done.offersArchive)
+
+        #expect(CardAction.archiveEmail.json.serialized() == #"{"action":"archive_email"}"#)
+    }
 }

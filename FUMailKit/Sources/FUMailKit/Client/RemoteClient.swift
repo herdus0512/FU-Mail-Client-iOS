@@ -288,7 +288,7 @@ public final class RemoteClient {
         case .crmRewrite:
             // The rewrite streams into the card's text: what was typed before mustn't cover it.
             update { $0.typed[messageID]?.crmText = nil }
-        case .addToNotes, .addTask, .noteViewPostCRM, .downloadAttachment:
+        case .addToNotes, .addTask, .noteViewPostCRM, .downloadAttachment, .archiveEmail:
             expectReply(in: id)  // each adds a new card or confirmation below
         default:
             break

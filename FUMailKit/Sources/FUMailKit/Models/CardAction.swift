@@ -63,6 +63,8 @@ public enum CardAction: Sendable, Equatable {
     case archiveMore
     /// Thread card: moves the opened email to Trash (asked for only after a confirmation here).
     case deleteEmail
+    /// Thread card: moves the opened email to Archive.
+    case archiveEmail
     /// Thread card: switch between plain text and sanitized HTML.
     case showHTML(on: Bool)
     /// Thread card: save an attachment to the Mac's configured download folder.
@@ -125,6 +127,7 @@ public enum CardAction: Sendable, Equatable {
         case .taskChangeCancel: ["action": "task_change_cancel"]
         case .archiveMore: ["action": "archive_more"]
         case .deleteEmail: ["action": "delete_email"]
+        case .archiveEmail: ["action": "archive_email"]
         case .showHTML(let on): ["action": "show_html", "on": .bool(on)]
         case .downloadAttachment(let emailID, let attachmentID, let filename):
             ["action": "download_attachment",

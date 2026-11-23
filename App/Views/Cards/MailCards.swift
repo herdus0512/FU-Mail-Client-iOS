@@ -153,6 +153,9 @@ struct ThreadCardView: View {
                 if card.canDelete == true, !archived {
                     Button("Delete", role: .destructive) { confirmDelete = true }.disabled(scope.busy)
                 }
+                if card.offersArchive {
+                    Button("Archive") { scope.act(.archiveEmail) }.disabled(scope.busy)
+                }
                 if !archived {
                     Button("Reply") { scope.act(.reply(instructions: "", blank: false, replyAll: false)) }
                 }

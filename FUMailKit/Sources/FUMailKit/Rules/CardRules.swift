@@ -60,6 +60,11 @@ extension ThreadCard {
     public var offersAttachmentDownload: Bool {
         canDownloadAttachments == true && archived != true && deleted != true
     }
+
+    /// Whether Archive is offered: live mail that can be archived and hasn't been deleted or archived yet.
+    public var offersArchive: Bool {
+        canArchive == true && archived != true && deleted != true && movedToArchive != true
+    }
 }
 
 extension TaskListCard {
