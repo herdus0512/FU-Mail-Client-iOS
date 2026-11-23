@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 4.9.1, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 4.10.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -216,6 +216,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 4.10.0 | 2026-11-23 | **Archive** button on thread cards, when the email's server supports it: moves the email to Archive without a confirmation dialog and appends the Mac's `"Archived."` confirmation. |
 | 4.9.1 | 2026-11-23 | Fix in **`/compose`**: the **From** account selector now uses a full-width single-line menu so long addresses truncate cleanly instead of wrapping. |
 | 4.9.0 | 2026-11-23 | **`/compose`** in the draft editor (with a **From** account picker, instructions, **Write / Rewrite**, and **Save to Drafts**) and recipient autocomplete chips from `GET /v1/contacts` on `To`, `Cc`, and `Bcc`. |
 | 4.8.0 | 2026-11-23 | **Attachment downloads** on thread cards, when the server supports them (e.g. Thunderbird-MCP): tap an attachment chip to have the Mac save it to its configured download folder and reply with the confirmation. |
