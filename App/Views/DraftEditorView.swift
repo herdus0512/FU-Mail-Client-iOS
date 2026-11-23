@@ -56,25 +56,38 @@ struct DraftEditorView: View {
                         .padding(.bottom, 6)
                     Divider()
                     if case .compose(let accounts, let selected) = editor.mode, !accounts.isEmpty {
+                        let current = selected ?? accounts.first
                         HStack(spacing: 8) {
                             Text("From:").foregroundStyle(.secondary)
-                            Picker("From", selection: Binding(
-                                get: { selected?.id ?? accounts.first?.id ?? "" },
-                                set: { newID in
-                                    guard let chosen = accounts.first(where: { $0.id == newID }),
-                                          chosen.id != selected?.id else { return }
-                                    client.selectAccount(editor.id, account: chosen)
-                                }
-                            )) {
+                            Menu {
                                 ForEach(accounts) { account in
-                                    Text(account.display).tag(account.id)
+                                    Button {
+                                        if account.id != current?.id {
+                                            client.selectAccount(editor.id, account: account)
+                                        }
+                                    } label: {
+                                        if account.id == current?.id {
+                                            Label(account.display, systemImage: "checkmark")
+                                        } else {
+                                            Text(account.display)
+                                        }
+                                    }
                                 }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(current?.display ?? "")
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .appFont(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .contentShape(Rectangle())
                             }
-                            .labelsHidden()
                             .disabled(busy)
-                            Spacer(minLength: 0)
                         }
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 10)
                         Divider()
                     }
                     AddressField(label: "To", text: $to, enabled: !busy, contacts: contacts, isFocused: focusedField == .to)
