@@ -440,4 +440,33 @@ struct JSONTests {
         #expect(CardAction.showHTML(on: true).json.serialized() == #"{"action":"show_html","on":true}"#)
         #expect(CardAction.showHTML(on: false).json.serialized() == #"{"action":"show_html","on":false}"#)
     }
+
+    @Test func aThreadCardSupportsDownloadingAttachments() throws {
+        let base = try fixture("thread-message.json")
+        guard case .thread(let plain) = try decode(ChatMessage.self, base).card else { Issue.record("not a thread"); return }
+        #expect(plain.canDownloadAttachments == nil)
+        #expect(plain.messages.first?.attachmentItems == nil)
+        #expect(!plain.offersAttachmentDownload)
+
+        let withItems = base
+            .replacingOccurrences(of: #""card":{"thread":{"_0":{"#, with: #""card":{"thread":{"_0":{"canDownloadAttachments":true,"#)
+            .replacingOccurrences(of: #""attachments":["a.pdf"]"#,
+                                  with: #""attachments":["a.pdf"],"attachmentItems":[{"filename":"a.pdf","attachmentID":"att-1","mimeType":"application/pdf","sizeBytes":2048}]"#)
+        guard case .thread(var card) = try decode(ChatMessage.self, withItems).card else { Issue.record("not a thread"); return }
+        #expect(card.canDownloadAttachments == true)
+        #expect(card.offersAttachmentDownload)
+        let item = try #require(card.messages.first?.attachmentItems?.first)
+        #expect(item == EmailAttachment(filename: "a.pdf", attachmentID: "att-1", mimeType: "application/pdf", sizeBytes: 2048))
+
+        card.archived = true
+        #expect(!card.offersAttachmentDownload)
+        card.archived = nil
+        card.deleted = true
+        #expect(!card.offersAttachmentDownload)
+
+        #expect(CardAction.downloadAttachment(emailID: "18c2a", attachmentID: "att-1", filename: "a.pdf").json.serialized()
+                == #"{"action":"download_attachment","attachment_id":"att-1","email_id":"18c2a","filename":"a.pdf"}"#)
+        #expect(CardAction.downloadAttachment(emailID: "18c2a", attachmentID: nil, filename: "a.pdf").json.serialized()
+                == #"{"action":"download_attachment","attachment_id":null,"email_id":"18c2a","filename":"a.pdf"}"#)
+    }
 }

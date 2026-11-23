@@ -124,11 +124,18 @@ struct ThreadCardView: View {
                 ForEach(card.newestFirst) { message in
                     Divider()
                     if card.isOpen(message) {
+                        let emailID = message.id.isEmpty ? card.ref.idString : message.id
                         MessageView(message: message,
                                     showingHTML: card.showingHTML == true,
-                                    canFold: card.canFoldAgain(message)) {
-                            scope.act(.toggleFold(emailID: message.id))
-                        }
+                                    canDownloadAttachments: card.offersAttachmentDownload,
+                                    busy: scope.busy,
+                                    canFold: card.canFoldAgain(message),
+                                    onFold: { scope.act(.toggleFold(emailID: message.id)) },
+                                    onDownloadAttachment: { attachment in
+                                        scope.act(.downloadAttachment(emailID: emailID,
+                                                                      attachmentID: attachment.attachmentID,
+                                                                      filename: attachment.filename))
+                                    })
                     } else {
                         FoldedMessage(message: message) { scope.act(.toggleFold(emailID: message.id)) }
                     }
@@ -253,8 +260,16 @@ private struct FoldedMessage: View {
 private struct MessageView: View {
     var message: EmailMessage
     var showingHTML: Bool
+    var canDownloadAttachments: Bool
+    var busy: Bool
     var canFold: Bool
     var onFold: () -> Void
+    var onDownloadAttachment: (EmailAttachment) -> Void
+
+    private static func formattedSize(_ bytes: Int?) -> String? {
+        guard let bytes, bytes > 0 else { return nil }
+        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -281,7 +296,31 @@ private struct MessageView: View {
                 .appFont(.caption)
                 .foregroundStyle(.secondary)
             }
-            if !message.attachments.isEmpty {
+            if canDownloadAttachments, let items = message.attachmentItems, !items.isEmpty {
+                FlowLayout(spacing: 8, lineSpacing: 6) {
+                    ForEach(items) { attachment in
+                        Button {
+                            onDownloadAttachment(attachment)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.down.circle")
+                                Text(attachment.filename)
+                                    .lineLimit(1)
+                                if let size = Self.formattedSize(attachment.sizeBytes) {
+                                    Text("(\(size))")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .appFont(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(.tertiarySystemFill), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(busy)
+                    }
+                }
+            } else if !message.attachments.isEmpty {
                 Label(message.attachments.joined(separator: ", "), systemImage: "paperclip")
                     .appFont(.caption)
                     .foregroundStyle(.secondary)

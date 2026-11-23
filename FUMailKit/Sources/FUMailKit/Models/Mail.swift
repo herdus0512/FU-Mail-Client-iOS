@@ -97,6 +97,23 @@ public struct EmailListCard: Codable, Sendable, Hashable {
     }
 }
 
+/// One attachment on a message, with metadata for downloading on the Mac.
+public struct EmailAttachment: Codable, Sendable, Hashable, Identifiable {
+    public var filename: String
+    public var attachmentID: String?
+    public var mimeType: String?
+    public var sizeBytes: Int?
+
+    public var id: String { "\(attachmentID ?? "")/\(filename)" }
+
+    public init(filename: String, attachmentID: String? = nil, mimeType: String? = nil, sizeBytes: Int? = nil) {
+        self.filename = filename
+        self.attachmentID = attachmentID
+        self.mimeType = mimeType
+        self.sizeBytes = sizeBytes
+    }
+}
+
 /// One message as the server returned it. The body is never touched by an LLM.
 public struct EmailMessage: Codable, Sendable, Hashable, Identifiable {
     public var id: String
@@ -107,6 +124,8 @@ public struct EmailMessage: Codable, Sendable, Hashable, Identifiable {
     public var subject: String
     public var unread: Bool
     public var attachments: [String]
+    /// Structured attachment metadata when the server supports downloading attachments.
+    public var attachmentItems: [EmailAttachment]? = nil
     public var body: String
     public var bodyTruncated: Bool
     public var bodyTotalChars: Int?
@@ -178,6 +197,8 @@ public struct ThreadCard: Codable, Sendable, Hashable {
     public var canShowHTML: Bool?
     /// HTML view is active on this thread; left out otherwise.
     public var showingHTML: Bool?
+    /// The server can save attachments from this thread to the Mac's download folder; left out otherwise.
+    public var canDownloadAttachments: Bool?
 
     /// Whether a message is shown in full: the one the card was opened from, the newest from someone
     /// else, and any the reader unfolded. Your own messages fold, even when they're the newest.

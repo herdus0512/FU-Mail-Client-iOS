@@ -65,6 +65,8 @@ public enum CardAction: Sendable, Equatable {
     case deleteEmail
     /// Thread card: switch between plain text and sanitized HTML.
     case showHTML(on: Bool)
+    /// Thread card: save an attachment to the Mac's configured download folder.
+    case downloadAttachment(emailID: String, attachmentID: String?, filename: String)
 
     /// As an API request body.
     public var json: JSONValue {
@@ -124,6 +126,11 @@ public enum CardAction: Sendable, Equatable {
         case .archiveMore: ["action": "archive_more"]
         case .deleteEmail: ["action": "delete_email"]
         case .showHTML(let on): ["action": "show_html", "on": .bool(on)]
+        case .downloadAttachment(let emailID, let attachmentID, let filename):
+            ["action": "download_attachment",
+             "email_id": .string(emailID),
+             "attachment_id": attachmentID.map(JSONValue.string) ?? .null,
+             "filename": .string(filename)]
         }
     }
 }

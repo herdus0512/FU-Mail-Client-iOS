@@ -55,6 +55,11 @@ extension ThreadCard {
         if offersHTMLTab, showingHTML == true { return .html }
         return .original
     }
+
+    /// Whether attachments on this thread can be saved to the Mac's configured download folder.
+    public var offersAttachmentDownload: Bool {
+        canDownloadAttachments == true && archived != true && deleted != true
+    }
 }
 
 extension TaskListCard {
