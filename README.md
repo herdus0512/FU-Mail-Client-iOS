@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 4.7.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 4.8.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -216,6 +216,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 4.8.0 | 2026-11-23 | **Attachment downloads** on thread cards, when the server supports them (e.g. Thunderbird-MCP): tap an attachment chip to have the Mac save it to its configured download folder and reply with the confirmation. |
 | 4.7.0 | 2026-11-22 | Version matched to Android 4.7.0. Removed Cloudflare Access Service Token (`CF-Access-Client-Id` / `CF-Access-Client-Secret`) support and its Keychain/Settings entries now that **Sign in with Google** handles remote `https://` authentication. |
 | 4.6.1 | 2026-11-22 | **Sign in with Google** now uses only the `https://` address entered in Settings (no hardcoded URL) and greys out the button when the address is empty or not `https://`. |
 | 4.6.0 | 2026-11-22 | **Sign in with Google** via Cloudflare Worker in Settings, sending `X-Edge-Token` on `https://` requests and `/v1/events` alongside the `fum_…` device token, with automatic coalesced token refresh and sign-out. Optional Cloudflare Access Service Auth fields moved under **Advanced**. |
