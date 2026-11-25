@@ -10,6 +10,8 @@ struct CardScope {
     var busy: Bool
     /// The event stream is open, so the card shown is the Mac's current one.
     var connected: Bool
+    /// The chat may be old (a refetch that hasn't worked yet): triage's buttons are off.
+    var outOfDate: OutOfDate?
 
     var info: APIInfo? { client.state.info }
 

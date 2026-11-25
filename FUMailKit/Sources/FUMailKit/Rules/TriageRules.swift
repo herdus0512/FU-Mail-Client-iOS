@@ -24,7 +24,7 @@ public struct TriageConfirmation: Sendable, Equatable {
     var seen: Seen
 
     /// What's said when the card changed before a confirmed action was sent.
-    public static let changed = "The card changed before that was sent, so nothing was done. Check it and try again."
+    public static let changed = "The card changed or was out of date before that was sent, so nothing was done. Check it and try again."
 
     /// Whether `card` still shows what was asked about and can take the action now.
     public func holds(_ card: Card?, busy: Bool, connected: Bool) -> Bool {
@@ -40,7 +40,7 @@ public struct TriageConfirmation: Sendable, Equatable {
 
     public func holds(_ state: RemoteState, on messageID: ChatMessage.ID, in id: Conversation.ID) -> Bool {
         holds(state.conversation(id)?.messages.first { $0.id == messageID }?.card,
-              busy: state.busyMessages.contains(messageID), connected: state.connection.connected)
+              busy: false, connected: state.canAct(on: messageID, in: id))
     }
 }
 
@@ -82,19 +82,27 @@ public struct TriageView: Sendable, Equatable {
     public var refresh: CardAction
     public var refreshEnabled: Bool
     public var statusNote: String?
+    /// Why the buttons are off, while the chat is out of date.
+    public var notice: String?
     /// Shown instead of rows when there are none (the status note, if there is one).
     public var emptyText: String
 }
 
 public enum TriageRules {
-    /// A triage card's view; nil for any other card. `date` words a date, as the rows show it.
-    public static func view(_ card: Card, busy: Bool, connected: Bool, date: (Date) -> String) -> TriageView? {
-        switch card {
-        case .spam(let spam): view(spam, busy: busy, connected: connected)
-        case .clean(let clean): view(clean, busy: busy, connected: connected)
-        case .repliedArchive(let replied): view(replied, busy: busy, connected: connected, date: date)
+    /// A triage card's view; nil for any other card. A chat that's out of date counts as disconnected, and
+    /// the card says so (while connected: otherwise the connection does). `date` words a date, as the rows
+    /// show it.
+    public static func view(_ card: Card, busy: Bool, connected: Bool, outOfDate: OutOfDate? = nil,
+                            date: (Date) -> String) -> TriageView? {
+        let current = connected && outOfDate == nil
+        var view: TriageView? = switch card {
+        case .spam(let spam): self.view(spam, busy: busy, connected: current)
+        case .clean(let clean): self.view(clean, busy: busy, connected: current)
+        case .repliedArchive(let replied): self.view(replied, busy: busy, connected: current, date: date)
         default: nil
         }
+        if connected { view?.notice = outOfDate?.notice }
+        return view
     }
 
     public static func view(_ card: SpamCard, busy: Bool, connected: Bool) -> TriageView {

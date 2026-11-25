@@ -91,6 +91,16 @@ public enum CardAction: Sendable, Equatable {
     case archiveRepliedAll
     case archiveRepliedRefresh
 
+    /// A triage card's: sent only while its card is the Mac's current one (checked just before sending).
+    public var isTriage: Bool {
+        switch self {
+        case .spamDelete, .spamConfirmAndDelete, .spamKeepAndSkip, .spamDismiss, .spamDeleteAll, .spamRefresh,
+             .cleanDelete, .cleanKeep, .cleanDeleteAll, .cleanRefresh,
+             .archiveRepliedOne, .archiveRepliedKeep, .archiveRepliedAll, .archiveRepliedRefresh: true
+        default: false
+        }
+    }
+
     /// As an API request body.
     public var json: JSONValue {
         func candidate(_ value: NoteCandidate) -> JSONValue {

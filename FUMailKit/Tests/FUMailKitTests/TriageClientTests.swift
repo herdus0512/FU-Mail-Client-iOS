@@ -4,7 +4,7 @@ import Testing
 @testable import FUMailKit
 
 /// A stand-in Mac with a chat of no interest, then one with a triage card, whose event stream stays open and says what it's told to.
-private final class TriageDesktop: DesktopTransport {
+final class TriageDesktop: DesktopTransport {
     struct State: Sendable {
         var requests: [String] = []
         /// Whether this device's token is in `api.full_triage`.
@@ -14,6 +14,18 @@ private final class TriageDesktop: DesktopTransport {
         var brokenEditors = false
         var editors = "[]"
         var brokenFirstChat = false
+        /// A triage card in the first chat too.
+        var firstChatHasCard = false
+        var brokenInfo = false
+        var brokenTriageChat = false
+        /// The list no longer has the triage chat.
+        var unlisted = false
+        /// The triage chat's other messages, and whether its card is busy.
+        var extra: [String] = []
+        var busy = false
+        /// How many times the triage chat was asked for, and which of them (from 1) are held back.
+        var chatFetches = 0
+        var holding: Set<Int> = []
         /// The new chats made here that it still has, how many were made, and what asking for another answers.
         var newChats: Set<String> = []
         var made = 0
@@ -41,8 +53,8 @@ private final class TriageDesktop: DesktopTransport {
     func set(_ change: (inout State) -> Void) { state.withLock { change(&$0) } }
     func count(_ request: String) -> Int { requests.filter { $0 == request }.count }
 
-    private func message(_ card: String) -> String {
-        #"{"id":"\#(id("M1"))","role":"assistant","text":"","createdAt":"2026-11-24T09:00:00Z","card":\#(card)}"#
+    func message(_ card: String, _ name: String = "M1") -> String {
+        #"{"id":"\#(id(name))","role":"assistant","text":"","createdAt":"2026-11-24T09:00:00Z","card":\#(card)}"#
     }
     func push(_ event: String) { _ = state.withLock { $0.stream }?.yield(.data(event)) }
     func drop() { state.withLock { $0.stream }?.finish(throwing: URLError(.networkConnectionLost)) }
@@ -56,27 +68,37 @@ private final class TriageDesktop: DesktopTransport {
         let request = "\(method) \(path)" + (body.map { " " + String(decoding: $0, as: UTF8.self) } ?? "")
         let now = state.withLock { state in
             state.requests.append(request)
+            if request == "GET /v1/conversations/\(id("C1").uuidString)" { state.chatFetches += 1 }
             return state
         }
         let (c0, c1) = (id("C0").uuidString, id("C1").uuidString)
         let chat = #"{"id":"\#(c1)","title":"Triage","createdAt":"2026-11-24T09:00:00Z","updatedAt":"2026-11-24T09:00:00Z""#
         let answer: String
-        func detail(_ id: String, _ messages: String) -> String {
-            #"{"conversation":\#(chat.replacingOccurrences(of: c1, with: id)),"messages":[\#(messages)]},"answering":false,"busyMessages":[]}"#
+        func detail(_ id: String, _ messages: String, busy: String = "") -> String {
+            #"{"conversation":\#(chat.replacingOccurrences(of: c1, with: id)),"messages":[\#(messages)]},"answering":false,"busyMessages":[\#(busy)]}"#
+        }
+        /// Whatever happens to the request meanwhile (a cancelled one's answer can still arrive).
+        func held(_ is: @escaping @Sendable (State) -> Bool) async {
+            while state.withLock({ `is`($0) }) { await Task.detached { try? await Task.sleep(for: .milliseconds(5)) }.value }
         }
         switch "\(method) \(path)" {
-        case "GET /v1/info": answer = try fixture("info.json")
+        case "GET /v1/info":
+            if now.brokenInfo { throw Problems.forStatus(500, reason: "info broke", url: display) }
+            answer = try fixture("info.json")
         case "GET /v1/conversations":
-            answer = "[\(chat.replacingOccurrences(of: c1, with: c0))},\(chat)}]"
+            answer = "[\(chat.replacingOccurrences(of: c1, with: c0))}" + (now.unlisted ? "]" : ",\(chat)}]")
         case "GET /v1/conversations/\(c0)":
             if now.brokenFirstChat { throw Problems.forStatus(500, reason: "the first chat broke", url: display) }
-            answer = detail(c0, "")
+            answer = detail(c0, now.firstChatHasCard ? message(now.card, "M0") : "")
         case "GET /v1/conversations/\(c1)":
             if now.triageChatGone { throw Problems.forStatus(404, reason: "No such conversation.", url: display) }
-            answer = detail(c1, now.listed ? message(now.card) : "")
+            if now.brokenTriageChat { throw Problems.forStatus(500, reason: "the triage chat broke", url: display) }
+            answer = detail(c1, ((now.listed ? [message(now.card)] : []) + now.extra).joined(separator: ","),
+                            busy: now.busy ? "\"\(id("M1"))\"" : "")
+            await held { $0.holding.contains(now.chatFetches) }
             // The others' failures come first.
             if now.brokenFirstChat { try await Task.sleep(for: .milliseconds(50)) }
-            while state.withLock({ $0.heldChat }) { try await Task.sleep(for: .milliseconds(5)) }
+            await held { $0.heldChat }
         case "GET /v1/editors":
             if now.brokenEditors { throw Problems.forStatus(500, reason: "editors broke", url: display) }
             answer = now.editors
@@ -130,7 +152,8 @@ struct TriageClientTests {
 
     init() throws {
         desktop = try TriageDesktop()
-        client = RemoteClient(transport: desktop, backoff: Backoff(first: .milliseconds(20), max: .milliseconds(100)))
+        client = RemoteClient(transport: desktop, backoff: Backoff(first: .milliseconds(20), max: .milliseconds(100)),
+                              retryPauses: [.seconds(60)])
     }
 
     private var card: Card? { client.state.conversation(c1)?.messages.first { $0.id == m1 }?.card }
@@ -385,6 +408,8 @@ struct TriageClientTests {
         await reconnect()
         #expect(view?.title == "Caught Spam & Marketing")
         #expect(client.state.connection.problem == "No such conversation.")
+        #expect(client.state.outOfDate[c1] == .updating)  // its card may be old
+        #expect(view?.all?.confirmation.holds(client.state, on: m1, in: c1) == false)
         client.close()
     }
 

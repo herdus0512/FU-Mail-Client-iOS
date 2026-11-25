@@ -34,13 +34,33 @@ public final class RemoteClient {
     /// Card actions and typed text go out one at a time, in order (Done, then Insert).
     @ObservationIgnored private var actionChain: Task<Void, Never>?
 
+    /// A chat's fetch while it's open, with the events that came meanwhile.
+    private struct OpenFetch {
+        var id: Conversation.ID
+        var round: Int
+        var events: [APIEvent] = []
+    }
+
+    /// Goes up on each reconnect, config_changed and return from the background. A fetch from an earlier
+    /// round may be old: its answer isn't shown.
+    @ObservationIgnored private var round = 0
+    @ObservationIgnored private var lastFetch = 0
+    /// Open fetches by number (in the order they started), and the latest one shown of each chat.
+    @ObservationIgnored private var fetches: [Int: OpenFetch] = [:]
+    @ObservationIgnored private var shownFetch: [Conversation.ID: Int] = [:]
+    /// Retries of chats that are out of date, one per chat; and config_changed's refetch.
+    @ObservationIgnored private var retries: [Conversation.ID: Task<Void, Never>] = [:]
+    @ObservationIgnored private var refetch: Task<Void, Never>?
+    @ObservationIgnored private let retryPauses: [Duration]
+
     public var display: String { transport.display }
 
     public init(transport: any DesktopTransport, backoff: Backoff = Backoff(), typedHold: Duration = .seconds(1),
-                now: @escaping @Sendable () -> Date = { .now }) {
+                retryPauses: [Duration] = [2, 4, 8, 16, 30].map { .seconds($0) }, now: @escaping @Sendable () -> Date = { .now }) {
         self.transport = transport
         self.backoff = backoff
         self.typedHold = typedHold
+        self.retryPauses = retryPauses
         self.now = now
     }
 
@@ -49,6 +69,7 @@ public final class RemoteClient {
     /// Opens the event stream (the app came on screen), fetching everything shown once it's open.
     public func start() {
         guard !closed, eventsTask == nil else { return }
+        startRound()
         eventsTask = Task { await runEvents() }
     }
 
@@ -56,6 +77,7 @@ public final class RemoteClient {
     public func stop() {
         eventsTask?.cancel()
         eventsTask = nil
+        stopUpdating()
         state.connection.connected = false
     }
 
@@ -74,19 +96,28 @@ public final class RemoteClient {
                     switch item {
                     case .opened:
                         // Anything that changed while disconnected: fetch it now that events will follow.
+                        startRound()
+                        update { $0.markLoadedOutOfDate() }
                         await resync()
-                        if !Task.isCancelled { state.connection.connected = true }
+                        if !Task.isCancelled {
+                            state.connection.connected = true
+                            for id in state.outOfDate.keys { startRetries(id) }
+                        }
                         pause = backoff.first
                     case .data(let text):
                         // This device may have just been given triage's cards (or lost them): fetch the
-                        // chats again. Here, before the next event is read, so an answer from before an
-                        // event can't undo it.
-                        if receive(text)?.type == "config_changed" { await refetchLoaded() }
+                        // chats again. Marked here, before the next event is read; fetched beside it.
+                        if receive(text)?.type == "config_changed" {
+                            startRound()
+                            update { $0.markLoadedOutOfDate() }
+                            refetch = Task { await refetchLoaded(retrying: true) }
+                        }
                     }
                 }
                 throw RemoteProblem(.unreachable, "The connection to \(display) closed.")
             } catch {
                 if Task.isCancelled || closed { break }
+                stopUpdating()
                 state.connection.connected = false
                 state.connection.problem = Problems.describe(error, url: display).message
                 try? await Task.sleep(for: pause)
@@ -105,6 +136,7 @@ public final class RemoteClient {
 
     func apply(_ event: APIEvent) {
         guard !closed else { return }
+        record(event)
         for effect in state.apply(event) {
             switch effect {
             case .refreshList: run(quiet: true) { try await self.refreshList() }
@@ -149,10 +181,56 @@ public final class RemoteClient {
         }
     }
 
-    /// Every loaded conversation again. One that can't be fetched is left as it was, and the rest still
-    /// are. Returns the first failure.
+    /// A new round: what's being fetched from before it may be old, and so may the events recorded for it.
+    private func startRound() {
+        round += 1
+        for number in fetches.keys { fetches[number]?.events = [] }
+        stopUpdating()
+    }
+
+    /// No refetch or retry goes on while disconnected, or past the start of a newer one.
+    private func stopUpdating() {
+        refetch?.cancel()
+        refetch = nil
+        retries.values.forEach { $0.cancel() }
+        retries = [:]
+    }
+
+    /// Kept for each open fetch of the event's chat, to apply again over its answer. `busy` doesn't say
+    /// which chat it's for.
+    private func record(_ event: APIEvent) {
+        switch event.type {
+        case "message_appended", "message_updated", "chat_status":
+            for (number, fetch) in fetches where fetch.id == event.conversationID { fetches[number]?.events.append(event) }
+        case "busy":
+            for number in fetches.keys { fetches[number]?.events.append(event) }
+        default:
+            break
+        }
+    }
+
+    /// Fetches a chat that's out of date until it works, or the tries run out. Only ever the chat itself,
+    /// never an action, and without the banner.
+    private func startRetries(_ id: Conversation.ID, atOnce: Bool = false) {
+        guard !closed, state.connection.connected, state.outOfDate[id] != nil else { return }
+        retries[id]?.cancel()
+        update { $0.outOfDate[id] = .updating }
+        let pauses = (atOnce ? [.zero] : []) + retryPauses
+        retries[id] = Task {
+            for pause in pauses {
+                try? await Task.sleep(for: pause)
+                guard !Task.isCancelled, state.outOfDate[id] != nil else { return }
+                try? await fetchConversation(id)
+                guard !Task.isCancelled, state.outOfDate[id] != nil else { return }
+            }
+            update { $0.outOfDate[id] = .failed }
+        }
+    }
+
+    /// Every loaded conversation again. One that can't be fetched is left as it was (and out of date; with
+    /// `retrying`, tried again from here), and the rest still are. Returns the first failure.
     @discardableResult
-    private func refetchLoaded() async -> Error? {
+    private func refetchLoaded(retrying: Bool = false) async -> Error? {
         let open = state.conversations.map(\.id).filter { !state.unloaded.contains($0) }
         return await withTaskGroup(of: Error?.self) { group in
             for id in open {
@@ -161,6 +239,7 @@ public final class RemoteClient {
                         try await self.fetchConversation(id)
                         return nil
                     } catch {
+                        if retrying, !Task.isCancelled { await self.startRetries(id) }
                         return error
                     }
                 }
@@ -195,12 +274,40 @@ public final class RemoteClient {
     /// A conversation's messages. An empty chat made here isn't saved over there until it's used, so a
     /// Mac that restarted no longer has it: it's dropped (a new chat would only give it back, and sending
     /// in it fails).
+    ///
+    /// An answer is shown, its chat's events since the fetch began are applied over it, and the chat counts
+    /// as up to date, all at once. One from before a reconnect, config_changed or the background isn't
+    /// shown (the chat is fetched again), nor one that started before another that's been shown.
     private func fetchConversation(_ id: Conversation.ID) async throws {
-        do {
-            let detail = try await get(ConversationDetail.self, "/v1/conversations/\(id.uuidString)")
-            update { $0.setDetail(detail) }
-        } catch let problem as RemoteProblem where problem.kind == .notFound && state.isEmptyChat(id) {
-            update { $0.removeConversation(id) }  // checked just now: nothing can have arrived in between
+        while !closed {
+            try Task.checkCancellation()
+            lastFetch += 1
+            let number = lastFetch
+            fetches[number] = OpenFetch(id: id, round: round)
+            let answer: Result<ConversationDetail, Error>
+            do {
+                answer = .success(try await get(ConversationDetail.self, "/v1/conversations/\(id.uuidString)"))
+            } catch {
+                answer = .failure(error)
+            }
+            guard let fetch = fetches.removeValue(forKey: number) else { return }
+            try Task.checkCancellation()
+            if fetch.round != round {
+                // A loaded chat is being fetched again already; one never loaded isn't.
+                if state.unloaded.contains(id) { continue } else { return }
+            }
+            // Deleted meanwhile (here or there): its answer doesn't bring it back.
+            guard state.conversation(id) != nil, number > shownFetch[id] ?? 0 else { return }
+            switch answer {
+            case .success(let detail):
+                shownFetch[id] = number
+                update { $0.setDetail(detail, reapplying: fetch.events) }
+            case .failure(let problem as RemoteProblem) where problem.kind == .notFound && state.isEmptyChat(id):
+                update { $0.removeConversation(id) }  // checked just now: nothing can have arrived in between
+            case .failure(let error):
+                throw error
+            }
+            return
         }
     }
 
@@ -248,10 +355,14 @@ public final class RemoteClient {
 
     // MARK: Conversations
 
-    /// Fetches a saved conversation's messages the first time it's opened.
+    /// A conversation was opened: fetches a saved one's messages the first time, and tries again at once
+    /// when it's out of date (unless it's being fetched right now).
     public func loadMessages(_ id: Conversation.ID) {
-        guard state.unloaded.contains(id) else { return }
-        run { try await self.fetchConversation(id) }
+        if state.unloaded.contains(id) {
+            run { try await self.fetchConversation(id) }
+        } else if !fetches.values.contains(where: { $0.id == id && $0.round == round }) {
+            startRetries(id, atOnce: true)
+        }
     }
 
     /// A new chat (or the empty one there already is). nil when it couldn't be made (the banner says why).
@@ -333,7 +444,12 @@ public final class RemoteClient {
         default:
             break
         }
-        enqueue { try await self.postAction(action, on: messageID, in: id) }
+        enqueue {
+            if action.isTriage, !self.state.canAct(on: messageID, in: id) {
+                throw RemoteProblem(.changed, TriageConfirmation.changed)
+            }
+            try await self.postAction(action, on: messageID, in: id)
+        }
     }
 
     /// A triage card's button, after its confirmation. Checked again when its turn comes: if the card no

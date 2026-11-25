@@ -7,14 +7,17 @@ import SwiftUI
 struct TriageCardView: View {
     var card: Card
     var scope: CardScope
-    /// The question on screen. It closes when what it's about changes, the card goes busy or the
-    /// connection drops; the client checks once more before sending.
+    /// The question on screen. It closes when what it's about changes, the card goes busy, the chat is out
+    /// of date or the connection drops; the client checks once more before sending.
     @State private var confirming: TriageConfirmation?
 
-    private var holds: Bool { confirming?.holds(card, busy: scope.busy, connected: scope.connected) ?? false }
+    private var holds: Bool {
+        confirming?.holds(card, busy: scope.busy, connected: scope.connected && scope.outOfDate == nil) ?? false
+    }
 
     var body: some View {
-        if let view = TriageRules.view(card, busy: scope.busy, connected: scope.connected, date: { CardDates.short($0) }) {
+        if let view = TriageRules.view(card, busy: scope.busy, connected: scope.connected, outOfDate: scope.outOfDate,
+                                         date: { CardDates.short($0) }) {
             CardBox {
                 HStack(spacing: 8) {
                     CardHeader(title: view.title, detail: view.rows.isEmpty ? nil : "\(view.rows.count)")
@@ -24,6 +27,13 @@ struct TriageCardView: View {
                         .buttonStyle(.borderless)
                         .appFont(.subheadline)
                         .padding(.trailing, 12)
+                }
+                if let notice = view.notice {
+                    Text(notice)
+                        .appFont(.caption)
+                        .foregroundStyle(StatusColors.warning)
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 8)
                 }
                 Divider()
                 if view.rows.isEmpty {

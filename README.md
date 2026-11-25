@@ -191,8 +191,9 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     - Every button but Refresh asks first. The question closes, and nothing is sent, if what it asked
       about changes, the card becomes busy or the connection drops. Rows go only when the Mac updates
       the card.
-    - If the banner says a chat couldn't be fetched, press the card's Refresh before Move all to Trash
-      or Archive all.
+    - After a reconnect, the buttons (Refresh too) stay off until the chat has been fetched again, so
+      they never act on an old card. If that fails, the card says so and the app keeps trying for about
+      a minute; after that, reopen the chat to try again.
   - **Task changes asked for in chat** ("move the dentist to Monday") wait for **Confirm**.
   - What's typed in a card's sheet stays on this device until Done.
   - **Open in Obsidian** opens the note in Obsidian here, if the vault is synced to this device under

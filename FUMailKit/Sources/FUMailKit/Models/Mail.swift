@@ -138,6 +138,8 @@ public struct EmailMessage: Codable, Sendable, Hashable, Identifiable {
     public var bodyNote: String?
     /// Sanitized HTML body from the server, when available.
     public var bodyHTML: String? = nil
+    /// The email's own Message-ID, when the Mac sends it.
+    public var headerMessageID: String? = nil
 
     /// The start of the text on one line, for a folded message.
     public var preview: String {
@@ -216,10 +218,18 @@ public struct ThreadCard: Codable, Sendable, Hashable {
 
     /// Open without the reader unfolding it (so it can't be folded either).
     public func isOpenByDefault(_ message: EmailMessage) -> Bool {
-        if message.id == ref.idString { return true }
+        if isOpened(message) { return true }
         if let newest = messages.last(where: { !isFromMailbox($0) }) { return message.id == newest.id }
         // Every message is yours: the one opened from, else the newest.
-        return !messages.contains { $0.id == ref.idString } && message.id == messages.last?.id
+        return !messages.contains(where: isOpened) && message.id == messages.last?.id
+    }
+
+    /// The message the card was opened from, or another folder's copy of it (a card shows one of them).
+    /// An empty Message-ID counts as none.
+    func isOpened(_ message: EmailMessage) -> Bool {
+        if message.id == ref.idString { return true }
+        guard let opened = ref.headerMessageID?.nilIfEmpty else { return false }
+        return message.headerMessageID == opened
     }
 
     /// Sent from this mailbox (the address the server reports for the account).
@@ -245,7 +255,7 @@ public struct ThreadCard: Codable, Sendable, Hashable {
 
     /// The message a reply answers: the one the card was opened from, else the newest.
     public var replyTarget: EmailMessage? {
-        messages.last { $0.id == ref.idString } ?? messages.last
+        messages.last { $0.id == ref.idString } ?? messages.last(where: isOpened) ?? messages.last
     }
 }
 

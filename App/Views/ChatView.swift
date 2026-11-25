@@ -147,7 +147,8 @@ private struct MessageList: View {
                         MessageRow(message: message,
                                    scope: CardScope(client: client, conversationID: conversationID, messageID: message.id,
                                                     busy: busy.contains(message.id),
-                                                    connected: client.state.connection.connected))
+                                                    connected: client.state.connection.connected,
+                                                    outOfDate: client.state.outOfDate[conversationID]))
                             .equatable()
                             .background(RoundedRectangle(cornerRadius: 10)
                                 .fill(Color.accentColor.opacity(highlighted == message.id ? 0.15 : 0))
@@ -274,7 +275,7 @@ private struct MessageRow: View, Equatable {
     nonisolated static func == (a: MessageRow, b: MessageRow) -> Bool {
         MainActor.assumeIsolated {
             a.message == b.message && a.scope.busy == b.scope.busy && a.scope.connected == b.scope.connected
-                && a.scope.messageID == b.scope.messageID
+                && a.scope.outOfDate == b.scope.outOfDate && a.scope.messageID == b.scope.messageID
         }
     }
 

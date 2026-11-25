@@ -59,6 +59,22 @@ public struct TypedEdit: Equatable, Sendable {
     }
 }
 
+/// A loaded chat whose copy here may be old, until it's fetched again.
+public enum OutOfDate: Equatable, Sendable {
+    /// Being fetched, or about to be.
+    case updating
+    /// The tries ran out.
+    case failed
+
+    /// What a triage card says about its buttons being off.
+    public var notice: String {
+        switch self {
+        case .updating: "Updating this chat. The buttons are off until it's done."
+        case .failed: "Couldn't update this chat, so the buttons are off. Reopen it to try again."
+        }
+    }
+}
+
 /// Something the client has to fetch after applying an event.
 public enum Effect: Equatable, Sendable { case refreshList, refreshInfo }
 
@@ -78,6 +94,9 @@ public struct RemoteState: Equatable, Sendable {
     public var editors: [UUID: EditorState] = [:]
     public var typed: [ChatMessage.ID: TypedEdit] = [:]
     public var connection = Connection()
+    /// Loaded chats that may be old: marked as a refetch begins (a reconnect, config_changed), and cleared
+    /// only by their own successful fetch.
+    public var outOfDate: [Conversation.ID: OutOfDate] = [:]
     /// The Mac's slash commands, for suggestions while typing.
     public var commands: [Command] = []
 
@@ -93,6 +112,17 @@ public struct RemoteState: Equatable, Sendable {
     }
 
     public func isAnswering(_ id: Conversation.ID) -> Bool { chatStatus[id] != nil }
+
+    /// Whether a message's card is the Mac's current one and can take an action: connected, its chat not
+    /// out of date, and not busy.
+    public func canAct(on messageID: ChatMessage.ID, in id: Conversation.ID) -> Bool {
+        connection.connected && outOfDate[id] == nil && !busyMessages.contains(messageID)
+    }
+
+    /// Every loaded chat may be old: a refetch begins.
+    public mutating func markLoadedOutOfDate() {
+        for conversation in conversations where !unloaded.contains(conversation.id) { outOfDate[conversation.id] = .updating }
+    }
 
     /// One event from the Mac, applied to the copy here; returns what to fetch because of it.
     @discardableResult
@@ -164,6 +194,7 @@ public struct RemoteState: Equatable, Sendable {
         let ids = Set(list.map(\.id))
         conversations = list
         unloaded = unloaded.filter { ids.contains($0) }
+        outOfDate = outOfDate.filter { ids.contains($0.key) }
     }
 
     /// `GET /v1/conversations/{id}`: its messages and what's happening in it.
@@ -180,6 +211,22 @@ public struct RemoteState: Equatable, Sendable {
             if detail.busyMessages.contains(message.id) { busyMessages.insert(message.id) } else { busyMessages.remove(message.id) }
         }
         chatStatus[conversation.id] = detail.chatStatus
+    }
+
+    /// A fetch's answer, then its chat's events that came while it was open, in order (the answer may be
+    /// older than them), and only then the chat counts as up to date.
+    public mutating func setDetail(_ detail: ConversationDetail, reapplying events: [APIEvent]) {
+        let id = detail.conversation.id
+        setDetail(detail)
+        for event in events {
+            if event.type == "busy" {
+                // Recorded whichever chat it's for: only this chat's is older than what's shown.
+                guard let messageID = event.messageID,
+                      conversation(id)?.messages.contains(where: { $0.id == messageID }) == true else { continue }
+            }
+            apply(event)
+        }
+        outOfDate[id] = nil
     }
 
     /// `GET /v1/editors` after reconnecting: an editor opened while this device wasn't listening is
@@ -208,6 +255,7 @@ public struct RemoteState: Equatable, Sendable {
         conversations.removeAll { $0.id == id }
         unloaded.remove(id)
         chatStatus[id] = nil
+        outOfDate[id] = nil
     }
 
     public mutating func rename(_ id: Conversation.ID, to title: String) {
