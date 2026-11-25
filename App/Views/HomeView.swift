@@ -2,8 +2,8 @@ import FUMailKit
 import SwiftUI
 
 /// The conversations and the open chat: one at a time on the iPhone (side by side on a wide one). On the
-/// iPad the chat keeps its full width, and the list slides over it: a tap on the chat, picking one or
-/// turning to portrait hides it.
+/// iPad as in TestFlight: beside each other in landscape (hiding the list widens the chat); in portrait
+/// the chat is full screen and the list slides over it, until a tap on the chat or picking one.
 struct HomeView: View {
     @Environment(AppModel.self) private var app
     /// The window's width class (inside the split view, each column reports compact).
@@ -15,6 +15,14 @@ struct HomeView: View {
     @State private var askedOnce = false
     @State private var columns = isPad ? NavigationSplitViewVisibility.doubleColumn : .automatic
 
+    /// Which way the window is, once it's known.
+    @State private var isPortrait: Bool?
+
+    /// The error banners are the chat's to show when the list, which has them, is hidden or over it.
+    private var listShowsBanners: Bool {
+        sizeClass == .regular && !(Self.isPad && (isPortrait != false || columns == .detailOnly))
+    }
+
     private static let isPad = UIDevice.current.userInterfaceIdiom == .pad
 
     var body: some View {
@@ -23,8 +31,7 @@ struct HomeView: View {
                 .modifier(ListWidth(on: Self.isPad))
         } detail: {
             if let id = selection, let client = app.client {
-                // On the iPad the list (and its banners) is usually hidden: the chat shows them too.
-                ChatView(id: id, client: client, jumpTo: $jumpTo, sideBySide: sizeClass == .regular && !Self.isPad) { showSettings = true }
+                ChatView(id: id, client: client, jumpTo: $jumpTo, sideBySide: listShowsBanners) { showSettings = true }
                     .id(id)
             } else {
                 ContentUnavailableView {
@@ -39,15 +46,18 @@ struct HomeView: View {
                 }
             }
         }
-        .modifier(ListOverChat(on: Self.isPad))
         .onChange(of: selection) { _, chosen in
-            if Self.isPad, chosen != nil { columns = .detailOnly }
+            if Self.isPad, isPortrait == true, chosen != nil { columns = .detailOnly }
         }
         // The whole window, so the keyboard doesn't count as turning.
         .background {
             Color.clear
-                .onGeometryChange(for: Bool.self) { $0.size.width < $0.size.height } action: { was, portrait in
-                    if Self.isPad, portrait, !was { columns = .detailOnly }
+                .onGeometryChange(for: Bool.self) { $0.size.width < $0.size.height } action: { _, portrait in
+                    guard Self.isPad, portrait != isPortrait else { return }
+                    let turned = isPortrait != nil
+                    isPortrait = portrait
+                    // Landscape opens the list, turning to portrait hides it. Just opened: there's no chat yet.
+                    columns = portrait && (turned || selection != nil) ? .detailOnly : .doubleColumn
                 }
                 .ignoresSafeArea()
         }
@@ -79,19 +89,6 @@ struct HomeView: View {
             if ids.indices.contains(index) { selection = ids[index] }
         }
         #endif
-    }
-}
-
-/// The list slides over the chat instead of sharing the width with it.
-private struct ListOverChat: ViewModifier {
-    var on: Bool
-
-    func body(content: Content) -> some View {
-        if on {
-            content.navigationSplitViewStyle(.prominentDetail)
-        } else {
-            content
-        }
     }
 }
 
