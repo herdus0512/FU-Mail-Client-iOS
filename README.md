@@ -118,7 +118,8 @@ can't be checked right now. The connection indicator shows Connected, Connecting
 
 ## Using it
 
-- **Conversations:** newest first. The pencil starts a new one. Swipe left to delete; touch and hold
+- **Conversations:** newest first. The pencil starts a new one (an unused one goes if the Mac
+  restarts). Swipe left to delete; touch and hold
   to rename. **Search history** searches the Mac's history, by
   words and meaning.
 - **Chat:** type a command (`/unread`, `/search bob`, `/today`, `/help`) or a question, as on the

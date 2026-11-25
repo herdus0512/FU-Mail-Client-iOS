@@ -3,7 +3,7 @@ import Synchronization
 import Testing
 @testable import FUMailKit
 
-/// A stand-in Mac with one triage card, whose event stream stays open and says what it's told to.
+/// A stand-in Mac with a chat of no interest, then one with a triage card, whose event stream stays open and says what it's told to.
 private final class TriageDesktop: DesktopTransport {
     struct State: Sendable {
         var requests: [String] = []
@@ -12,6 +12,13 @@ private final class TriageDesktop: DesktopTransport {
         var card: String
         var refusal: String?
         var brokenEditors = false
+        var editors = "[]"
+        var brokenFirstChat = false
+        /// The new chats made here that it still has, how many were made, and what asking for another answers.
+        var newChats: Set<String> = []
+        var made = 0
+        var missing = 404
+        var triageChatGone = false
         /// Holds back the answer to an action while it's true.
         var held = false
         /// Holds back the (already written) answer to fetching the chat while it's true.
@@ -51,18 +58,42 @@ private final class TriageDesktop: DesktopTransport {
             state.requests.append(request)
             return state
         }
-        let c1 = id("C1").uuidString
+        let (c0, c1) = (id("C0").uuidString, id("C1").uuidString)
         let chat = #"{"id":"\#(c1)","title":"Triage","createdAt":"2026-11-24T09:00:00Z","updatedAt":"2026-11-24T09:00:00Z""#
         let answer: String
+        func detail(_ id: String, _ messages: String) -> String {
+            #"{"conversation":\#(chat.replacingOccurrences(of: c1, with: id)),"messages":[\#(messages)]},"answering":false,"busyMessages":[]}"#
+        }
         switch "\(method) \(path)" {
         case "GET /v1/info": answer = try fixture("info.json")
-        case "GET /v1/conversations": answer = "[\(chat)}]"
+        case "GET /v1/conversations":
+            answer = "[\(chat.replacingOccurrences(of: c1, with: c0))},\(chat)}]"
+        case "GET /v1/conversations/\(c0)":
+            if now.brokenFirstChat { throw Problems.forStatus(500, reason: "the first chat broke", url: display) }
+            answer = detail(c0, "")
         case "GET /v1/conversations/\(c1)":
-            answer = #"{"conversation":\#(chat),"messages":[\#(now.listed ? message(now.card) : "")]},"answering":false,"busyMessages":[]}"#
+            if now.triageChatGone { throw Problems.forStatus(404, reason: "No such conversation.", url: display) }
+            answer = detail(c1, now.listed ? message(now.card) : "")
+            // The others' failures come first.
+            if now.brokenFirstChat { try await Task.sleep(for: .milliseconds(50)) }
             while state.withLock({ $0.heldChat }) { try await Task.sleep(for: .milliseconds(5)) }
         case "GET /v1/editors":
             if now.brokenEditors { throw Problems.forStatus(500, reason: "editors broke", url: display) }
-            answer = "[]"
+            answer = now.editors
+        case "POST /v1/conversations":
+            let new = state.withLock { state in
+                state.made += 1
+                let new = id("NEW\(state.made)").uuidString
+                state.newChats.insert(new)
+                return new
+            }
+            answer = #"{"id":"\#(new)"}"#
+        case let request where request.hasPrefix("GET /v1/conversations/"):
+            let asked = String(path.dropFirst("/v1/conversations/".count))
+            guard now.newChats.contains(asked) else {
+                throw Problems.forStatus(now.missing, reason: "No such conversation.", url: display)
+            }
+            answer = detail(asked, "")
         case "GET /v1/commands":
             // Slower than the rest, so the failing request is over first.
             if now.brokenEditors { try await Task.sleep(for: .milliseconds(50)) }
@@ -258,6 +289,112 @@ struct TriageClientTests {
         await eventually("reconnected") { client.state.connection.connected }
         #expect(client.state.connection.problem == "editors broke")
         #expect(view?.title == "Caught Spam & Marketing")
+        client.close()
+    }
+
+    // MARK: Reconnecting
+
+    private func reconnect() async {
+        let (before, editors) = (desktop.count("GET /v1/events"), desktop.count("GET /v1/editors"))
+        desktop.drop()
+        await eventually("reconnected") {
+            desktop.count("GET /v1/events") > before && desktop.count("GET /v1/editors") > editors && client.state.connection.connected
+        }
+    }
+
+    private func shown(_ name: String) -> Bool { client.state.conversation(id(name)) != nil }
+
+    @Test func aChatThatFailsOnReconnectDoesntStopTheRest() async throws {
+        await open()
+        client.loadMessages(id("C0"))
+        await eventually("the first chat") { client.state.unloaded.isEmpty }
+        let editor = try fixture("editor-reply.json")
+        let card = desktop.spamCard.replacingOccurrences(of: "50% off everything", with: "60% off everything")
+        desktop.set {
+            $0.brokenFirstChat = true
+            $0.editors = "[\(editor)]"
+            $0.card = card
+        }
+        await reconnect()
+        // All fetched before connected said so: nothing to wait for.
+        #expect(view?.rows.first?.subject == "60% off everything")
+        #expect(client.state.editors.count == 1)
+        #expect(client.state.connection.problem == "the first chat broke")
+        client.close()
+    }
+
+    @Test func theFirstFailureIsTheOneShown() async {
+        await open()
+        client.loadMessages(id("C0"))
+        await eventually("the first chat") { client.state.unloaded.isEmpty }
+        desktop.set {
+            $0.brokenFirstChat = true
+            $0.brokenEditors = true
+        }
+        await reconnect()
+        #expect(client.state.connection.problem == "the first chat broke")
+        client.close()
+    }
+
+    @Test func anEmptyChatTheMacLostIsDroppedWithoutABanner() async {
+        await open()
+        #expect(await client.startConversation() == id("NEW1"))
+        await reconnect()
+        #expect(shown("NEW1"))  // the Mac still has it
+        desktop.set { $0.newChats = [] }  // the Mac restarted
+        await reconnect()
+        #expect(!shown("NEW1"))
+        #expect(client.state.connection.problem == nil)
+        #expect(desktop.count("POST /v1/conversations") == 1)  // not asked for by reconnecting
+        // The pencil asks the Mac, rather than giving back the dead one.
+        #expect(await client.startConversation() == id("NEW2"))
+        client.send("/unread", in: id("NEW2"))
+        await eventually("the command") {
+            desktop.actions.contains { $0.hasPrefix("POST /v1/conversations/\(id("NEW2").uuidString)/send") }
+        }
+        client.close()
+    }
+
+    @Test func aConfigReloadDropsItToo() async {
+        await open()
+        _ = await client.startConversation()
+        desktop.set { $0.newChats = [] }
+        desktop.push(#"{"type":"config_changed"}"#)
+        await eventually("dropped") { !shown("NEW1") }
+        #expect(client.state.connection.problem == nil)
+        #expect(desktop.count("GET /v1/events") == 1)  // without reconnecting
+        client.close()
+    }
+
+    @Test func anEmptyChatIsKeptOnAnyOtherFailure() async {
+        await open()
+        _ = await client.startConversation()
+        desktop.set {
+            $0.newChats = []
+            $0.missing = 500
+        }
+        await reconnect()
+        #expect(shown("NEW1"))
+        #expect(client.state.connection.problem == "No such conversation.")
+        client.close()
+    }
+
+    @Test func aChatWithMessagesIsNeverDroppedForA404() async {
+        await open()
+        desktop.set { $0.triageChatGone = true }
+        await reconnect()
+        #expect(view?.title == "Caught Spam & Marketing")
+        #expect(client.state.connection.problem == "No such conversation.")
+        client.close()
+    }
+
+    @Test func aChatNotLoadedYetIsKeptAndSaysWhy() async {
+        desktop.set { $0.triageChatGone = true }
+        client.start()
+        await eventually("connected") { client.state.connection.connected }
+        client.loadMessages(c1)
+        await eventually("the reason") { client.state.connection.problem == "No such conversation." }
+        #expect(shown("C1") && client.state.unloaded.contains(c1))
         client.close()
     }
 

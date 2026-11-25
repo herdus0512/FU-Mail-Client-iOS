@@ -117,8 +117,15 @@ public final class RemoteClient {
 
     /// The details, the conversation list, every loaded conversation, and this device's draft editors.
     /// Everything at once, not one after another: over Cloudflare or a slow link, each request is a
-    /// trip there and back, and "Connected" waits for all of them.
+    /// trip there and back, and "Connected" waits for all of them. The banner shows the first thing
+    /// that failed.
     private func resync() async {
+        var failed = false
+        func report(_ error: Error) {
+            guard !failed, !(error is CancellationError) else { return }
+            failed = true
+            update { $0.connection.problem = Problems.describe(error, url: display).message }
+        }
         // On its own, so a failure below doesn't leave old suggestions showing.
         async let commands: Void = refreshCommands()
         do {
@@ -129,31 +136,38 @@ public final class RemoteClient {
             state.connection.problem = nil
             try await list
             // The chats already open here (the list says which are still there), all at once too.
-            let open = state.conversations.map(\.id).filter { !state.unloaded.contains($0) }
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                for id in open { group.addTask { try await self.fetchConversation(id) } }
-                try await group.waitForAll()
-            }
+            if let failure = await refetchLoaded() { report(failure) }
             let openEditors = try await editors
             update { $0.setEditors(openEditors) }
-        } catch is CancellationError {
         } catch {
-            update { $0.connection.problem = Problems.describe(error, url: display).message }
+            report(error)
         }
         do {
             try await commands
-        } catch is CancellationError {
         } catch {
-            update { $0.connection.problem = $0.connection.problem ?? Problems.describe(error, url: display).message }
+            report(error)
         }
     }
 
-    /// Every loaded conversation again. One that can't be fetched is left as it was (the next resync
-    /// tries again).
-    private func refetchLoaded() async {
+    /// Every loaded conversation again. One that can't be fetched is left as it was, and the rest still
+    /// are. Returns the first failure.
+    @discardableResult
+    private func refetchLoaded() async -> Error? {
         let open = state.conversations.map(\.id).filter { !state.unloaded.contains($0) }
-        await withTaskGroup(of: Void.self) { group in
-            for id in open { group.addTask { try? await self.fetchConversation(id) } }
+        return await withTaskGroup(of: Error?.self) { group in
+            for id in open {
+                group.addTask {
+                    do {
+                        try await self.fetchConversation(id)
+                        return nil
+                    } catch {
+                        return error
+                    }
+                }
+            }
+            var first: Error?
+            for await failure in group { first = first ?? failure }
+            return first
         }
     }
 
@@ -178,9 +192,16 @@ public final class RemoteClient {
         update { $0.setList(items) }
     }
 
+    /// A conversation's messages. An empty chat made here isn't saved over there until it's used, so a
+    /// Mac that restarted no longer has it: it's dropped (a new chat would only give it back, and sending
+    /// in it fails).
     private func fetchConversation(_ id: Conversation.ID) async throws {
-        let detail = try await get(ConversationDetail.self, "/v1/conversations/\(id.uuidString)")
-        update { $0.setDetail(detail) }
+        do {
+            let detail = try await get(ConversationDetail.self, "/v1/conversations/\(id.uuidString)")
+            update { $0.setDetail(detail) }
+        } catch let problem as RemoteProblem where problem.kind == .notFound && state.isEmptyChat(id) {
+            update { $0.removeConversation(id) }  // checked just now: nothing can have arrived in between
+        }
     }
 
     private func update(_ change: (inout RemoteState) -> Void) {

@@ -87,6 +87,11 @@ public struct RemoteState: Equatable, Sendable {
         conversations.first { $0.id == id }
     }
 
+    /// Known to have no messages (rather than not fetched yet).
+    public func isEmptyChat(_ id: Conversation.ID) -> Bool {
+        !unloaded.contains(id) && conversation(id)?.messages.isEmpty == true
+    }
+
     public func isAnswering(_ id: Conversation.ID) -> Bool { chatStatus[id] != nil }
 
     /// One event from the Mac, applied to the copy here; returns what to fetch because of it.
