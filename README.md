@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 4.10.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 4.11.0, for FU Mail 4.6.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -190,6 +190,8 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     - Every button but Refresh asks first. The question closes, and nothing is sent, if what it asked
       about changes, the card becomes busy or the connection drops. Rows go only when the Mac updates
       the card.
+    - If the banner says a chat couldn't be fetched, press the card's Refresh before Move all to Trash
+      or Archive all.
   - **Task changes asked for in chat** ("move the dentist to Monday") wait for **Confirm**.
   - What's typed in a card's sheet stays on this device until Done.
   - **Open in Obsidian** opens the note in Obsidian here, if the vault is synced to this device under
@@ -227,6 +229,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 4.11.0 | 2026-11-25 | **Triage review cards** (`/triage spam`, `clean` and `archive`), when this device's token is in the Mac's `api.full_triage` (FU Mail 5.8.0 and later): delete, keep, archive, the spam and skip lists, Move all to Trash and Archive all. Every button but Refresh asks first, and the question closes if what it asked about changes. An email's permanent Message-ID goes back with it, so opening a row finds the right email. Being listed later shows the cards and commands at once, and a background refresh no longer clears a refused action's message. |
 | 4.10.0 | 2026-11-23 | **Archive** button on thread cards, when the email's server supports it: moves the email to Archive without a confirmation dialog and appends the Mac's `"Archived."` confirmation. |
 | 4.9.1 | 2026-11-23 | Fix in **`/compose`**: the **From** account selector now uses a full-width single-line menu so long addresses truncate cleanly instead of wrapping. |
 | 4.9.0 | 2026-11-23 | **`/compose`** in the draft editor (with a **From** account picker, instructions, **Write / Rewrite**, and **Save to Drafts**) and recipient autocomplete chips from `GET /v1/contacts` on `To`, `Cc`, and `Bcc`. |
