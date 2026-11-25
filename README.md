@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 5.9.5, for FU Mail 5.9.3 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 6.0.0, for FU Mail 6.1.0 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad in landscape. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -187,7 +187,9 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     - **Caught Spam & Marketing:** Delete and Not spam on each row; **⋯** has Add to Spam list & Delete
       and Not spam (+ Skip list), which also stops triage checking that sender. Move all to Trash (n).
     - **Inbox Cleanup:** Delete or Keep. Move all to Trash (n).
-    - **Archive Replied:** Archive or Keep. Archive all (n).
+    - **Archive** (FU Mail 6.1.0 and later): each row is a conversation. Two lists, You replied last and
+      Complete, each with its own Archive all (n). Archive (Archive n for several emails) or Keep; **⋯** has
+      Archive & remember and Keep & remember, which also suggest a note.
     - Every button but Refresh asks first. The question closes, and nothing is sent, if what it asked
       about changes, the card becomes busy or the connection drops. Rows go only when the Mac updates
       the card.
@@ -233,6 +235,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 6.0.0 | 2026-11-26 | **Archive card** for FU Mail 6.1.0: each row is a conversation (Archive n moves its n Inbox emails), two lists (You replied last, Complete) each with its own Archive all, the scan's summary, and Archive & remember / Keep & remember in the row's menu. Older Macs' cards work as before. |
 | 5.9.5 | 2026-11-25 | **iPad:** the conversations are beside the chat in landscape (hiding them widens the chat), and slide over it in portrait. Turning to landscape opens them; turning to portrait hides them. iPhone unchanged. |
 | 5.9.4 | 2026-11-25 | **iPad:** the conversations slide over the chat, which keeps its full width; a tap on the chat, picking one, or turning to portrait hides them. Error banners show over the chat too. iPhone unchanged. |
 | 5.9.3 | 2026-11-25 | Version matched to FU Mail 5.9.3 on the Mac and Android. |
