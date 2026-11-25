@@ -125,7 +125,15 @@ public struct CleanCard: Codable, Sendable, Hashable {
     }
 }
 
-/// One Inbox email you've already replied to.
+/// One Inbox email that Archive moves (FU Mail 6.1.0 and later).
+public struct TriageArchiveTarget: Codable, Sendable, Hashable {
+    public var ref: EmailRef
+    public var from: EmailAddress?
+    public var subject: String?
+    public var received: Date?
+}
+
+/// One Inbox conversation you've already replied to, or one judged complete.
 public struct TriageArchiveItem: Codable, Sendable, Hashable {
     /// Sent back unchanged as `email_key`.
     public var emailKey: String
@@ -135,6 +143,15 @@ public struct TriageArchiveItem: Codable, Sendable, Hashable {
     public var received: Date?
     /// Swift's `distantPast` (year 1) when the Mac knows you replied, but not when: see `replied`.
     public var repliedAt: Date?
+    /// Why it's judged complete (the Complete list).
+    public var reason: String?
+    /// The Inbox emails Archive moves; one (the ref's) when left out.
+    public var targets: [TriageArchiveTarget]?
+    /// How many of `targets` are unread (shown only).
+    public var unread: Int?
+
+    /// How many emails one Archive moves.
+    public var emailCount: Int { targets?.count ?? 1 }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -144,6 +161,9 @@ public struct TriageArchiveItem: Codable, Sendable, Hashable {
         subject = try values.decodeIfPresent(String.self, forKey: .subject) ?? ""
         received = try values.decodeIfPresent(Date.self, forKey: .received)
         repliedAt = try values.decodeIfPresent(Date.self, forKey: .repliedAt)
+        reason = try values.decodeIfPresent(String.self, forKey: .reason)
+        targets = try values.decodeIfPresent([TriageArchiveTarget].self, forKey: .targets)
+        unread = try values.decodeIfPresent(Int.self, forKey: .unread)
     }
 
     /// When you replied, if that's known.
@@ -166,11 +186,17 @@ public struct RepliedArchiveCard: Codable, Sendable, Hashable {
     public var rows: [Row]
     public var days: Int
     public var statusNote: String?
+    /// Conversations judged complete (FU Mail 6.1.0 and later): `archive_complete_all` acts on these only.
+    public var complete: [Row]?
+    /// What the scan found, e.g. "40 conversations: 6 replied, 4 complete, 25 waiting for you".
+    public var scanNote: String?
 
-    public init(rows: [Row] = [], days: Int = 7, statusNote: String? = nil) {
+    public init(rows: [Row] = [], days: Int = 7, statusNote: String? = nil, complete: [Row]? = nil, scanNote: String? = nil) {
         self.rows = rows
         self.days = days
         self.statusNote = statusNote
+        self.complete = complete
+        self.scanNote = scanNote
     }
 
     public init(from decoder: Decoder) throws {
@@ -178,5 +204,7 @@ public struct RepliedArchiveCard: Codable, Sendable, Hashable {
         rows = try values.decodeIfPresent([Row].self, forKey: .rows) ?? []
         days = try values.decodeIfPresent(Int.self, forKey: .days) ?? 7
         statusNote = try values.decodeIfPresent(String.self, forKey: .statusNote)
+        complete = try values.decodeIfPresent([Row].self, forKey: .complete)
+        scanNote = try values.decodeIfPresent(String.self, forKey: .scanNote)
     }
 }

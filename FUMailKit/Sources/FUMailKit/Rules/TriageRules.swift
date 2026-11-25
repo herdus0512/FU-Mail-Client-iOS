@@ -14,6 +14,8 @@ public struct TriageConfirmation: Sendable, Equatable {
         case spamRow(SpamCard.Row)
         case cleanRow(CleanCard.Row)
         case repliedRow(RepliedArchiveCard.Row)
+        /// One of an archive card's lists, as shown: its "Archive all" acts on that list only.
+        case repliedList(complete: Bool, [RepliedArchiveCard.Row])
     }
 
     public var action: CardAction
@@ -33,7 +35,9 @@ public struct TriageConfirmation: Sendable, Equatable {
         return switch (seen, card) {
         case (.spamRow(let row), .spam(let current)): current.rows.contains(row)
         case (.cleanRow(let row), .clean(let current)): current.rows.contains(row)
-        case (.repliedRow(let row), .repliedArchive(let current)): current.rows.contains(row)
+        case (.repliedRow(let row), .repliedArchive(let current)): (current.rows + (current.complete ?? [])).contains(row)
+        case (.repliedList(let complete, let rows), .repliedArchive(let current)):
+            (complete ? current.complete ?? [] : current.rows) == rows
         default: false
         }
     }
@@ -74,14 +78,27 @@ public struct TriageRow: Sendable, Equatable, Identifiable {
     public var id: String { emailKey }
 }
 
+/// One list of a card. The archive card has two, with titles; the others one, without.
+public struct TriageSection: Sendable, Equatable {
+    public var title: String?
+    public var rows: [TriageRow]
+    /// "Move all to Trash (n)" or "Archive all (n)": this list only; nil when there's nothing to move.
+    public var all: TriageButton?
+    /// Shown when a titled list is empty.
+    public var emptyText: String?
+}
+
 public struct TriageView: Sendable, Equatable {
     public var title: String
-    public var rows: [TriageRow]
-    /// "Move all to Trash (n)" or "Archive all (n)"; nil when there's nothing to move.
-    public var all: TriageButton?
+    public var sections: [TriageSection]
+    /// Every row, and the first list's "all" button.
+    public var rows: [TriageRow] { sections.flatMap(\.rows) }
+    public var all: TriageButton? { sections.first?.all }
     public var refresh: CardAction
     public var refreshEnabled: Bool
     public var statusNote: String?
+    /// What the scan found (the archive card).
+    public var scanNote: String? = nil
     /// Why the buttons are off, while the chat is out of date.
     public var notice: String?
     /// Shown instead of rows when there are none (the status note, if there is one).
@@ -141,8 +158,7 @@ public enum TriageRules {
                              received: item.received, details: details(item.ref, item.reason),
                              mark: row.alreadyDeleted ? "Already deleted" : nil, buttons: buttons, menu: menu)
         }
-        return TriageView(title: "Caught Spam & Marketing", rows: rows,
-                          all: moveAll(card.rows.filter(\.canDelete).count, "caught email", .spamDeleteAll, .spam(card), on),
+        return TriageView(title: "Caught Spam & Marketing", sections: [TriageSection(rows: rows, all: moveAll(card.rows.filter(\.canDelete).count, "caught email", .spamDeleteAll, .spam(card), on))],
                           refresh: .spamRefresh, refreshEnabled: on, statusNote: card.statusNote,
                           emptyText: card.statusNote ?? "No caught spam or marketing emails waiting.")
     }
@@ -164,38 +180,66 @@ public enum TriageRules {
                              received: item.received, details: details(item.ref, item.reason),
                              mark: row.alreadyDeleted ? "Already deleted" : nil, buttons: buttons)
         }
-        return TriageView(title: "Inbox Cleanup", rows: rows,
-                          all: moveAll(card.rows.filter(\.canDelete).count, "cleanup item", .cleanDeleteAll, .clean(card), on),
+        return TriageView(title: "Inbox Cleanup", sections: [TriageSection(rows: rows, all: moveAll(card.rows.filter(\.canDelete).count, "cleanup item", .cleanDeleteAll, .clean(card), on))],
                           refresh: .cleanRefresh, refreshEnabled: on, statusNote: card.statusNote,
                           emptyText: card.statusNote ?? "No inbox cleanup items waiting.")
     }
 
+    /// Two lists, "You replied last" and "Complete", each with its own "Archive all". A row is a conversation:
+    /// Archive moves every Inbox email in it (`targets`).
     public static func view(_ card: RepliedArchiveCard, busy: Bool, connected: Bool, date: (Date) -> String) -> TriageView {
         let on = enabled(busy, connected)
-        let rows = card.rows.map { row -> TriageRow in
-            let item = row.item
-            var buttons: [TriageButton] = []
-            if !row.alreadyArchived {
-                buttons.append(button("Archive", .archiveRepliedOne(emailKey: item.emailKey), "Archive this email?",
-                                      what(item.from, item.subject, "It will be moved out of Inbox to Archive."),
-                                      confirm: "Archive", destructive: false, seen: .repliedRow(row), on))
+        func emails(_ n: Int) -> String { "\(n) Inbox email\(plural(n))" }
+        func list(_ rows: [RepliedArchiveCard.Row], complete: Bool) -> TriageSection {
+            let shown = rows.map { row -> TriageRow in
+                let item = row.item
+                let n = item.emailCount
+                let moved = n > 1 ? "\(emails(n)) will be moved to Archive. Sent mail stays where it is."
+                    : "It will be moved out of Inbox to Archive."
+                let remembered = "FU Mail also suggests a note for ## Archive in memory.md, to edit before it's added."
+                func archive(_ remember: Bool) -> TriageButton {
+                    button(remember ? "Archive & remember" : n > 1 ? "Archive \(n)" : "Archive",
+                           .archiveRepliedOne(emailKey: item.emailKey, remember: remember),
+                           n > 1 ? "Archive this conversation?" : "Archive this email?",
+                           what(item.from, item.subject, moved + (remember ? " " + remembered : "")),
+                           confirm: "Archive", destructive: false, seen: .repliedRow(row), on,
+                           detail: remember ? "Also suggests a note to remember it by" : nil)
+                }
+                func keep(_ remember: Bool) -> TriageButton {
+                    button(remember ? "Keep & remember" : "Keep", .archiveRepliedKeep(emailKey: item.emailKey, remember: remember),
+                           "Keep this email?",
+                           what(item.from, item.subject, "Takes it off this card. The email stays in Inbox."
+                                + (remember ? " " + remembered : "")),
+                           confirm: "Keep", destructive: false, seen: .repliedRow(row), on,
+                           detail: remember ? "Also suggests a note to remember it by" : nil)
+                }
+                let why = item.reason?.nilIfEmpty ?? item.replied.map { "replied \(date($0))" }
+                    ?? (complete ? nil : "you replied last")
+                let details = [item.ref.account, n > 1 ? "\(n) emails in Inbox" : nil,
+                               item.unread.map { "\($0) unread" }, why].compactMap { $0 }
+                return TriageRow(emailKey: item.emailKey, ref: item.ref, sender: sender(item.from), subject: subject(item.subject),
+                                 received: item.received, details: details,
+                                 mark: row.alreadyArchived ? "Already archived" : nil,
+                                 buttons: (row.alreadyArchived ? [] : [archive(false)]) + [keep(false)],
+                                 menu: (row.alreadyArchived ? [] : [archive(true)]) + [keep(true)])
             }
-            buttons.append(button("Keep", .archiveRepliedKeep(emailKey: item.emailKey), "Keep this email?",
-                                  what(item.from, item.subject, "Takes it off this card. The email stays in Inbox."),
-                                  confirm: "Keep", destructive: false, seen: .repliedRow(row), on))
-            return TriageRow(emailKey: item.emailKey, ref: item.ref, sender: sender(item.from), subject: subject(item.subject),
-                             received: item.received,
-                             details: details(item.ref, item.replied.map { "replied \(date($0))" } ?? "you replied last"),
-                             mark: row.alreadyArchived ? "Already archived" : nil, buttons: buttons)
+            let left = rows.filter { !$0.alreadyArchived }
+            let count = left.count
+            let all = count == 0 ? nil : button(
+                "Archive all (\(count))", complete ? .archiveCompleteAll : .archiveRepliedAll,
+                "Archive \(count) conversation\(plural(count))?",
+                "\(emails(left.map(\.item.emailCount).reduce(0, +))) will be moved to Archive. Sent mail stays where it "
+                    + "is. A conversation with a new message is left alone.",
+                confirm: "Archive all", destructive: false, seen: .repliedList(complete: complete, rows), on)
+            return TriageSection(title: complete ? "Complete" : "You replied last", rows: shown, all: all,
+                                 emptyText: complete ? "None judged complete." : "None.")
         }
-        let count = card.rows.filter { !$0.alreadyArchived }.count
-        let all = count == 0 ? nil : button("Archive all (\(count))", .archiveRepliedAll,
-                                            "Archive \(count) replied email\(plural(count))?",
-                                            "Each email will be moved out of Inbox to Archive.",
-                                            confirm: "Archive all", destructive: false, seen: .card(.repliedArchive(card)), on)
-        return TriageView(title: "Archive Replied (last \(card.days)d)", rows: rows, all: all,
-                          refresh: .archiveRepliedRefresh, refreshEnabled: on, statusNote: card.statusNote,
-                          emptyText: card.statusNote ?? "No replied-to emails in Inbox from the last \(card.days) days.")
+        var view = TriageView(title: "Archive (last \(card.days)d)",
+                              sections: [list(card.rows, complete: false), list(card.complete ?? [], complete: true)],
+                              refresh: .archiveRepliedRefresh, refreshEnabled: on, statusNote: card.statusNote,
+                              emptyText: card.statusNote ?? "None.")
+        view.scanNote = card.scanNote
+        return view
     }
 
     /// Buttons work unless the card's message is busy, or this device isn't connected (its copy may be old).

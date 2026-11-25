@@ -85,10 +85,13 @@ public enum CardAction: Sendable, Equatable {
     case cleanKeep(emailKey: String)
     case cleanDeleteAll
     case cleanRefresh
-    case archiveRepliedOne(emailKey: String)
+    /// Archive replied, a row of either list. `remember`: also a suggested note for ## Archive.
+    case archiveRepliedOne(emailKey: String, remember: Bool = false)
     /// Archive replied: off the card only.
-    case archiveRepliedKeep(emailKey: String)
+    case archiveRepliedKeep(emailKey: String, remember: Bool = false)
     case archiveRepliedAll
+    /// The Complete list's "Archive all" (FU Mail 6.1.0 and later).
+    case archiveCompleteAll
     case archiveRepliedRefresh
 
     /// A triage card's: sent only while its card is the Mac's current one (checked just before sending).
@@ -96,7 +99,7 @@ public enum CardAction: Sendable, Equatable {
         switch self {
         case .spamDelete, .spamConfirmAndDelete, .spamKeepAndSkip, .spamDismiss, .spamDeleteAll, .spamRefresh,
              .cleanDelete, .cleanKeep, .cleanDeleteAll, .cleanRefresh,
-             .archiveRepliedOne, .archiveRepliedKeep, .archiveRepliedAll, .archiveRepliedRefresh: true
+             .archiveRepliedOne, .archiveRepliedKeep, .archiveRepliedAll, .archiveCompleteAll, .archiveRepliedRefresh: true
         default: false
         }
     }
@@ -175,9 +178,14 @@ public enum CardAction: Sendable, Equatable {
         case .cleanKeep(let key): ["action": "clean_keep", "email_key": .string(key)]
         case .cleanDeleteAll: ["action": "clean_delete_all"]
         case .cleanRefresh: ["action": "clean_refresh"]
-        case .archiveRepliedOne(let key): ["action": "archive_replied_one", "email_key": .string(key)]
-        case .archiveRepliedKeep(let key): ["action": "archive_replied_keep", "email_key": .string(key)]
+        case .archiveRepliedOne(let key, let remember):
+            remember ? ["action": "archive_replied_one", "email_key": .string(key), "remember": true]
+                : ["action": "archive_replied_one", "email_key": .string(key)]
+        case .archiveRepliedKeep(let key, let remember):
+            remember ? ["action": "archive_replied_keep", "email_key": .string(key), "remember": true]
+                : ["action": "archive_replied_keep", "email_key": .string(key)]
         case .archiveRepliedAll: ["action": "archive_replied_all"]
+        case .archiveCompleteAll: ["action": "archive_complete_all"]
         case .archiveRepliedRefresh: ["action": "archive_replied_refresh"]
         }
     }

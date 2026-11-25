@@ -36,18 +36,34 @@ struct TriageCardView: View {
                         .padding(.bottom, 8)
                 }
                 Divider()
-                if view.rows.isEmpty {
+                if view.sections.allSatisfy({ $0.title == nil }) && view.rows.isEmpty {
                     Text(view.emptyText).appFont(.footnote).foregroundStyle(.secondary).padding(12)
                 } else {
-                    ForEach(view.rows) { row in
-                        if row.id != view.rows.first?.id { Divider() }
-                        TriageRowView(row: row, onAsk: ask) { scope.client.openEmail(row.ref, in: scope.conversationID) }
+                    ForEach(Array(view.sections.enumerated()), id: \.offset) { index, section in
+                        if let title = section.title {
+                            if index > 0 { Divider() }
+                            HStack(spacing: 6) {
+                                Text(title).appFont(.subheadline, weight: .semibold)
+                                Text("\(section.rows.count)").appFont(.caption).foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
+                            if section.rows.isEmpty, let empty = section.emptyText {
+                                Text(empty).appFont(.footnote).foregroundStyle(.secondary)
+                                    .padding(.horizontal, 12).padding(.bottom, 8)
+                            }
+                        }
+                        ForEach(section.rows) { row in
+                            if row.id != section.rows.first?.id || section.title != nil { Divider() }
+                            TriageRowView(row: row, onAsk: ask) { scope.client.openEmail(row.ref, in: scope.conversationID) }
+                        }
+                        if let all = section.all {
+                            CardActions { TriageButtonView(button: all, onAsk: ask) }
+                        }
                     }
-                    if let all = view.all {
-                        CardActions { TriageButtonView(button: all, onAsk: ask) }
-                    }
-                    if let note = view.statusNote {
-                        if view.all == nil { Divider() }
+                    ForEach([view.scanNote, view.statusNote].compactMap { $0 }, id: \.self) { note in
+                        Divider()
                         Text(note)
                             .appFont(.caption)
                             .foregroundStyle(.secondary)

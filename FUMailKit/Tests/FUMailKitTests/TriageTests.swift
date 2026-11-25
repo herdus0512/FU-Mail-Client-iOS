@@ -177,9 +177,9 @@ struct TriageTests {
 
     @Test func repliedButtons() {
         let v = view(replied)
-        #expect(v.title == "Archive Replied (last 14d)")
-        #expect(labels(v, 0) == [["Archive", "Keep"], []])
-        #expect(labels(v, 2) == [["Keep"], []])
+        #expect(v.title == "Archive (last 14d)")
+        #expect(labels(v, 0) == [["Archive", "Keep"], ["Archive & remember", "Keep & remember"]])
+        #expect(labels(v, 2) == [["Keep"], ["Keep & remember"]])
         #expect(v.rows[2].mark == "Already archived")
         #expect(v.rows[0].buttons.map(\.action) == [.archiveRepliedOne(emailKey: "r1"), .archiveRepliedKeep(emailKey: "r1")])
         #expect(v.refresh == .archiveRepliedRefresh)
@@ -192,7 +192,7 @@ struct TriageTests {
         #expect(view(replied).all?.label == "Archive all (2)")
         #expect(view(spam).all?.confirmation.title == "Move 2 caught emails to Trash?")
         #expect(view(clean).all?.confirmation.title == "Move 1 cleanup item to Trash?")
-        #expect(view(replied).all?.confirmation.title == "Archive 2 replied emails?")
+        #expect(view(replied).all?.confirmation.title == "Archive 2 conversations?")
         // Hidden at 0.
         #expect(view(SpamCard(rows: Array(spam.rows.dropFirst(2)))).all == nil)
         #expect(view(CleanCard(rows: Array(clean.rows.dropFirst()))).all == nil)
@@ -219,7 +219,7 @@ struct TriageTests {
     @Test func emptyCards() {
         #expect(view(SpamCard()).emptyText == "No caught spam or marketing emails waiting.")
         #expect(view(CleanCard()).emptyText == "No inbox cleanup items waiting.")
-        #expect(view(RepliedArchiveCard()).emptyText == "No replied-to emails in Inbox from the last 7 days.")
+        #expect(view(RepliedArchiveCard()).sections.map(\.emptyText) == ["None.", "None judged complete."])
         #expect(view(SpamCard(statusNote: "Moved 3 to Trash.")).emptyText == "Moved 3 to Trash.")
         #expect(view(CleanCard(statusNote: "note")).emptyText == "note")
         #expect(view(RepliedArchiveCard(statusNote: "note")).emptyText == "note")
