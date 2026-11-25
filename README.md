@@ -13,7 +13,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 
 > **Status: 5.9.3, for FU Mail 5.9.3 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
-> drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad. See
+> drafts, events, notes, CRM, tasks) and the draft editor, with the list over the chat on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
 
 ## Setting up the Mac (once)
@@ -215,7 +215,8 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   - Nothing is ever sent as email.
 - **The provider line** at the top shows which model each role uses on the Mac (a globe: off the
   Mac). Tap one for the details.
-- **iPad:** the conversations and the chat side by side. ⌘N starts a new one, ⌘Return sends.
+- **iPad:** the chat has the full width, and the conversations slide over it (the sidebar button); a tap on
+  the chat, picking one, or turning to portrait hides them. ⌘N starts a new one, ⌘Return sends.
 - **Settings → Text size:** Smaller, Default or Larger, as in the Android app: every text (chat,
   cards, titles, labels) is iOS's own size for it times 0.88, 1 or 1.15, so they all change together
   and keep their proportions. iOS's own text size (Display & Brightness → Text Size) still counts.
