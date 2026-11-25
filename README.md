@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 5.9.3, for FU Mail 5.9.3 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 5.9.4, for FU Mail 5.9.3 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, with the list over the chat on the iPad. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -232,6 +232,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 5.9.4 | 2026-11-25 | **iPad:** the conversations slide over the chat, which keeps its full width; a tap on the chat, picking one, or turning to portrait hides them. Error banners show over the chat too. iPhone unchanged. |
 | 5.9.3 | 2026-11-25 | Version matched to FU Mail 5.9.3 on the Mac and Android. |
 | 4.11.1 | 2026-11-25 | **Triage buttons** are off until an out-of-date chat has been fetched again (tried five times; reopen the chat to try again). The message an email card was opened from is found by its Message-ID, so it isn't folded when its number changes. |
 | 4.11.0 | 2026-11-25 | **Triage review cards** (`/triage spam`, `clean` and `archive`), when this device's token is in the Mac's `api.full_triage` (FU Mail 5.8.0 and later): delete, keep, archive, the spam and skip lists, Move all to Trash and Archive all. Every button but Refresh asks first, and the question closes if what it asked about changes. An email's permanent Message-ID goes back with it, so opening a row finds the right email. Being listed later shows the cards and commands at once, and a background refresh no longer clears a refused action's message. |
