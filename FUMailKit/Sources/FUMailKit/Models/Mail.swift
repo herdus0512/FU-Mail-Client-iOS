@@ -27,12 +27,16 @@ public struct EmailRef: Codable, Sendable, Hashable {
     /// As the server gave it: a string for Gmail, a number for Apple Mail (MacIA). Sent back exactly so.
     public var id: JSONValue
     public var threadID: String?
+    /// The email's own Message-ID, when the Mac sends it, which stays the same when its number doesn't.
+    /// Sent back exactly as received.
+    public var headerMessageID: String?
 
-    public init(server: String, account: String?, id: JSONValue, threadID: String?) {
+    public init(server: String, account: String?, id: JSONValue, threadID: String?, headerMessageID: String? = nil) {
         self.server = server
         self.account = account
         self.id = id
         self.threadID = threadID
+        self.headerMessageID = headerMessageID
     }
 
     public var idString: String { id.stringValue ?? id.intValue.map(String.init) ?? id.serialized() }
@@ -253,6 +257,8 @@ public struct DraftSummary: Codable, Sendable, Hashable, Identifiable {
     public var subject: String
     public var snippet: String?
     public var threadID: String?
+    /// The draft's own Message-ID, when the Mac sends it. Sent back exactly as received.
+    public var headerMessageID: String? = nil
 
     public var id: String { "\(server)/\(account ?? "")/\(draftID)" }
 }
@@ -296,6 +302,10 @@ public enum Card: Sendable, Hashable {
     case tasks(TaskListCard)
     case taskDraft(TaskDraftCard)
     case taskChange(TaskChangeCard)
+    /// The triage review cards: the Mac sends them only to a device in its `api.full_triage`.
+    case spam(SpamCard)
+    case clean(CleanCard)
+    case repliedArchive(RepliedArchiveCard)
     /// A kind this version doesn't know (from a newer Mac), or one it couldn't read. Shown as a note
     /// instead of failing the message.
     case unsupported(String)
@@ -333,6 +343,9 @@ extension Card: Codable {
         case "tasks": value(TaskListCard.self).map(Card.tasks)
         case "taskDraft": value(TaskDraftCard.self).map(Card.taskDraft)
         case "taskChange": value(TaskChangeCard.self).map(Card.taskChange)
+        case "spam": value(SpamCard.self).map(Card.spam)
+        case "clean": value(CleanCard.self).map(Card.clean)
+        case "repliedArchive": value(RepliedArchiveCard.self).map(Card.repliedArchive)
         default: nil
         }
         self = card ?? .unsupported(key.stringValue)
@@ -357,6 +370,9 @@ extension Card: Codable {
         case .tasks(let card): try put("tasks", card)
         case .taskDraft(let card): try put("taskDraft", card)
         case .taskChange(let card): try put("taskChange", card)
+        case .spam(let card): try put("spam", card)
+        case .clean(let card): try put("clean", card)
+        case .repliedArchive(let card): try put("repliedArchive", card)
         case .unsupported(let name):
             _ = container.nestedContainer(keyedBy: ValueKey.self, forKey: CaseKey(stringValue: name))
         }

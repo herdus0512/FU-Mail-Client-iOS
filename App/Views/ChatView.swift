@@ -146,7 +146,8 @@ private struct MessageList: View {
                         // (a summary streaming in, a status line), which keeps scrolling smooth.
                         MessageRow(message: message,
                                    scope: CardScope(client: client, conversationID: conversationID, messageID: message.id,
-                                                    busy: busy.contains(message.id)))
+                                                    busy: busy.contains(message.id),
+                                                    connected: client.state.connection.connected))
                             .equatable()
                             .background(RoundedRectangle(cornerRadius: 10)
                                 .fill(Color.accentColor.opacity(highlighted == message.id ? 0.15 : 0))
@@ -271,7 +272,10 @@ private struct MessageRow: View, Equatable {
     var scope: CardScope
 
     nonisolated static func == (a: MessageRow, b: MessageRow) -> Bool {
-        MainActor.assumeIsolated { a.message == b.message && a.scope.busy == b.scope.busy && a.scope.messageID == b.scope.messageID }
+        MainActor.assumeIsolated {
+            a.message == b.message && a.scope.busy == b.scope.busy && a.scope.connected == b.scope.connected
+                && a.scope.messageID == b.scope.messageID
+        }
     }
 
     var body: some View {

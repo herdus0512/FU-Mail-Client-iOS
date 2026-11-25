@@ -39,7 +39,8 @@ make fake-mac     # a pretend Mac with sample cards on http://127.0.0.1:8799 (le
                   #   python3 tools/fake_mac.py --editor starts with a draft editor open, --long makes
                   #   the chat long; Summary and Add to note on a thread answer as the Mac does)
 make run-fake     # the simulator connected to it (debug builds only; nothing is saved)
-                  #   OPEN=2 opens the second conversation; UPTO=4 shows only its first 4 messages;
+                  #   LISTED=0 make fake-mac acts as a Mac whose api.full_triage leaves this device out
+                  #   OPEN=2 opens the second conversation (4: the triage cards); UPTO=4 shows only its first 4 messages;
                   #   SEND=/unread sends it 2 s after the chat opens (the fake answers "Fetching…",
                   #   then a thread card in its place a second later); SEARCH=bob searches the history
                   #   and opens the first result as a tap does; FOCUS=1 puts the cursor
@@ -179,6 +180,16 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     again.
   - **New task** (`/task <text>`, Add task on an email, or by asking): Create, Edit… (title, list,
     due date, details, sent once on Done) or Cancel. Create waits while a title is being suggested.
+  - **Triage review cards** (`/triage spam`, `/triage clean`, `/triage archive [days]`), only when this
+    device's token is named in the Mac's `api.full_triage`; otherwise the Mac leaves them out, and the
+    app shows its refusal as sent. There's nothing to set here. Tap a row to open it.
+    - **Caught Spam & Marketing:** Delete and Not spam on each row; **⋯** has Add to Spam list & Delete
+      and Not spam (+ Skip list), which also stops triage checking that sender. Move all to Trash (n).
+    - **Inbox Cleanup:** Delete or Keep. Move all to Trash (n).
+    - **Archive Replied:** Archive or Keep. Archive all (n).
+    - Every button but Refresh asks first. The question closes, and nothing is sent, if what it asked
+      about changes, the card becomes busy or the connection drops. Rows go only when the Mac updates
+      the card.
   - **Task changes asked for in chat** ("move the dentist to Monday") wait for **Confirm**.
   - What's typed in a card's sheet stays on this device until Done.
   - **Open in Obsidian** opens the note in Obsidian here, if the vault is synced to this device under

@@ -69,6 +69,27 @@ public enum CardAction: Sendable, Equatable {
     case showHTML(on: Bool)
     /// Thread card: save an attachment to the Mac's configured download folder.
     case downloadAttachment(emailID: String, attachmentID: String?, filename: String)
+    /// The triage cards' buttons (only for a device in the Mac's `api.full_triage`; asked for only after
+    /// a confirmation here, see `TriageRules`). Spam: move one to Trash.
+    case spamDelete(emailKey: String)
+    /// Spam: the sender on the spam list, and the email to Trash.
+    case spamConfirmAndDelete(emailKey: String)
+    /// Spam: off the list, and the sender on the skip list.
+    case spamKeepAndSkip(emailKey: String)
+    /// Spam: off the list only.
+    case spamDismiss(emailKey: String)
+    case spamDeleteAll
+    case spamRefresh
+    case cleanDelete(emailKey: String)
+    /// Clean: off the list only.
+    case cleanKeep(emailKey: String)
+    case cleanDeleteAll
+    case cleanRefresh
+    case archiveRepliedOne(emailKey: String)
+    /// Archive replied: off the card only.
+    case archiveRepliedKeep(emailKey: String)
+    case archiveRepliedAll
+    case archiveRepliedRefresh
 
     /// As an API request body.
     public var json: JSONValue {
@@ -134,6 +155,20 @@ public enum CardAction: Sendable, Equatable {
              "email_id": .string(emailID),
              "attachment_id": attachmentID.map(JSONValue.string) ?? .null,
              "filename": .string(filename)]
+        case .spamDelete(let key): ["action": "spam_delete", "email_key": .string(key)]
+        case .spamConfirmAndDelete(let key): ["action": "spam_confirm_and_delete", "email_key": .string(key)]
+        case .spamKeepAndSkip(let key): ["action": "spam_keep_and_skip", "email_key": .string(key)]
+        case .spamDismiss(let key): ["action": "spam_dismiss", "email_key": .string(key)]
+        case .spamDeleteAll: ["action": "spam_delete_all"]
+        case .spamRefresh: ["action": "spam_refresh"]
+        case .cleanDelete(let key): ["action": "clean_delete", "email_key": .string(key)]
+        case .cleanKeep(let key): ["action": "clean_keep", "email_key": .string(key)]
+        case .cleanDeleteAll: ["action": "clean_delete_all"]
+        case .cleanRefresh: ["action": "clean_refresh"]
+        case .archiveRepliedOne(let key): ["action": "archive_replied_one", "email_key": .string(key)]
+        case .archiveRepliedKeep(let key): ["action": "archive_replied_keep", "email_key": .string(key)]
+        case .archiveRepliedAll: ["action": "archive_replied_all"]
+        case .archiveRepliedRefresh: ["action": "archive_replied_refresh"]
         }
     }
 }

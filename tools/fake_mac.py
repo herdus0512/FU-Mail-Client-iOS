@@ -2,9 +2,10 @@
 
 Serves two conversations built from core/src/test/resources/fixtures: one with a list, a thread of
 three, Add to note, CRM, events, a suggested note and a draft; the other with note cards (/obsidian)
-and a CRM card that starts at its preview; and a third with the task cards (tasks, a new task, a change) on http://127.0.0.1:8799. In the emulator
-the address is http://10.0.2.2:8799 and the token is fum_smoke. Buttons answer 202 and change
-nothing; events are only pings. Python 3, standard library only.
+and a CRM card that starts at its preview; a third with the task cards (tasks, a new task, a change); and a fourth with the triage review cards, on http://127.0.0.1:8799. In the emulator
+the address is http://10.0.2.2:8799 and the token is fum_smoke. Most buttons answer 202 and
+change nothing; the triage cards' update their card, as the Mac does. LISTED=0 acts as a Mac without this
+device in api.full_triage: no triage cards, and their actions are refused. Python 3, standard library only.
 """
 import datetime, json, os, sys, threading, time, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -78,6 +79,8 @@ NOTES = [
 ]
 C2 = "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0B00"
 C3 = "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0C00"
+C4 = "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0D00"
+LISTED = os.environ.get("LISTED", "1") != "0"
 
 def day(offset):
     return (datetime.date.today() + datetime.timedelta(days=offset)).isoformat()
@@ -98,12 +101,21 @@ TASKS = [
     msg(6, "assistant", "", {"taskChange": {"_0": {"task": {"id": "t2", "title": "Dentist", "list": "Inbox", "completed": False, "dueDate": day(0), "notes": ""},
         "change": {"reschedule": {"dueDate": day(2)}}, "stage": "confirming"}}}),
 ]
+spam_card, clean_card, replied_card = json.loads(fx("triage-cards.json"))
+TRIAGE = [
+    msg(1, "user", "/triage spam"), msg(2, "assistant", "", spam_card),
+    msg(3, "user", "/triage clean"), msg(4, "assistant", "", clean_card),
+    msg(5, "user", "/triage archive 14"), msg(6, "assistant", "", replied_card),
+]
+for m in TRIAGE: m["id"] = m["id"].replace("-0000-", "-0D00-", 1)
+def hidden(m): return not LISTED and any(k in m.get("card", {}) for k in ("spam", "clean", "repliedArchive"))
 CONV = {"conversation": {"id": C1, "title": "Unread this morning", "createdAt": "2026-11-13T08:00:00Z",
                          "updatedAt": "2026-11-13T08:05:00Z", "messages": messages},
         "chatStatus": "Searching email (from Bob · last 2 days)…", "answering": True, "busyMessages": []}
 LIST = [{"id": C3, "title": "Tasks", "createdAt": "2026-11-13T08:00:00Z", "updatedAt": "2026-11-13T09:00:00Z"},
         {"id": C1, "title": "Unread this morning", "createdAt": "2026-11-13T08:00:00Z", "updatedAt": "2026-11-13T08:05:00Z"},
-        {"id": "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0B00", "title": "Notes: UOB and NTT", "createdAt": "2026-11-12T08:00:00Z", "updatedAt": "2026-11-12T09:00:00Z"}]
+        {"id": "5A277C52-1D0B-4A43-9C9E-2D5B8F1E0B00", "title": "Notes: UOB and NTT", "createdAt": "2026-11-12T08:00:00Z", "updatedAt": "2026-11-12T09:00:00Z"},
+        {"id": C4, "title": "Triage", "createdAt": "2026-11-11T08:00:00Z", "updatedAt": "2026-11-11T09:00:00Z"}]
 
 # As the desktop's /help lists them (GET /v1/commands).
 COMMANDS = [{"name": n, "args": a, "summary": s} for n, a, s in [
@@ -113,6 +125,7 @@ COMMANDS = [{"name": n, "args": a, "summary": s} for n, a, s in [
     ("/drafts", "[n]", "your drafts"), ("/today", "", "today's events"), ("/events", "[days|words]", "upcoming events"),
     ("/learn", "[n]", "suggested notes from your edits"), ("/memory", "[n]", "your notes and the signature"),
     ("/crm", "[text]", "post an update to a project note"), ("/archive", "[words] [with person]", "search the archive"), ("/obsidian", "[n]", "add card n to an Obsidian note"),
+    ("/triage", "status|run|clean|archive|spam|unspam|skip|unskip" if LISTED else "status|run", "the email triage"),
     ("/rename", "<title>", "rename this chat"), ("/mcp", "[status|start|stop|restart] [server]", "the mail servers"),
     ("/help", "", "lists the commands")]]
 
@@ -157,6 +170,25 @@ def answer_with_thread(conversation, placeholder_text):
         push({"type": "message_updated", "conversationID": conversation, "message": dict(placeholder, text="", card=card)})
     threading.Thread(target=later, daemon=True).start()
 
+def triage_action(conversation, message_id, body):
+    """As the Mac: busy, then the card without the rows that went, then not busy."""
+    message = next((m for m in TRIAGE if m["id"] == message_id and "card" in m), None)
+    if message is None: return
+    name, (kind, value) = body["action"], next(iter(message["card"].items()))
+    card, done = value["_0"], "alreadyArchived" if kind == "repliedArchive" else "alreadyDeleted"
+    push({"type": "busy", "messageID": message_id, "busy": True})
+    time.sleep(1.5)
+    if name.endswith("_all"):
+        card["rows"] = [r for r in card["rows"] if not r[done] and not r["item"].get("canDelete", True)]
+        card["statusNote"] = "Archived." if kind == "repliedArchive" else "Moved to Trash."
+    elif name.endswith("_refresh"):
+        card["statusNote"] = "Checked again."
+    else:
+        card["rows"] = [r for r in card["rows"] if r["item"]["emailKey"] != body.get("email_key")]
+        card["statusNote"] = f"{name} done."
+    push({"type": "message_updated", "conversationID": conversation, "message": message})
+    push({"type": "busy", "messageID": message_id, "busy": False})
+
 def summarize(conversation, message_id):
     """Summary on a thread: the card turns to its Summary side, which streams in, as the Mac's does."""
     original = next((m for m in messages if m["id"] == message_id and "thread" in m.get("card", {})), None)
@@ -195,6 +227,9 @@ class H(BaseHTTPRequestHandler):
             return self.send_json(200, dict(CONV, conversation=dict(CONV["conversation"], id=C3, title="Tasks", messages=TASKS), chatStatus=None, answering=False))
         if method == "GET" and path == f"/v1/conversations/{C2}":
             return self.send_json(200, dict(CONV, conversation=dict(CONV["conversation"], id=C2, title="Notes: UOB and NTT", messages=NOTES), chatStatus=None, answering=False))
+        if method == "GET" and path == f"/v1/conversations/{C4}":
+            shown = [m for m in TRIAGE if not hidden(m)]
+            return self.send_json(200, dict(CONV, conversation=dict(CONV["conversation"], id=C4, title="Triage", messages=shown), chatStatus=None, answering=False))
         if method == "GET" and path.startswith("/v1/conversations/"): return self.send_json(200, CONV)
         global EDITOR
         if method == "GET" and path == "/v1/editors":
@@ -220,6 +255,9 @@ class H(BaseHTTPRequestHandler):
                     if time.time() - last_ping > 5: self.wfile.write(b": ping\n\n"); last_ping = time.time()
                     self.wfile.flush(); time.sleep(0.2)
             except Exception: return
+        if method == "POST" and path.endswith("/action") and json.loads(body or "{}").get("action", "").startswith(("spam_", "clean_", "archive_replied_")):
+            if not LISTED: return self.send_json(400, {"error": "Spam review isn't available on this device (the fake Mac's refusal)."})
+            threading.Thread(target=triage_action, args=(path.split("/")[3], path.split("/")[5], json.loads(body)), daemon=True).start()
         if method == "POST" and path.endswith("/open"):
             # Opening a list row: "Opening…", then the thread in its place, as on the Mac.
             answer_with_thread(path.split("/")[3], "Opening…")

@@ -96,6 +96,16 @@ public enum CardText {
             add(outcome)
             if let problem = change.problem { add(problem) }
 
+        case .spam, .clean, .repliedArchive:
+            guard let triage = TriageRules.view(card, busy: false, connected: true, date: { when($0, timeZone) }) else { break }
+            add(triage.title)
+            if triage.rows.isEmpty { add(triage.emptyText) }
+            for (index, row) in triage.rows.enumerated() {
+                add("\(index + 1). \(row.sender) — \(row.subject)  \(when(row.received, timeZone))".trimmingTrailing())
+                add((row.details + [row.mark].compactMap { $0 }).joined(separator: " · "))
+            }
+            if !triage.rows.isEmpty, let note = triage.statusNote { add(note) }
+
         case .notes(let notes):
             add("Add to note: \(subject(notes.subject))")
             if let chosen = notes.chosen { add("→ \(chosen.title)") }

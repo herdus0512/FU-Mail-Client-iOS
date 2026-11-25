@@ -8,6 +8,8 @@ struct CardScope {
     var conversationID: Conversation.ID
     var messageID: ChatMessage.ID
     var busy: Bool
+    /// The event stream is open, so the card shown is the Mac's current one.
+    var connected: Bool
 
     var info: APIInfo? { client.state.info }
 
@@ -190,6 +192,7 @@ struct CardView: View {
         case .tasks(let tasks): TaskListCardView(card: tasks, scope: scope)
         case .taskDraft(let draft): TaskDraftCardView(card: draft, scope: scope)
         case .taskChange(let change): TaskChangeCardView(card: change, scope: scope)
+        case .spam, .clean, .repliedArchive: TriageCardView(card: card, scope: scope)
         case .unsupported(let name):
             CardBox {
                 Text("A “\(name)” card this version of the app can't show. It's on the Mac.")

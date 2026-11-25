@@ -78,7 +78,10 @@ public final class RemoteClient {
                         if !Task.isCancelled { state.connection.connected = true }
                         pause = backoff.first
                     case .data(let text):
-                        receive(text)
+                        // This device may have just been given triage's cards (or lost them): fetch the
+                        // chats again. Here, before the next event is read, so an answer from before an
+                        // event can't undo it.
+                        if receive(text)?.type == "config_changed" { await refetchLoaded() }
                     }
                 }
                 throw RemoteProblem(.unreachable, "The connection to \(display) closed.")
@@ -93,9 +96,11 @@ public final class RemoteClient {
     }
 
     /// One event's data from the stream. Events this version can't read are skipped.
-    func receive(_ text: String) {
-        guard let event = try? APICoding.decoder.decode(APIEvent.self, from: Data(text.utf8)) else { return }
+    @discardableResult
+    func receive(_ text: String) -> APIEvent? {
+        guard let event = try? APICoding.decoder.decode(APIEvent.self, from: Data(text.utf8)) else { return nil }
         apply(event)
+        return event
     }
 
     func apply(_ event: APIEvent) {
@@ -104,10 +109,8 @@ public final class RemoteClient {
             switch effect {
             case .refreshList: run(quiet: true) { try await self.refreshList() }
             case .refreshInfo:
-                run(quiet: true) {
-                    try await self.refreshInfo()
-                    try await self.refreshCommands()
-                }
+                run(quiet: true) { try await self.refreshInfo() }
+                run(quiet: true) { try await self.refreshCommands() }
             }
         }
     }
@@ -116,11 +119,12 @@ public final class RemoteClient {
     /// Everything at once, not one after another: over Cloudflare or a slow link, each request is a
     /// trip there and back, and "Connected" waits for all of them.
     private func resync() async {
+        // On its own, so a failure below doesn't leave old suggestions showing.
+        async let commands: Void = refreshCommands()
         do {
             async let info: Void = refreshInfo()
             async let list: Void = refreshList()
             async let editors = get([EditorState].self, "/v1/editors")
-            async let commands: Void = refreshCommands()
             try await info
             state.connection.problem = nil
             try await list
@@ -132,10 +136,24 @@ public final class RemoteClient {
             }
             let openEditors = try await editors
             update { $0.setEditors(openEditors) }
-            try await commands
         } catch is CancellationError {
         } catch {
             update { $0.connection.problem = Problems.describe(error, url: display).message }
+        }
+        do {
+            try await commands
+        } catch is CancellationError {
+        } catch {
+            update { $0.connection.problem = $0.connection.problem ?? Problems.describe(error, url: display).message }
+        }
+    }
+
+    /// Every loaded conversation again. One that can't be fetched is left as it was (the next resync
+    /// tries again).
+    private func refetchLoaded() async {
+        let open = state.conversations.map(\.id).filter { !state.unloaded.contains($0) }
+        await withTaskGroup(of: Void.self) { group in
+            for id in open { group.addTask { try? await self.fetchConversation(id) } }
         }
     }
 
@@ -171,7 +189,8 @@ public final class RemoteClient {
     }
 
     /// Runs a request in the background. A failure shows in the banner, or goes to `onFailure`; with
-    /// `quiet`, a failure is dropped (the next resync fetches it anyway).
+    /// `quiet` (a refresh nobody asked for), a failure is dropped (the next resync fetches it anyway),
+    /// and a success leaves the banner: it may be a refusal that hasn't been read yet.
     @discardableResult
     private func run(quiet: Bool = false, onFailure: (@MainActor (String) -> Void)? = nil,
                      _ work: @escaping @MainActor () async throws -> Void) -> Task<Void, Never> {
@@ -183,7 +202,7 @@ public final class RemoteClient {
         do {
             try await work()
             // A request worked: a banner left over from an earlier one is stale once the stream is up.
-            update { if $0.connection.connected { $0.connection.problem = nil } }
+            if !quiet { update { if $0.connection.connected { $0.connection.problem = nil } } }
         } catch is CancellationError {
         } catch {
             guard !closed, !quiet else { return }
@@ -294,6 +313,18 @@ public final class RemoteClient {
             break
         }
         enqueue { try await self.postAction(action, on: messageID, in: id) }
+    }
+
+    /// A triage card's button, after its confirmation. Checked again when its turn comes: if the card no
+    /// longer shows what was confirmed, nothing is sent, and the banner says so.
+    public func triageAction(_ confirmation: TriageConfirmation, on messageID: ChatMessage.ID, in id: Conversation.ID) {
+        expectReply(in: id)  // when it can't be done, a message below says why
+        enqueue {
+            guard confirmation.holds(self.state, on: messageID, in: id) else {
+                throw RemoteProblem(.changed, TriageConfirmation.changed)
+            }
+            try await self.postAction(confirmation.action, on: messageID, in: id)
+        }
     }
 
     /// Open in browser on a draft card: the link to open, or nil (no link, or the draft is gone). A

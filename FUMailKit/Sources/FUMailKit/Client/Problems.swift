@@ -15,6 +15,8 @@ public struct RemoteProblem: Error, Equatable, LocalizedError {
         case busy
         /// 404: e.g. an editor that's already closed.
         case notFound
+        /// A confirmed card changed before its action was sent: nothing was.
+        case changed
         /// Plain HTTP that iOS (App Transport Security) or this app won't send.
         case cleartextBlocked
         /// HTTPS failed (certificate, handshake).

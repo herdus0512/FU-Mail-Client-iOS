@@ -1,0 +1,17 @@
+[
+{"spam":{"_0":{"rows":[
+ {"alreadyDeleted":false,"item":{"emailKey":"gmail-mcp|fanda|18c2a","ref":{"server":"gmail-mcp","account":"fanda","id":"18c2a","threadID":"t-18c2a"},"from":{"name":"Acme Deals","email":"deals@acme.example"},"subject":"50% off everything","received":"2026-11-24T08:30:00Z","reason":"marketing","fromSpamList":false,"caughtAt":"2026-11-24T09:00:00Z","canDelete":true,"somethingNew":{"a":1}}},
+ {"alreadyDeleted":false,"item":{"emailKey":"macia||40213","ref":{"server":"macia","id":40213,"headerMessageID":"<a+b/c=@x.example>"},"from":{"email":"promo@list.example"},"subject":"Webinar","received":"2026-11-23T08:30:00Z","reason":"on the spam list","fromSpamList":true,"caughtAt":"2026-11-24T09:00:00Z","canDelete":true}},
+ {"alreadyDeleted":true,"item":{"emailKey":"gmail-mcp|fanda|18c2c","ref":{"server":"gmail-mcp","account":"fanda","id":"18c2c"},"from":{"email":"gone@list.example"},"subject":"Gone","reason":"marketing","fromSpamList":false,"caughtAt":"2026-11-24T09:00:00Z","canDelete":true}},
+ {"alreadyDeleted":false,"item":{"emailKey":"outlook|work|AAQk","ref":{"server":"outlook","account":"work","id":"AAQk"},"subject":"","reason":"no sender","fromSpamList":false,"caughtAt":"2026-11-24T09:00:00Z","canDelete":false}}
+],"statusNote":"1 already deleted outside FU Mail (removed from queue).","later":true}}},
+{"clean":{"_0":{"rows":[
+ {"alreadyDeleted":false,"item":{"emailKey":"k1","ref":{"server":"gmail-mcp","account":"fanda","id":"c1"},"from":{"name":"Bob","email":"bob@example.com"},"subject":"Accepted: Q4 review","received":"2026-11-24T08:30:00Z","kind":"calendarResponse","reason":"calendar response","caughtAt":"2026-11-24T09:00:00Z","canDelete":true}},
+ {"alreadyDeleted":false,"item":{"emailKey":"k2","ref":{"server":"macia","id":7},"subject":"Parcel delivered","kind":"deliveryNotice","reason":"delivery notice","caughtAt":"2026-11-24T09:00:00Z","canDelete":false}}
+]}}},
+{"repliedArchive":{"_0":{"rows":[
+ {"alreadyArchived":false,"item":{"emailKey":"r1","ref":{"server":"gmail-mcp","account":"fanda","id":"a1","headerMessageID":"<r1@example.com>"},"from":{"name":"Carol","email":"carol@example.com"},"subject":"Lunch","received":"2026-11-23T08:30:00Z","repliedAt":"2026-11-24T10:00:00Z"}},
+ {"alreadyArchived":false,"item":{"emailKey":"r2","ref":{"server":"macia","id":12},"from":{"email":"dan@example.com"},"subject":"Contract","repliedAt":"0001-01-01T00:00:00Z"}},
+ {"alreadyArchived":true,"item":{"emailKey":"r3","ref":{"server":"macia","id":13},"subject":"Old"}}
+],"days":14}}}
+]
