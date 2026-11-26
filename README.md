@@ -150,6 +150,7 @@ can't be checked right now. The connection indicator shows Connected, Connecting
     older, Show full text, Reply, Reply all (only when it reaches someone more), Add to note, Add
     task (with Google Tasks) and Open in browser.
     A thread from the archive is read-only: no Reply or Reply all.
+    The copy icon beside an open message's date copies one of its addresses (From, To, Cc), or all of them.
     An unsent draft in the thread has an orange **Draft** label (FU Mail 6.1.1 and later); then Reply and
     Reply all ask first: **Edit draft** opens the newest one, **Write another** writes a new reply.
     **Delete** (when the email's server can, e.g. Thunderbird-MCP) moves the opened email to Trash

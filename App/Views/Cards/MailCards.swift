@@ -297,6 +297,8 @@ private struct MessageView: View {
     var canFold: Bool
     var onFold: () -> Void
     var onDownloadAttachment: (EmailAttachment) -> Void
+    /// "Address copied" for a moment after copying.
+    @State private var copied: String?
 
     private static func formattedSize(_ bytes: Int?) -> String? {
         guard let bytes, bytes > 0 else { return nil }
@@ -317,6 +319,7 @@ private struct MessageView: View {
                 }
                 Spacer(minLength: 8)
                 Text(CardDates.full(message.received)).appFont(.caption).foregroundStyle(.secondary)
+                CopyAddressesMenu(addresses: CopyableAddresses(message)) { copied = $0 }
                 if canFold {
                     Button(action: onFold) { Image(systemName: "chevron.up") }
                         .buttonStyle(.borderless)
@@ -375,6 +378,22 @@ private struct MessageView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .overlay(alignment: .top) {
+            if let copied {
+                Text(copied)
+                    .appFont(.caption, weight: .medium)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.regularMaterial, in: Capsule())
+                    .transition(.opacity)
+                    .task {
+                        try? await Task.sleep(for: .seconds(1.5))
+                        withAnimation { self.copied = nil }
+                    }
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: copied)
     }
 }
 
@@ -590,5 +609,39 @@ private struct DraftBadge: View {
             .padding(.vertical, 1)
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.orange.opacity(0.6)))
             .accessibilityLabel("Unsent draft")
+    }
+}
+
+/// A message's addresses to copy, one at a time or all, as on the Mac. Nothing is sent.
+private struct CopyAddressesMenu: View {
+    var addresses: CopyableAddresses
+    /// What to say once copied (never the address).
+    var onCopied: (String) -> Void
+
+    var body: some View {
+        if !addresses.groups.isEmpty {
+            Menu {
+                ForEach(addresses.groups) { group in
+                    Section(group.title) {
+                        ForEach(group.addresses, id: \.email) { address in
+                            Button(CopyableAddresses.label(address)) { copy(address.email, "Address copied") }
+                        }
+                    }
+                }
+                if addresses.hasSeveral {
+                    Button("Copy all addresses") { copy(addresses.all, "Addresses copied") }
+                }
+            } label: {
+                Image(systemName: "doc.on.doc")
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Copy an email address")
+        }
+    }
+
+    private func copy(_ text: String, _ said: String) {
+        UIPasteboard.general.string = text
+        onCopied(said)
+        UIAccessibility.post(notification: .announcement, argument: said)
     }
 }
