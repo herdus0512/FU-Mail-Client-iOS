@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 6.0.0, for FU Mail 6.1.0 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 6.0.1, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad in landscape. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -237,6 +237,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 6.0.1 | 2026-11-26 | **Drafts in threads** (FU Mail 6.1.1): an orange Draft label on an unsent draft, open or folded; on a thread with a draft, Reply and Reply all ask first: Edit draft opens the newest one, Write another writes a new reply. |
 | 6.0.0 | 2026-11-26 | **Archive card** for FU Mail 6.1.0: each row is a conversation (Archive n moves its n Inbox emails), two lists (You replied last, Complete) each with its own Archive all, the scan's summary, and Archive & remember / Keep & remember in the row's menu. Older Macs' cards work as before. |
 | 5.9.5 | 2026-11-25 | **iPad:** the conversations are beside the chat in landscape (hiding them widens the chat), and slide over it in portrait. Turning to landscape opens them; turning to portrait hides them. iPhone unchanged. |
 | 5.9.4 | 2026-11-25 | **iPad:** the conversations slide over the chat, which keeps its full width; a tap on the chat, picking one, or turning to portrait hides them. Error banners show over the chat too. iPhone unchanged. |
