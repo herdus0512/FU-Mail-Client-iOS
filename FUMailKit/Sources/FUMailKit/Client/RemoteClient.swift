@@ -426,6 +426,23 @@ public final class RemoteClient {
         run { _ = try await self.post("POST", "/v1/conversations/\(id.uuidString)/open", ["ref": try APICoding.body(ref)]) }
     }
 
+    /// The thread's draft question, answered: Edit draft (`edit`) opens the newest draft, else Write another
+    /// sends the reply. Checked again when its turn comes; if the card changed, nothing is sent.
+    public func answerDraftQuestion(_ question: ThreadDraftQuestion, edit: Bool, on messageID: ChatMessage.ID,
+                                    in id: Conversation.ID) {
+        if edit { expectReply(in: id) }
+        enqueue {
+            guard question.holds(self.state, on: messageID, in: id) else {
+                throw RemoteProblem(.changed, TriageConfirmation.changed)
+            }
+            if edit {
+                _ = try await self.post("POST", "/v1/conversations/\(id.uuidString)/open", ["draft": try APICoding.body(question.draft)])
+            } else {
+                try await self.postAction(question.reply, on: messageID, in: id)
+            }
+        }
+    }
+
     /// A drafts-list row: opens the draft in the chat.
     public func openDraft(_ draft: DraftSummary, in id: Conversation.ID) {
         expectReply(in: id)

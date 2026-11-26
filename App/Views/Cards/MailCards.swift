@@ -89,6 +89,20 @@ struct ThreadCardView: View {
 
     private var archived: Bool { card.archived == true }
     @State private var confirmDelete = false
+    /// Reply on a thread with a draft: asked first, while the card stays as it was.
+    @State private var asking: ThreadDraftQuestion?
+    private var current: Bool { scope.connected && scope.outOfDate == nil }
+    private var holds: Bool { asking?.holds(.thread(card), busy: scope.busy, connected: current) ?? false }
+
+    @ViewBuilder
+    private func replyButton(_ label: String, replyAll: Bool) -> some View {
+        if let question = card.draftQuestion(replyAll: replyAll) {
+            Button(label) { if question.holds(.thread(card), busy: scope.busy, connected: current) { asking = question } }
+                .disabled(!question.holds(.thread(card), busy: scope.busy, connected: current))
+        } else {
+            Button(label) { scope.act(.reply(instructions: "", blank: false, replyAll: replyAll)) }
+        }
+    }
 
     var body: some View {
         CardBox {
@@ -157,10 +171,10 @@ struct ThreadCardView: View {
                     Button("Archive") { scope.act(.archiveEmail) }.disabled(scope.busy)
                 }
                 if !archived {
-                    Button("Reply") { scope.act(.reply(instructions: "", blank: false, replyAll: false)) }
+                    replyButton("Reply", replyAll: false)
                 }
                 if card.offersReplyAll {
-                    Button("Reply all") { scope.act(.reply(instructions: "", blank: false, replyAll: true)) }
+                    replyButton("Reply all", replyAll: true)
                 }
                 if scope.info?.notesConfigured == true {
                     Button("Add to note") { scope.act(.addToNotes) }
@@ -184,6 +198,20 @@ struct ThreadCardView: View {
                     Button("Open in browser") { openURL(link) }
                 }
             }
+            .confirmationDialog(ThreadDraftQuestion.title, isPresented: Binding(get: { holds }, set: { if !$0 { asking = nil } }),
+                                titleVisibility: .visible, presenting: asking) { question in
+                Button("Edit draft") {
+                    scope.client.answerDraftQuestion(question, edit: true, on: scope.messageID, in: scope.conversationID)
+                }
+                Button("Write another") {
+                    scope.client.answerDraftQuestion(question, edit: false, on: scope.messageID, in: scope.conversationID)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text(ThreadDraftQuestion.text)
+            }
+            // Closed for good when the card changes, goes busy or isn't current.
+            .onChange(of: holds) { _, now in if !now { asking = nil } }
             .confirmationDialog("Move this email to Trash?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Move to Trash", role: .destructive) { scope.act(.deleteEmail) }
                 Button("Cancel", role: .cancel) {}
@@ -247,6 +275,7 @@ private struct FoldedMessage: View {
         Button(action: onOpen) {
             HStack(spacing: 8) {
                 Text(message.from?.display ?? "(no sender)").appFont(.caption, weight: .semibold).lineLimit(1)
+                if message.isUnsentDraft { DraftBadge() }
                 Text(message.preview).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 Spacer(minLength: 4)
                 Text(CardDates.short(message.received)).appFont(.caption).foregroundStyle(.secondary)
@@ -278,7 +307,10 @@ private struct MessageView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(message.from?.display ?? "(no sender)").appFont(.subheadline, weight: .semibold)
+                    HStack(spacing: 6) {
+                        Text(message.from?.display ?? "(no sender)").appFont(.subheadline, weight: .semibold)
+                        if message.isUnsentDraft { DraftBadge() }
+                    }
                     if let from = message.from, from.name != nil {
                         Text(from.email).appFont(.caption).foregroundStyle(.secondary)
                     }
@@ -545,5 +577,18 @@ private struct EventRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
+    }
+}
+
+/// An unsent draft in a thread, as on the Mac.
+private struct DraftBadge: View {
+    var body: some View {
+        Text("Draft")
+            .appFont(.caption2, weight: .semibold)
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.orange.opacity(0.6)))
+            .accessibilityLabel("Unsent draft")
     }
 }

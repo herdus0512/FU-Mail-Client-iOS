@@ -85,3 +85,48 @@ extension NoteViewCard {
         expanded.contains(section) ? entries : Array(entries.prefix(Self.recent))
     }
 }
+
+extension ThreadCard {
+    /// The thread's unsent drafts, oldest first (as the Mac's `drafts`).
+    public var drafts: [EmailMessage] { messages.filter(\.isUnsentDraft) }
+
+    /// A draft in the thread, as `/drafts` lists one, to open it (as the Mac's `draftSummary`). Its
+    /// Message-ID goes with it when there is one: the Mac can't find a draft outside a list by number alone.
+    public func draftSummary(_ draft: EmailMessage) -> DraftSummary {
+        DraftSummary(server: ref.server, account: ref.account, draftID: draft.id, to: draft.to, subject: draft.subject,
+                     snippet: nil, threadID: nil, headerMessageID: draft.headerMessageID)
+    }
+
+    /// Reply or Reply all on a thread with a draft asks first; nil when there's none.
+    public func draftQuestion(replyAll: Bool) -> ThreadDraftQuestion? {
+        drafts.last.map { ThreadDraftQuestion(replyAll: replyAll, draft: draftSummary($0), seen: self) }
+    }
+}
+
+/// "This conversation already has a draft.": Edit draft (the newest) or Write another. Like triage's
+/// questions, it holds only while the card is as asked about, not busy and current.
+public struct ThreadDraftQuestion: Equatable, Sendable {
+    public static let title = "This conversation already has a draft."
+    public static let text = "Open the draft to edit it, or write a new reply as well."
+
+    public var replyAll: Bool
+    public var draft: DraftSummary
+    var seen: ThreadCard
+
+    /// What Write another sends: the reply as without a draft.
+    public var reply: CardAction { .reply(instructions: "", blank: false, replyAll: replyAll) }
+
+    public func holds(_ card: Card?, busy: Bool, connected: Bool) -> Bool {
+        !busy && connected && card == .thread(seen)
+    }
+
+    public func holds(_ state: RemoteState, on messageID: ChatMessage.ID, in id: Conversation.ID) -> Bool {
+        holds(state.conversation(id)?.messages.first { $0.id == messageID }?.card,
+              busy: false, connected: state.canAct(on: messageID, in: id))
+    }
+}
+
+extension EmailMessage {
+    /// Shown with a "Draft" badge, open or folded.
+    public var isUnsentDraft: Bool { isDraft == true }
+}

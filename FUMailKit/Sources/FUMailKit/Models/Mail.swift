@@ -140,6 +140,8 @@ public struct EmailMessage: Codable, Sendable, Hashable, Identifiable {
     public var bodyHTML: String? = nil
     /// The email's own Message-ID, when the Mac sends it.
     public var headerMessageID: String? = nil
+    /// An unsent draft in the thread (FU Mail 6.1.1 and later); left out otherwise, and by servers that don't say.
+    public var isDraft: Bool? = nil
 
     /// The start of the text on one line, for a folded message.
     public var preview: String {
