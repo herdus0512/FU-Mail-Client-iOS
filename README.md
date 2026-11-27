@@ -96,7 +96,7 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   commands), over one connection shared with the event stream, so "Connected" comes after about
   one trip to the Mac and back. The connection stays open while Control Center or a notification is
   pulled over the app, and closes only when the app goes to the background.
-- **Siri and Shortcuts:** **Rest of Today** ("What's left today in FU Mail", or in Mailcal Agent, Mail Cal Agent, Mailcal or MC Agent: other names Siri takes) asks the Mac for what's
+- **Siri and Shortcuts:** **Rest of Today** ("What's left today in FU Mail", or in Mailcal Agent, Mailcal or MC Agent: other names Siri takes) asks the Mac for what's
   left of today's calendar (`GET /v1/calendar/now`, FU Mail 4.6.0 and later) with the app's own saved
   connection, so no token goes into a shortcut, and without opening the app. It returns one line per
   event in the phone's time ("14:00–15:00 Board meeting (Level 3)", "All day: Public holiday"), or
@@ -238,7 +238,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
-| 6.0.3 | 2026-11-27 | **Siri** also answers to Mailcal Agent, Mail Cal Agent, Mailcal and MC Agent ("What's left today in Mailcal Agent"); the app keeps its name. |
+| 6.0.3 | 2026-11-27 | **Siri** also answers to Mailcal Agent, Mailcal and MC Agent ("What's left today in Mailcal Agent"); the app keeps its name. |
 | 6.0.2 | 2026-11-26 | **Copy email addresses** from an open thread message: the copy icon beside its date lists From, To and Cc; tap one to copy it, or Copy all addresses. A short "Address copied" confirms it. |
 | 6.0.1 | 2026-11-26 | **Drafts in threads** (FU Mail 6.1.1): an orange Draft label on an unsent draft, open or folded; on a thread with a draft, Reply and Reply all ask first: Edit draft opens the newest one, Write another writes a new reply. |
 | 6.0.0 | 2026-11-26 | **Archive card** for FU Mail 6.1.0: each row is a conversation (Archive n moves its n Inbox emails), two lists (You replied last, Complete) each with its own Archive all, the scan's summary, and Archive & remember / Keep & remember in the row's menu. Older Macs' cards work as before. |

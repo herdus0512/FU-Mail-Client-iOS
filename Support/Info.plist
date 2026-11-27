@@ -3,7 +3,7 @@
 <!-- Merged with what Xcode generates from the INFOPLIST_KEY_* build settings. -->
 <plist version="1.0">
 <dict>
-	<!-- Other names Siri takes for the app ("What's left today in Mailcal Agent"); the app keeps its name. -->
+	<!-- Other names Siri takes for the app (at most 3 per language: App Store Connect refuses more) ("What's left today in Mailcal Agent"); the app keeps its name. -->
 	<key>INAlternativeAppNames</key>
 	<array>
 		<dict>
@@ -11,10 +11,6 @@
 			<string>Mailcal Agent</string>
 			<key>INAlternativeAppNamePronunciationHint</key>
 			<string>mail cal agent</string>
-		</dict>
-		<dict>
-			<key>INAlternativeAppName</key>
-			<string>Mail Cal Agent</string>
 		</dict>
 		<dict>
 			<key>INAlternativeAppName</key>
