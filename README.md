@@ -105,6 +105,8 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   drafts across accounts (`GET /v1/drafts?limit=10`): "To Bob Smith: Re: Q4 invoice (work)", or "No
   drafts waiting.". The tokens are readable after the phone's first unlock, so it works from a locked
   phone too.
+  Siri says words it gets wrong the way they sound ("Traceforce" as "Trace force"); the screen and a
+  shortcut keep the real spelling. The list is `SpokenText.sounds` in FUMailKit.
 - **No Local Network permission** is asked for. A home-network address (192.168.x) can't be reached,
   and the app says to use the Tailscale address.
 - **The token** is kept in the Keychain on this device only: not synced to iCloud and not backed up.

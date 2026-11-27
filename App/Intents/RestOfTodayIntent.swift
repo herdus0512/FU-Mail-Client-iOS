@@ -1,6 +1,7 @@
 import AppIntents
 import FUMailKit
 import Foundation
+import SwiftUI
 
 /// "Rest of Today" for Siri and Shortcuts: what's left of today's calendar, from FU Mail on the Mac,
 /// with the app's own saved connection (no token ever goes into a shortcut). Runs without opening the
@@ -10,14 +11,14 @@ struct RestOfTodayIntent: AppIntent {
     static let description = IntentDescription("What's left of today's calendar, from FU Mail")
     static let openAppWhenRun = false
 
-    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
         let text: String
         if let settings = StoredConnection.settings() {
             text = await RestOfToday.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
         } else {
             text = RestOfToday.notSetUp
         }
-        return .result(value: text, dialog: IntentDialog(stringLiteral: text))
+        return SpokenAnswer.result(text)
     }
 }
 
@@ -27,12 +28,32 @@ struct PendingDraftsIntent: AppIntent {
     static let description = IntentDescription("Your unsent drafts across accounts, from FU Mail")
     static let openAppWhenRun = false
 
-    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
         var text = RestOfToday.notSetUp
         if let settings = StoredConnection.settings() {
             text = await PendingDrafts.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
         }
-        return .result(value: text, dialog: IntentDialog(stringLiteral: text))
+        return SpokenAnswer.result(text)
+    }
+}
+
+/// An answer for Siri: spoken with the words it gets wrong spelt as they sound (`SpokenText`, in FUMailKit),
+/// shown and handed to a shortcut as written.
+enum SpokenAnswer {
+    static func result(_ text: String) -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
+        .result(value: text, dialog: IntentDialog(stringLiteral: SpokenText.spoken(from: text)), view: AnswerView(text: text))
+    }
+}
+
+/// The answer as written, under Siri's reply.
+private struct AnswerView: View {
+    var text: String
+
+    var body: some View {
+        Text(text)
+            .font(.callout)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
     }
 }
 
