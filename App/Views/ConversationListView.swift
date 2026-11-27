@@ -176,17 +176,14 @@ private struct ConversationRow: View {
     var answering: Bool
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(conversation.title).lineLimit(1)
-                Text(conversation.updatedAt, format: .relative(presentation: .named))
-                    .appFont(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if answering {
-                Spacer()
-                ProgressView().controlSize(.small)
-            }
+        // One line, as the Android app: the title, then the date on the right.
+        HStack(spacing: 8) {
+            Text(conversation.title).lineLimit(1)
+            Spacer(minLength: 8)
+            if answering { ProgressView().controlSize(.small) }
+            Text(CardDates.short(conversation.updatedAt))
+                .appFont(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }
