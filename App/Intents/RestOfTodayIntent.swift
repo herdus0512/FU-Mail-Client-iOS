@@ -12,13 +12,7 @@ struct RestOfTodayIntent: AppIntent {
     static let openAppWhenRun = false
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
-        let text: String
-        if let settings = StoredConnection.settings() {
-            text = await RestOfToday.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
-        } else {
-            text = RestOfToday.notSetUp
-        }
-        return SpokenAnswer.result(text)
+        await SpokenAnswer.answer(.restOfToday)
     }
 }
 
@@ -29,19 +23,26 @@ struct PendingDraftsIntent: AppIntent {
     static let openAppWhenRun = false
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
-        var text = RestOfToday.notSetUp
-        if let settings = StoredConnection.settings() {
-            text = await PendingDrafts.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
-        }
-        return SpokenAnswer.result(text)
+        await SpokenAnswer.answer(.pendingDrafts)
     }
 }
 
 /// An answer for Siri: spoken with the words it gets wrong spelt as they sound (`SpokenText`, in FUMailKit),
 /// shown and handed to a shortcut as written.
+/// Siri says a summary written on the iPhone (`OnDeviceSummary`) when there's one within a few seconds,
+/// else the list.
 enum SpokenAnswer {
-    static func result(_ text: String) -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
-        .result(value: text, dialog: IntentDialog(stringLiteral: SpokenText.spoken(from: text)), view: AnswerView(text: text))
+    static func answer(_ kind: QuickLook) async -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
+        guard let settings = StoredConnection.settings() else { return result(RestOfToday.notSetUp, summary: nil) }
+        let answer = await kind.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
+        let text = QuickLook.lines(answer)
+        guard case .card = answer else { return result(text, summary: nil) }
+        return result(text, summary: await OnDeviceSummary.summary(kind, lines: text))
+    }
+
+    static func result(_ text: String, summary: String?) -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
+        .result(value: text, dialog: IntentDialog(stringLiteral: SpokenText.spoken(summary: summary, else: text)),
+                view: AnswerView(text: text))
     }
 }
 

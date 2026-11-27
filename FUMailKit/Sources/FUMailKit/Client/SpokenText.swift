@@ -9,6 +9,12 @@ public enum SpokenText {
         "neoine": "neo-ein",
     ]
 
+    /// What Siri or Speak says: the summary when there is one, else the text; line breaks as pauses.
+    public static func spoken(summary: String?, else text: String) -> String {
+        spoken(from: summary.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty } ?? text)
+            .replacingOccurrences(of: "\n", with: ". ")
+    }
+
     public static func spoken(from text: String) -> String {
         sounds.reduce(text) { text, sound in
             text.replacingOccurrences(of: "\\b\(NSRegularExpression.escapedPattern(for: sound.key))\\b", with: sound.value,

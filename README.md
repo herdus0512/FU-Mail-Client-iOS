@@ -99,6 +99,10 @@ can't be checked right now. The connection indicator shows Connected, Connecting
 - **Quick actions:** long-press the app's icon for **Rest of Today** and **Pending Drafts**, as in the
   Android app. Each opens the app on that card, asked at once without making a chat; tap a draft to open
   it in a new chat, with its Edit.
+  **Summarise & Speak** has Apple Intelligence write a sentence or two about it on the iPhone itself
+  (nothing is sent anywhere), then reads it with the iPhone's voice; if it can't, it says why and doesn't
+  speak. Siri says that summary too (the card under its answer has the whole list), or the list when
+  there's no summary within a few seconds.
 - **Siri and Shortcuts:** **Rest of Today** ("What's left today in FU Mail", or in MC Agent, the other name Siri takes) asks the Mac for what's
   left of today's calendar (`GET /v1/calendar/now`, FU Mail 4.6.0 and later) with the app's own saved
   connection, so no token goes into a shortcut, and without opening the app. It returns one line per

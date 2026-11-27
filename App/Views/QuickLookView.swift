@@ -9,6 +9,10 @@ struct QuickLookView: View {
     var onOpenChat: (Conversation.ID) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var answer: QuickLook.Answer?
+    @State private var summary: String?
+    @State private var summaryNote: String?
+    @State private var summarizing = false
+    @State private var speaker = Speaker()
 
     var body: some View {
         NavigationStack {
@@ -34,6 +38,7 @@ struct QuickLookView: View {
                     case .card:
                         EmptyView()
                     }
+                    if case .card = answer { summarizeAndSpeak }
                 }
                 .padding(14)
             }
@@ -48,11 +53,52 @@ struct QuickLookView: View {
                 }
             }
             .task { await load() }
+            .onDisappear { speaker.stop() }
         }
     }
 
+    /// One button, as on Android: the summary written on this iPhone, then read aloud. If it fails, it says
+    /// why and doesn't speak. While speaking, it's Stop. Never starts by itself.
+    private var summarizeAndSpeak: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                if speaker.isSpeaking { speaker.stop(); return }
+                guard let answer else { return }
+                summarizing = true
+                summaryNote = nil
+                Task {
+                    switch await OnDeviceSummary.summarize(kind, lines: QuickLook.lines(answer)) {
+                    case .success(let text):
+                        summary = text
+                        speaker.speak(text)
+                    case .failure(let problem):
+                        summaryNote = problem.message
+                    }
+                    summarizing = false
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if summarizing { ProgressView().controlSize(.small) }
+                    Text(speaker.isSpeaking ? "Stop" : "Summarise & Speak")
+                }
+            }
+            .buttonStyle(.bordered)
+            .disabled(summarizing)
+            if let summaryNote { WarningText(summaryNote) }
+            if let summary {
+                Text(summary).appFont(.subheadline)
+                Text("Summary by Apple Intelligence, on this iPhone").appFont(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func load() async {
+        speaker.stop()
         answer = nil
+        summary = nil
+        summaryNote = nil
         answer = await client.quickLook(kind)
     }
 }
