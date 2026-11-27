@@ -178,7 +178,7 @@ private struct ConversationRow: View {
     var body: some View {
         // One line, as the Android app: the title, then the date on the right.
         HStack(spacing: 8) {
-            Text(conversation.title).lineLimit(1)
+            Text(conversation.title).appFont(.callout).lineLimit(1)
             Spacer(minLength: 8)
             if answering { ProgressView().controlSize(.small) }
             Text(CardDates.short(conversation.updatedAt))
