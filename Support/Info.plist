@@ -3,6 +3,32 @@
 <!-- Merged with what Xcode generates from the INFOPLIST_KEY_* build settings. -->
 <plist version="1.0">
 <dict>
+	<!-- Other names Siri takes for the app ("What's left today in Mailcal Agent"); the app keeps its name. -->
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Mailcal Agent</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>mail cal agent</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Mail Cal Agent</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Mailcal</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>mail cal</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>MC Agent</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>em see agent</string>
+		</dict>
+	</array>
 	<!-- Plain HTTP only to local addresses: IP addresses (Tailscale 100.x), .local names and
 	     names without dots (MagicDNS). Anything else needs HTTPS (tailscale serve). The app also sends
 	     requests only to the host in Settings, with redirects refused. -->
