@@ -6,6 +6,7 @@ public enum SpokenText {
     /// Word → how to spell it for Siri's voice. Matched as whole words, ignoring case. Add more here.
     public static let sounds: [String: String] = [
         "Traceforce": "Trace force",
+        "neoine": "neo-ein",
     ]
 
     public static func spoken(from text: String) -> String {
