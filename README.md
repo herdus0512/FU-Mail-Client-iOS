@@ -52,6 +52,10 @@ make testflight   # test, archive, sign and upload to TestFlight
 Each upload gets a new build number (minutes since 1970), so it always goes up. A build shows in
 TestFlight 5–15 minutes after uploading, and goes to the internal testing group by itself.
 
+**App icon:** `App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` (iOS makes the other sizes) is FU Mail's
+logo, `../FU-Mail-Client/Resources/Logo/logo-square.png`, without its alpha channel (the App Store refuses
+icons that have one). To make it again: `swift tools/flatten_icon.swift ../FU-Mail-Client/Resources/Logo/logo-square.png App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`.
+
 ## Installing
 
 On the iPhone or iPad, install **TestFlight** from the App Store, signed in with an Apple ID in the
