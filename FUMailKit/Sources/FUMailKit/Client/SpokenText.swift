@@ -7,6 +7,7 @@ public enum SpokenText {
     public static let sounds: [String: String] = [
         "Traceforce": "Trace force",
         "neoine": "neo-ein",
+        "ignivo": "ig-ni-vo",
     ]
 
     /// What Siri or Speak says: the summary when there is one, else the text; line breaks as pauses.
