@@ -61,9 +61,12 @@ private struct EmailRow: View {
                     Spacer(minLength: 8)
                     Text(CardDates.short(item.received)).appFont(.caption).foregroundStyle(.secondary)
                 }
-                Text(item.subject.isEmpty ? "(no subject)" : item.subject)
-                    .fontWeight(item.unread ? .medium : .regular)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    if let badge = item.calendarBadge { CalendarBadgeView(label: badge) }
+                    Text(item.subject.isEmpty ? "(no subject)" : item.subject)
+                        .fontWeight(item.unread ? .medium : .regular)
+                        .lineLimit(1)
+                }
                 if let snippet = item.snippet, !snippet.isEmpty {
                     Text(snippet).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
@@ -276,6 +279,7 @@ private struct FoldedMessage: View {
             HStack(spacing: 8) {
                 Text(message.from?.display ?? "(no sender)").appFont(.caption, weight: .semibold).lineLimit(1)
                 if message.isUnsentDraft { DraftBadge() }
+                if let badge = message.calendarBadge { CalendarBadgeView(label: badge) }
                 Text(message.preview).appFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 Spacer(minLength: 4)
                 Text(CardDates.short(message.received)).appFont(.caption).foregroundStyle(.secondary)
@@ -312,6 +316,7 @@ private struct MessageView: View {
                     HStack(spacing: 6) {
                         Text(message.from?.display ?? "(no sender)").appFont(.subheadline, weight: .semibold)
                         if message.isUnsentDraft { DraftBadge() }
+                        if let badge = message.calendarBadge { CalendarBadgeView(label: badge) }
                     }
                     if let from = message.from, from.name != nil {
                         Text(from.email).appFont(.caption).foregroundStyle(.secondary)
@@ -645,5 +650,21 @@ private struct CopyAddressesMenu: View {
         UIPasteboard.general.string = text
         onCopied(said)
         UIAccessibility.post(notification: .announcement, argument: said)
+    }
+}
+
+/// A calendar email's badge ("Invite", "Response", "Cancelled", "Calendar"), blue and outlined, as on the Mac.
+private struct CalendarBadgeView: View {
+    var label: String
+
+    var body: some View {
+        Text(label)
+            .appFont(.caption2, weight: .semibold)
+            .foregroundStyle(.blue)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.blue.opacity(0.6)))
+            .fixedSize()
+            .accessibilityLabel(CalendarBadge.spoken(label))
     }
 }

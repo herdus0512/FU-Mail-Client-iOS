@@ -51,6 +51,8 @@ public struct EmailSummary: Codable, Sendable, Hashable, Identifiable {
     /// Gmail gives a short preview; Apple Mail doesn't.
     public var snippet: String?
     public var unread: Bool
+    /// A calendar invitation's method ("REQUEST", "REPLY", "CANCEL"…), when the Mac says; see `CalendarBadge`.
+    public var calendarMethod: String? = nil
 
     public var id: String { "\(ref.server)/\(ref.account ?? "")/\(ref.idString)" }
 }
@@ -127,6 +129,8 @@ public struct EmailMessage: Codable, Sendable, Hashable, Identifiable {
     public var received: Date?
     public var subject: String
     public var unread: Bool
+    /// A calendar invitation's method, when the Mac says; see `CalendarBadge`.
+    public var calendarMethod: String? = nil
     public var attachments: [String]
     /// Structured attachment metadata when the server supports downloading attachments.
     public var attachmentItems: [EmailAttachment]? = nil
