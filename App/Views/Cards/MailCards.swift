@@ -403,6 +403,8 @@ private struct MessageView: View {
 struct DraftListCardView: View {
     var card: DraftListCard
     var scope: CardScope
+    /// Instead of opening a row in this card's chat (a quick action's list has none).
+    var onOpen: ((DraftSummary) -> Void)? = nil
 
     var body: some View {
         CardBox {
@@ -414,7 +416,7 @@ struct DraftListCardView: View {
             ForEach(Array(card.items.enumerated()), id: \.element.id) { index, draft in
                 if index > 0 { Divider().padding(.leading, 44) }
                 Button {
-                    scope.client.openDraft(draft, in: scope.conversationID)
+                    if let onOpen { onOpen(draft) } else { scope.client.openDraft(draft, in: scope.conversationID) }
                 } label: {
                     HStack(alignment: .top, spacing: 0) {
                         RowNumber(number: index + 1)

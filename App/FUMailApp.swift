@@ -5,6 +5,7 @@ import UIKit
 /// notes, CRM and history stay on the Mac; this shows its conversations and cards.
 @main
 struct FUMailApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var app = AppModel()
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("textSize") private var textSize: TextSize = .standard

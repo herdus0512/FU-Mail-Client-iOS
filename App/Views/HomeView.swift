@@ -62,6 +62,16 @@ struct HomeView: View {
                 .ignoresSafeArea()
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
+        // A Home Screen quick action: its card over the conversations. Not set up yet: Settings.
+        .sheet(item: Binding(get: { app.client == nil ? nil : QuickActions.shared.pending },
+                             set: { QuickActions.shared.pending = $0 })) { kind in
+            if let client = app.client {
+                QuickLookView(kind: kind, client: client) { selection = $0 }
+            }
+        }
+        .onChange(of: QuickActions.shared.pending) { _, kind in
+            if kind != nil, !app.isConfigured { QuickActions.shared.pending = nil; showSettings = true }
+        }
         .alert("Sign in with Google again", isPresented: Binding(get: { app.needsGoogleSignIn }, set: { app.needsGoogleSignIn = $0 })) {
             Button("Open Settings") { showSettings = true }
             Button("Cancel", role: .cancel) {}

@@ -3,6 +3,26 @@
 <!-- Merged with what Xcode generates from the INFOPLIST_KEY_* build settings. -->
 <plist version="1.0">
 <dict>
+	<!-- Long-press on the icon (QuickLook in FUMailKit, as Android's shortcuts). -->
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>rest-of-today</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Rest of Today</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>calendar</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>pending-drafts</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Pending Drafts</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>envelope.badge</string>
+		</dict>
+	</array>
 	<!-- Other names Siri takes for the app (at most 3 per language: App Store Connect refuses more) ("What's left today in MC Agent"); the app keeps its name. -->
 	<key>INAlternativeAppNames</key>
 	<array>

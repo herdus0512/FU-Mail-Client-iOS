@@ -96,6 +96,9 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   commands), over one connection shared with the event stream, so "Connected" comes after about
   one trip to the Mac and back. The connection stays open while Control Center or a notification is
   pulled over the app, and closes only when the app goes to the background.
+- **Quick actions:** long-press the app's icon for **Rest of Today** and **Pending Drafts**, as in the
+  Android app. Each opens the app on that card, asked at once without making a chat; tap a draft to open
+  it in a new chat, with its Edit.
 - **Siri and Shortcuts:** **Rest of Today** ("What's left today in FU Mail", or in MC Agent, the other name Siri takes) asks the Mac for what's
   left of today's calendar (`GET /v1/calendar/now`, FU Mail 4.6.0 and later) with the app's own saved
   connection, so no token goes into a shortcut, and without opening the app. It returns one line per

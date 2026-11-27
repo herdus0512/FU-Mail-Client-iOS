@@ -443,6 +443,19 @@ public final class RemoteClient {
         }
     }
 
+    /// A quick action's card, asked for at once without a chat.
+    public func quickLook(_ kind: QuickLook) async -> QuickLook.Answer {
+        await kind.fetch(transport)
+    }
+
+    /// A draft from a quick action's list: opened in a new chat (its card has Edit). nil when no chat could
+    /// be made (the banner says why).
+    public func openDraftInNewChat(_ draft: DraftSummary) async -> Conversation.ID? {
+        guard let id = await startConversation() else { return nil }
+        openDraft(draft, in: id)
+        return id
+    }
+
     /// A drafts-list row: opens the draft in the chat.
     public func openDraft(_ draft: DraftSummary, in id: Conversation.ID) {
         expectReply(in: id)
