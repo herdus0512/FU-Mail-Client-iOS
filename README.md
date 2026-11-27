@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 6.1.0, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 6.1.1, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad in landscape. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -252,6 +252,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 6.1.1 | 2026-11-27 | **Chat list:** one line per chat, the name a size smaller and the date on the right ("14:05", "Mon 14:05", "3 Nov"), as in the Android app. |
 | 6.1.0 | 2026-11-27 | **New app icon:** FU Mail's logo, the envelope and star on navy. |
 | 6.0.7 | 2026-11-27 | **Quick actions:** long-press the icon for Rest of Today and Pending Drafts, opening that card (a draft opens in a new chat), as on Android. **Summarise & Speak** on it has Apple Intelligence write a sentence or two on the iPhone and reads it aloud; **Siri** says that summary too, or the list when there's none within a few seconds. |
 | 6.0.6 | 2026-11-27 | **Siri:** says neoine as "neo-ein"; the screen and shortcuts keep the spelling. |
