@@ -14,7 +14,7 @@ SIM ?= iPhone 17
 # Each upload needs a higher build number: minutes since 1970, so it always goes up.
 BUILD_NUMBER := $(or $(BUILD_NUMBER),$(shell echo $$(( $$(date +%s) / 60 ))))
 
-.PHONY: all test build run sim-ipad fake-mac run-fake archive testflight check-ids clean
+.PHONY: all test build run sim-ipad fake-mac run-fake archive testflight check-ids clean say unsay sounds
 
 all: test build
 
@@ -50,6 +50,17 @@ run-fake: build
 	xcrun simctl terminate "$(SIM)" $(BUNDLE_ID) 2>/dev/null || true
 	SIMCTL_CHILD_FUMAIL_URL=http://127.0.0.1:8799 SIMCTL_CHILD_FUMAIL_TOKEN=fum_smoke \
 		$(if $(OPEN),SIMCTL_CHILD_FUMAIL_OPEN=$(OPEN)) $(if $(UPTO),SIMCTL_CHILD_FUMAIL_UPTO=$(UPTO)) $(if $(SEND),SIMCTL_CHILD_FUMAIL_SEND="$(SEND)") $(if $(FOCUS),SIMCTL_CHILD_FUMAIL_FOCUS=1) $(if $(SEARCH),SIMCTL_CHILD_FUMAIL_SEARCH="$(SEARCH)") xcrun simctl launch "$(SIM)" $(BUNDLE_ID)
+
+# How Siri says a word (the screen keeps the spelling), with the patch version bumped and the tests run:
+# make say WORD=Traceforce AS="Trace force"; make unsay WORD=Traceforce; make sounds lists them.
+say:
+	@python3 tools/spoken_word.py add "$(WORD)" "$(AS)"
+
+unsay:
+	@python3 tools/spoken_word.py remove "$(WORD)"
+
+sounds:
+	@python3 tools/spoken_word.py list
 
 check-ids:
 	@test -n "$(TEAM_ID)" || { echo "Fill in TEAM_ID in local.mk first (cp local.mk.example local.mk)."; exit 1; }
