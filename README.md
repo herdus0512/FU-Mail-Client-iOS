@@ -96,12 +96,12 @@ can't be checked right now. The connection indicator shows Connected, Connecting
   commands), over one connection shared with the event stream, so "Connected" comes after about
   one trip to the Mac and back. The connection stays open while Control Center or a notification is
   pulled over the app, and closes only when the app goes to the background.
-- **Siri and Shortcuts:** **Rest of Today** ("What's left today in FU Mail", or in Mailcal Agent, Mailcal or MC Agent: other names Siri takes) asks the Mac for what's
+- **Siri and Shortcuts:** **Rest of Today** ("What's left today in FU Mail", or in MC Agent, the other name Siri takes) asks the Mac for what's
   left of today's calendar (`GET /v1/calendar/now`, FU Mail 4.6.0 and later) with the app's own saved
   connection, so no token goes into a shortcut, and without opening the app. It returns one line per
   event in the phone's time ("14:00–15:00 Board meeting (Level 3)", "All day: Public holiday"), or
   "Nothing more on today.", as text a shortcut can pass on (e.g. to Use Model); problems come back as
-  a plain sentence. **Pending Drafts** ("Pending drafts in FU Mail") does the same for unsent
+  a plain sentence. **Pending Drafts** ("What's waiting to send in MC Agent", "Unsent emails in …", "Pending drafts in FU Mail") does the same for unsent
   drafts across accounts (`GET /v1/drafts?limit=10`): "To Bob Smith: Re: Q4 invoice (work)", or "No
   drafts waiting.". The tokens are readable after the phone's first unlock, so it works from a locked
   phone too.

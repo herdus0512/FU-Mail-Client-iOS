@@ -44,7 +44,10 @@ struct FUMailShortcuts: AppShortcutsProvider {
                     shortTitle: "Rest of Today",
                     systemImageName: "calendar")
         AppShortcut(intent: PendingDraftsIntent(),
-                    phrases: ["Pending drafts in \(.applicationName)", "Drafts waiting in \(.applicationName)"],
+                    // Some without "draft", which Messages and Mail answer to as well.
+                    phrases: ["What's waiting to send in \(.applicationName)", "Unsent emails in \(.applicationName)",
+                              "My unsent mail in \(.applicationName)", "Pending drafts in \(.applicationName)",
+                              "Drafts waiting in \(.applicationName)"],
                     shortTitle: "Pending Drafts",
                     systemImageName: "envelope.badge")
     }
