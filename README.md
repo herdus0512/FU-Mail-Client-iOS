@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 6.0.3, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 6.0.4, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad in landscape. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -238,6 +238,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 6.0.4 | 2026-11-27 | **Siri:** MC Agent is the app's only other name (Mailcal Agent and Mailcal are gone). **Pending Drafts** also answers to "What's waiting to send in MC Agent", "Unsent emails in …" and "My unsent mail in …", without the word draft that Messages and Mail answer to. |
 | 6.0.3 | 2026-11-27 | **Siri** also answers to Mailcal Agent, Mailcal and MC Agent ("What's left today in Mailcal Agent"); the app keeps its name. |
 | 6.0.2 | 2026-11-26 | **Copy email addresses** from an open thread message: the copy icon beside its date lists From, To and Cc; tap one to copy it, or Copy all addresses. A short "Address copied" confirms it. |
 | 6.0.1 | 2026-11-26 | **Drafts in threads** (FU Mail 6.1.1): an orange Draft label on an unsent draft, open or folded; on a thread with a draft, Reply and Reply all ask first: Edit draft opens the newest one, Write another writes a new reply. |
