@@ -47,7 +47,25 @@ struct QuickLookTests {
     @Test func aProblemIsSaidAsSiriSaysIt() async {
         let refused = RemoteProblem(.unreachable, "Can't reach it.")
         let stub = Stub(["GET /v1/calendar/now": .failure(refused)])
-        #expect(await QuickLook.restOfToday.fetch(stub) == .problem(RestOfToday.sentence(for: refused, url: stub.display)))
+        let answer = await QuickLook.restOfToday.fetch(stub)
+        #expect(answer == .problem(RestOfToday.sentence(for: refused, url: stub.display)))
+        #expect(QuickLook.siriSummary(answer) == RestOfToday.sentence(for: refused, url: stub.display))
+    }
+
+    @Test func siriSummaryReportsCountsOnly() throws {
+        let noEvents = try decode(EventListCard.self, #"{"kind":{"days":{"_0":1}},"events":[],"problems":[],"duplicatesRemoved":0}"#)
+        #expect(QuickLook.siriSummary(.card(.events(noEvents))) == "Nothing more on today.")
+        let oneEvent = try decode(EventListCard.self, #"{"kind":{"days":{"_0":1}},"events":[{"server":"google","eventID":"1","title":"Standup","allDay":false,"organizedByMe":false,"recurring":false}],"problems":[],"duplicatesRemoved":0}"#)
+        #expect(QuickLook.siriSummary(.card(.events(oneEvent))) == "You have 1 event left today.")
+        let twoEvents = try decode(EventListCard.self, #"{"kind":{"days":{"_0":1}},"events":[{"server":"google","eventID":"1","title":"Standup","allDay":false,"organizedByMe":false,"recurring":false},{"server":"google","eventID":"2","title":"Lunch","allDay":false,"organizedByMe":false,"recurring":false}],"problems":[],"duplicatesRemoved":0}"#)
+        #expect(QuickLook.siriSummary(.card(.events(twoEvents))) == "You have 2 events left today.")
+
+        let noDrafts = try decode(DraftListCard.self, #"{"items":[],"problems":[]}"#)
+        #expect(QuickLook.siriSummary(.card(.draftList(noDrafts))) == "No drafts waiting.")
+        let oneDraft = try decode(DraftListCard.self, #"{"items":[\#(draft)],"problems":[]}"#)
+        #expect(QuickLook.siriSummary(.card(.draftList(oneDraft))) == "You have 1 pending draft.")
+        let twoDrafts = try decode(DraftListCard.self, #"{"items":[\#(draft),\#(draft)],"problems":[]}"#)
+        #expect(QuickLook.siriSummary(.card(.draftList(twoDrafts))) == "You have 2 pending drafts.")
     }
 
     @Test func aDraftOpensInANewChat() async throws {

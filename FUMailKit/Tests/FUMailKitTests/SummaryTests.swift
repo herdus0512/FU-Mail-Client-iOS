@@ -4,11 +4,13 @@ import Testing
 
 /// Summarise & Speak: what the on-device model is asked, and what's said (as the Android app).
 struct SummaryTests {
-    @Test func theInstructionsAreAndroidsWordForWord() {
+    @Test func theInstructionsAskForElaborateQuickLookSummaries() {
         #expect(QuickLook.restOfToday.summaryInstruction == "Below is what's left on my calendar today, one event per line. "
-                + "In one or two short, friendly sentences, tell me what's coming up and when I'm free. Don't invent anything.")
+                + "In two to three short, friendly sentences, tell me how many events are left, which events block which times, "
+                + "and when I'm free. Don't invent anything.")
         #expect(QuickLook.pendingDrafts.summaryInstruction == "Below are my unsent email drafts, one per line (who it's to, "
-                + "then the subject). In one or two short sentences, tell me how many there are and who they're to. Don't invent anything.")
+                + "then the subject). In two to three short, friendly sentences, tell me how many drafts there are, who each one "
+                + "is to, and what the subject is. Don't invent anything.")
         #expect(QuickLook.pendingDrafts.summaryPrompt("To Bob: Q4") == QuickLook.pendingDrafts.summaryInstruction + "\n\nTo Bob: Q4")
     }
 

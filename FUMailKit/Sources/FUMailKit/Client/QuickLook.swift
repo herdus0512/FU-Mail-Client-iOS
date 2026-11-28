@@ -29,20 +29,42 @@ public enum QuickLook: String, Sendable, Identifiable, CaseIterable {
         case problem(String)
     }
 
-    /// What the on-device model is asked, word for word as the Android app's Summarise & Speak.
+    /// What the on-device model is asked for **Summarise & Speak**.
     public var summaryInstruction: String {
         switch self {
         case .restOfToday:
-            "Below is what's left on my calendar today, one event per line. In one or two short, friendly "
-                + "sentences, tell me what's coming up and when I'm free. Don't invent anything."
+            "Below is what's left on my calendar today, one event per line. In two to three short, friendly "
+                + "sentences, tell me how many events are left, which events block which times, and when I'm free. "
+                + "Don't invent anything."
         case .pendingDrafts:
-            "Below are my unsent email drafts, one per line (who it's to, then the subject). In one or two short "
-                + "sentences, tell me how many there are and who they're to. Don't invent anything."
+            "Below are my unsent email drafts, one per line (who it's to, then the subject). In two to three "
+                + "short, friendly sentences, tell me how many drafts there are, who each one is to, and what the "
+                + "subject is. Don't invent anything."
         }
     }
 
     /// What the model is given: the instruction, a blank line, then the lines.
     public func summaryPrompt(_ lines: String) -> String { "\(summaryInstruction)\n\n\(lines)" }
+
+    /// Concise count-only summary for Siri / Shortcuts (`IntentDialog`).
+    public static func siriSummary(_ answer: Answer) -> String {
+        switch answer {
+        case .card(.events(let card)):
+            switch card.events.count {
+            case 0: "Nothing more on today."
+            case 1: "You have 1 event left today."
+            case let count: "You have \(count) events left today."
+            }
+        case .card(.draftList(let card)):
+            switch card.items.count {
+            case 0: "No drafts waiting."
+            case 1: "You have 1 pending draft."
+            case let count: "You have \(count) pending drafts."
+            }
+        case .card: ""
+        case .problem(let sentence): sentence
+        }
+    }
 
     /// The card as the Siri actions word it (one line each), or the problem's sentence.
     public static func lines(_ answer: Answer, timeZone: TimeZone = .autoupdatingCurrent,

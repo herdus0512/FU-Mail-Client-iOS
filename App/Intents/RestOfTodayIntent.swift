@@ -27,22 +27,17 @@ struct PendingDraftsIntent: AppIntent {
     }
 }
 
-/// An answer for Siri: spoken with the words it gets wrong spelt as they sound (`SpokenText`, in FUMailKit),
-/// shown and handed to a shortcut as written.
-/// Siri says a summary written on the iPhone (`OnDeviceSummary`) when there's one within a few seconds,
-/// else the list.
+/// An answer for Siri: a concise count (`QuickLook.siriSummary`), while the card under Siri's reply
+/// and the shortcut's output keep the full list.
 enum SpokenAnswer {
     static func answer(_ kind: QuickLook) async -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
-        guard let settings = StoredConnection.settings() else { return result(RestOfToday.notSetUp, summary: nil) }
+        guard let settings = StoredConnection.settings() else { return result(RestOfToday.notSetUp, spoken: RestOfToday.notSetUp) }
         let answer = await kind.fetch(DesktopAPI(settings: settings, auth: StoredConnection.workerAuth()))
-        let text = QuickLook.lines(answer)
-        guard case .card = answer else { return result(text, summary: nil) }
-        return result(text, summary: await OnDeviceSummary.summary(kind, lines: text))
+        return result(QuickLook.lines(answer), spoken: QuickLook.siriSummary(answer))
     }
 
-    static func result(_ text: String, summary: String?) -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
-        .result(value: text, dialog: IntentDialog(stringLiteral: SpokenText.spoken(summary: summary, else: text)),
-                view: AnswerView(text: text))
+    static func result(_ text: String, spoken: String) -> some IntentResult & ReturnsValue<String> & ProvidesDialog & ShowsSnippetView {
+        .result(value: text, dialog: IntentDialog(stringLiteral: spoken), view: AnswerView(text: text))
     }
 }
 
@@ -62,14 +57,17 @@ private struct AnswerView: View {
 struct FUMailShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: RestOfTodayIntent(),
-                    phrases: ["What's left today in \(.applicationName)", "Rest of today in \(.applicationName)"],
+                    phrases: ["What's left in \(.applicationName)",
+                              "What's left today in \(.applicationName)",
+                              "Rest of today in \(.applicationName)"],
                     shortTitle: "Rest of Today",
                     systemImageName: "calendar")
         AppShortcut(intent: PendingDraftsIntent(),
                     // Some without "draft", which Messages and Mail answer to as well.
-                    phrases: ["What's waiting to send in \(.applicationName)", "Unsent emails in \(.applicationName)",
-                              "My unsent mail in \(.applicationName)", "Pending drafts in \(.applicationName)",
-                              "Drafts waiting in \(.applicationName)"],
+                    phrases: ["What's pending in \(.applicationName)",
+                              "Pending drafts in \(.applicationName)",
+                              "What's waiting to send in \(.applicationName)",
+                              "Unsent emails in \(.applicationName)"],
                     shortTitle: "Pending Drafts",
                     systemImageName: "envelope.badge")
     }
