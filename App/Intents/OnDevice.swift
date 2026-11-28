@@ -56,7 +56,13 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: SpokenText.spoken(summary: text, else: text))
+        let parts = SpokenText.utteranceParts(summary: text, else: text)
+        let attributed = NSMutableAttributedString(string: parts.text)
+        let ipaKey = NSAttributedString.Key(AVSpeechSynthesisIPANotationAttribute)
+        for item in parts.ipaRanges {
+            attributed.addAttribute(ipaKey, value: item.ipa, range: item.range)
+        }
+        let utterance = AVSpeechUtterance(attributedString: attributed)
         utterance.voice = AVSpeechSynthesisVoice(language: AVSpeechSynthesisVoice.currentLanguageCode())
         isSpeaking = true
         synthesizer.speak(utterance)
