@@ -6,7 +6,9 @@ import Foundation
 public enum SpokenText {
     /// Word → IPA notation for `AVSpeechSynthesizer` (`AVSpeechSynthesisIPANotationAttribute`).
     /// Matched as whole words, ignoring case. Manage with `make say WORD=… IPA="…"`.
-    public static let ipa: [String: String] = [:]
+    public static let ipa: [String: String] = [
+        "ignivo": "ɪɡ.ˈni.voʊ",
+    ]
 
     public struct IPARange: Sendable, Equatable {
         public let range: NSRange

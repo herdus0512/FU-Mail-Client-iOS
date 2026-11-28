@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 6.1.3, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 6.1.4, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad in landscape. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -253,6 +253,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 6.1.4 | 2026-11-28 | **Speak:** pronounces ignivo with IPA "ɪɡ.ˈni.voʊ"; the screen keeps the spelling. |
 | 6.1.3 | 2026-11-28 | **Siri:** says ignivo as "ig-ni-vo"; the screen and shortcuts keep the spelling. |
 | 6.1.2 | 2026-11-28 | **Calendar badges:** a calendar email shows a blue Invite, Response, Cancelled or Calendar badge in lists (before the subject) and in threads (beside the sender), as on the Mac. |
 | 6.1.1 | 2026-11-27 | **Chat list:** one line per chat, the name a size smaller and the date on the right ("14:05", "Mon 14:05", "3 Nov"), as in the Android app. |
