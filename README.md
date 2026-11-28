@@ -11,7 +11,7 @@ and this shows the same conversations and cards. For personal use: installed thr
 - **iOS 27 and later**, iPhone and iPad. SwiftUI, SF Mono for the chat and cards (the standard iOS
   font where you type: the message bar and search), no third-party code.
 
-> **Status: 6.1.5, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
+> **Status: 6.1.6, for FU Mail 6.1.1 on the Mac. Connects over Tailscale only.** Connecting, the
 > conversations, the chat, every card with its buttons (mail,
 > drafts, events, notes, CRM, tasks) and the draft editor, side by side on the iPad in landscape. See
 > [docs/PLAN.md](docs/PLAN.md) and [Versions](#versions).
@@ -253,6 +253,7 @@ one counts this app's own fixes.
 
 | Version | Date | What changed |
 | ------- | ---- | ------------ |
+| 6.1.6 | 2026-11-28 | **Speak:** pronounces neoine with IPA "ni.oʊ.aɪn"; the screen keeps the spelling. |
 | 6.1.5 | 2026-11-28 | **Siri** now gives concise counts ("You have 3 events left today." / "You have 2 pending drafts.") and leads with "What's left in MC Agent" / "What's pending in MC Agent"; **Summarise & Speak** in Quick Look gives fuller summaries (who each draft is to + subject, and which events block which times + when you're free). |
 | 6.1.4 | 2026-11-28 | **Speak:** pronounces ignivo with IPA "ɪɡ.ˈni.voʊ"; the screen keeps the spelling. |
 | 6.1.3 | 2026-11-28 | **Siri:** says ignivo as "ig-ni-vo"; the screen and shortcuts keep the spelling. |

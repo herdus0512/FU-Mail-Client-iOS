@@ -8,6 +8,7 @@ public enum SpokenText {
     /// Matched as whole words, ignoring case. Manage with `make say WORD=… IPA="…"`.
     public static let ipa: [String: String] = [
         "ignivo": "ɪɡ.ˈni.voʊ",
+        "neoine": "ni.oʊ.aɪn",
     ]
 
     public struct IPARange: Sendable, Equatable {
