@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""How Siri says a word: `make say WORD=Traceforce AS="Trace force"`.
+"""How Speak says a word using IPA: `make say WORD=ignivo IPA="ɪɡˈniːvoʊ"`.
 
-Adds (or changes) the word in SpokenText.sounds (FUMailKit/Sources/FUMailKit/Client/SpokenText.swift), so
-Siri's voice says it that way while the screen and shortcuts keep the spelling; bumps the patch version
-(VERSION, both MARKETING_VERSION lines, the README's status line and a Versions row); runs the package
-tests; and prints the commands to commit and upload. It commits nothing.
+Adds (or changes) the word in SpokenText.ipa (FUMailKit/Sources/FUMailKit/Client/SpokenText.swift), so
+AVSpeechSynthesizer pronounces it with IPA while the screen keeps the real spelling; bumps the patch
+version (VERSION, both MARKETING_VERSION lines, the README's status line and a Versions row); runs the
+package tests; and prints the commands to commit and upload. It commits nothing.
 
-  python3 tools/spoken_word.py add WORD "SOUNDS LIKE"   [--no-bump]
-  python3 tools/spoken_word.py remove WORD               [--no-bump]
+  python3 tools/spoken_word.py add WORD "IPA"   [--no-bump]
+  python3 tools/spoken_word.py remove WORD       [--no-bump]
   python3 tools/spoken_word.py list
 """
 import datetime, os, re, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SWIFT = os.path.join(ROOT, "FUMailKit/Sources/FUMailKit/Client/SpokenText.swift")
-START = "public static let sounds: [String: String] = ["
+START = "public static let ipa: [String: String] = ["
 ENTRY = re.compile(r'^\s*"((?:[^"\\]|\\.)*)": "((?:[^"\\]|\\.)*)",\s*$')
 
 
@@ -33,11 +33,13 @@ def write(path, text):
 
 
 def sounds():
-    """The list's lines: (index of `[`, index of `]`, [(word, sound)])."""
+    """The list's lines: (index of `[`, index of `]`, [(word, ipa)])."""
     lines = read(SWIFT).split("\n")
     start = next((i for i, line in enumerate(lines) if START in line), None)
     if start is None:
         fail(f"can't find the list in {SWIFT}")
+    if lines[start].strip().endswith("[:]"):
+        return lines, start, start, []
     end = next(i for i in range(start + 1, len(lines)) if lines[i].strip() == "]")
     entries = []
     for line in lines[start + 1:end]:
@@ -51,8 +53,16 @@ def sounds():
 
 def save(entries):
     lines, start, end, _ = sounds()
+    if not entries:
+        lines[start] = f"    {START}:]"
+        write(SWIFT, "\n".join(lines[:start + 1] + lines[end + 1:]))
+        return
+    lines[start] = f"    {START}"
     body = [f'        "{word}": "{sound}",' for word, sound in entries]
-    write(SWIFT, "\n".join(lines[:start + 1] + body + lines[end:]))
+    tail = lines[end + 1:] if start == end else lines[end:]
+    prefix = lines[:start + 1]
+    closing = ["    ]"] if start == end else []
+    write(SWIFT, "\n".join(prefix + body + closing + tail))
 
 
 def checked(text, what):
@@ -75,7 +85,7 @@ def bump(what):
     readme = read("README.md")
     if f"> **Status: {old}," not in readme or f"\n| {old} | " not in readme:
         fail(f"README.md has no status line or Versions row for {old}")
-    row = f"| {new} | {datetime.date.today()} | **Siri:** {what}. |\n"
+    row = f"| {new} | {datetime.date.today()} | **Speak:** {what}. |\n"
     readme = readme.replace(f"> **Status: {old},", f"> **Status: {new},", 1)
     readme = readme.replace(f"\n| {old} | ", f"\n{row}| {old} | ", 1)
     write("README.md", readme)
@@ -94,24 +104,24 @@ def main():
     word = checked(args[1] if len(args) > 1 else "", "WORD")
     others = [(w, s) for w, s in entries if w.lower() != word.lower()]
     if args[0] == "add":
-        sound = checked(args[2] if len(args) > 2 else "", "AS")
-        if sound.lower() == word.lower():
-            fail("AS is the same as WORD")
-        save(others + [(word, sound)])
-        what = f'says {word} as "{sound}"; the screen and shortcuts keep the spelling'
+        notation = checked(args[2] if len(args) > 2 else "", "IPA")
+        if notation.lower() == word.lower():
+            fail("IPA is the same as WORD")
+        save(others + [(word, notation)])
+        what = f'pronounces {word} with IPA "{notation}"; the screen keeps the spelling'
     else:
         if len(others) == len(entries):
             fail(f"{word} isn't in the list")
         save(others)
         what = f"says {word} as written again"
     version = None if "--no-bump" in sys.argv else bump(what)
-    print(f"Siri {what}.")
+    print(f"Speak {what}.")
     if subprocess.run(["swift", "test"], cwd=os.path.join(ROOT, "FUMailKit"), capture_output=True).returncode != 0:
         fail("the package tests failed: run `cd FUMailKit && swift test` to see why (nothing was committed)")
     print("Tests pass.")
     files = "FUMailKit/Sources/FUMailKit/Client/SpokenText.swift" + ("" if version is None else
                                                                      " VERSION README.md FUMail.xcodeproj/project.pbxproj")
-    message = f"[AM] FU Mail for iOS: Siri {what}" + ("" if version is None else f" (v{version})")
+    message = f"[AM] FU Mail for iOS: Speak {what}" + ("" if version is None else f" (v{version})")
     print(f"\nCommit and upload:\n  git add {files}\n  git commit -m '{message}'\n  git push\n  make testflight")
 
 

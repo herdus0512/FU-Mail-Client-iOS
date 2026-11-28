@@ -54,7 +54,7 @@ run-fake: build
 # How Siri says a word (the screen keeps the spelling), with the patch version bumped and the tests run:
 # make say WORD=Traceforce AS="Trace force"; make unsay WORD=Traceforce; make sounds lists them.
 say:
-	@python3 tools/spoken_word.py add "$(WORD)" "$(AS)"
+	@python3 tools/spoken_word.py add "$(WORD)" "$(IPA)"
 
 unsay:
 	@python3 tools/spoken_word.py remove "$(WORD)"

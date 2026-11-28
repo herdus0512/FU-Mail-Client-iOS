@@ -23,8 +23,8 @@ struct SummaryTests {
 
     @Test func theSummaryIsSaidWhenThereIsOneElseTheList() {
         let list = "14:00–15:00 Traceforce review\n16:00–16:30 Call Bob"
-        #expect(SpokenText.spoken(summary: "Traceforce at 2, then you're free.", else: list) == "Trace force at 2, then you're free.")
-        #expect(SpokenText.spoken(summary: nil, else: list) == "14:00–15:00 Trace force review. 16:00–16:30 Call Bob")
-        #expect(SpokenText.spoken(summary: "  \n", else: list) == "14:00–15:00 Trace force review. 16:00–16:30 Call Bob")
+        #expect(SpokenText.spoken(summary: "Traceforce at 2, then you're free.", else: list) == "Traceforce at 2, then you're free.")
+        #expect(SpokenText.spoken(summary: nil, else: list) == "14:00–15:00 Traceforce review. 16:00–16:30 Call Bob")
+        #expect(SpokenText.spoken(summary: "  \n", else: list) == "14:00–15:00 Traceforce review. 16:00–16:30 Call Bob")
     }
 }
